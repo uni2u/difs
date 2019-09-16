@@ -1,6 +1,14 @@
 ## DIFS (Data Infra File System)
 
+#### Our Goal
+
+> Object Storage
+
 ### Data Storage
+
+#### File Storage
+
+- Store segments (segment = data chunk)
 
 ```
                                                           + contents
@@ -68,4 +76,16 @@
     }
   ]
 }
+```
+
+### Sequence
+
+- insert
+  - producer send interest to DIFS
+    - interest: /repo/{insert}/a.com/izone.mp4
+
+```sequence
+Alice->Bob: Hello Bob, how are you?
+Note right of Bob: Bob thinks
+Bob-->Alice: I am good thanks!
 ```
