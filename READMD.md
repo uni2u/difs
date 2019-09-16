@@ -41,6 +41,9 @@
                     - segments
 ```
 
+
+- manifest file example 
+
 ``` json
 {
   "info": {
@@ -48,23 +51,21 @@
     "root_info": "hash_value",
     "vershin_info": "integer"
   },
-  "storage": {
-    "storages": [
-      {
-        "sotrage_name": "storage name",
-        "segment": {
-          "start_num": "integer",
-          "end_num": "integer"
-        }
-      },
-      {
-        "sotrage_name": "storage name",
-        "segment": {
-          "start_num": "integer",
-          "end_num": "integer"
-        }
+  "storages": [
+    {
+      "sotrage_name": "storage name",
+      "segment": {
+        "start_num": "integer",
+        "end_num": "integer"
       }
-    ]
-  }
+    },
+    {
+      "sotrage_name": "storage name",
+      "segment": {
+        "start_num": "integer",
+        "end_num": "integer"
+      }
+    }
+  ]
 }
 ```
