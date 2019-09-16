@@ -1,8 +1,18 @@
 ## DIFS (Data Infra File System)
 
-#### Our Goal
+** Our Goal **
 
 > Object Storage
+
+- using command (repo-ng)
+  - https://redmine.named-data.net/projects/repo-ng/wiki
+
+** What's Different (DIFS/repo-ng) **
+
+|  | repo-ng | DIFS |
+|---|:---|:---|
+|stored data|sqlite3 (DB)|file storage|
+|stored type|segment|segment|
 
 ### Data Storage
 
@@ -83,17 +93,34 @@
 - insert
   - producer send interest to DIFS
     - interest: /repo/{insert}/a.com/izone.mp4
+  - producer: create data
+  - storage
+    - each storage have a name (/storage01)
+    - store segments
+    - ex) /storage01/#1 -> stored segment prefix
 
-```mermaid
-%% Example of sequence diagram
-  sequenceDiagram
-    Alice->>Bob: Hello Bob, how are you?
-    alt is sick
-    Bob->>Alice: Not so good :(
-    else is well
-    Bob->>Alice: Feeling fresh like a daisy
-    end
-    opt Extra response
-    Bob->>Alice: Thanks for asking
-    end
+```
++----------+                                +------------+
+| producer |                                | /storage01 |
++----------+                                +------------+
+      |  interest: /repo/{insert}/a.com/izone.mp4  |
+      |------------------------------------------->|
+      |                                            |
+      |               state: 200 OK                |
+      |<-------------------------------------------|
+      |                                            |
+      |         interest: /a.com/izone.mp4         |
+      |<-------------------------------------------|
+      |      response data: manifest or segment    |
+      |------------------------------------------->|
+      |       interest: /a.com/izone.mp4/#01       |
+      |<-------------------------------------------|
+      |          response data: segment#01         |
+      |------------------------------------------->|
+      |                                            |
+      ~                                            ~
+      |  interest: /repo/{watch}/{check}/a.com/izone.mp4
+      |------------------------------------------->|
+      |               state: 200 OK                |
+      |<-------------------------------------------|
 ```
