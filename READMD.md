@@ -14,9 +14,9 @@
 |stored data|sqlite3 (DB)|file storage|
 |stored type|segment|segment|
 
-### Data Storage
+### DIFS Storages
 
-#### File Storage
+#### DIFS File Storage
 
 - Store segments (segment = data chunk)
 
@@ -42,7 +42,7 @@
                                                            - create key-value request
 ```
 
-### Data Key-Value Store
+#### DIFS Key-Value Storage
 
 ```
       R ------------- R ------------- R -------------------- R
