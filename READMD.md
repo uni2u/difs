@@ -154,11 +154,11 @@
   - compare with storage hash value range and content name hash result
   - data storage send interest to K/V storage
     - interest: /{find storage}/{create}/{table}/a.com/izone.mp4
-    - response: producer created info file
   - K/V storage
     - create K/V table
     - send interest to data storage
       - interest: /{data storage}/{info}/a.com/izone.mp4
+      - response: producer created info file
     - create manifest file
       - store info: who stored data (/storage01/contents)
       - segments info: segment start/end number
