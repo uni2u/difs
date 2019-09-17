@@ -108,6 +108,7 @@
 +----------+                                +------------+
 | producer |                                | /storage01 |
 +----------+                                +------------+
+      |                                            |
       |  interest: /repo/{insert}/a.com/izone.mp4  |
       |------------------------------------------->|
       |                                            |
@@ -143,6 +144,7 @@
       |                                    stored: /storage01/contents
       |                                            |   |
       |                                            |<--+
+      |                                            |
 ```
 
 - who is key-value
