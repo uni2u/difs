@@ -200,8 +200,8 @@ find K/V store: compare hashing result with the storage range
       |                                            |---+
       |                                            |   |
       |                             create manifest file
-      |                               store info: who stored data (/storage01/contents)
-      |                               segments info: segment start/end number
+      |                     store info: who stored data (/storage01/contents)
+      |                     segments info: segment start/end number
       |                                            |   |
       |                                            |<--+
       |                                            |
@@ -209,9 +209,59 @@ find K/V store: compare hashing result with the storage range
       |                                            |---+
       |                                            |   |
       |                                 insert Key/Value
-      |                                   Key: hashing result (/a.com/izone.mp4)
-      |                                   value: manifest file (already created)
+      |                     Key: hashing result (/a.com/izone.mp4)
+      |                     Value: manifest file (already created)
       |                                            |   |
       |                                            |<--+
       |                                            |
+```
+
+- get
+
+```
++----------+     +------------+     +------------+     +------------+
+| consumer |     | /storage02 |     | /storage04 |     | /storage01 |
+|          |     |            |     | K/VStorage |     |File Storage|
++----------+     +------------+     +------------+     +------------+
+     |                  |                  |                  |
+intestst: /repo/{get}/a.com/izone.mp4      |                  |
+     |----------------->|                  |                  |
+     |                  |---+              |                  |
+     |                  |   |              |                  |
+     |       hasing: /a.com/izone.mp4      |                  |
+     |                  |   |              |                  |
+     |                  |<--+              |                  |
+     |                  |                  |                  |
+     |    interest: /{find storage}/{fetch}/{hashing result}  |
+     |                  |----------------->|                  |
+     |                  |                  |                  |
+     |           response: manifest (key: hashing result)     |
+     |                  |<-----------------|                  |
+    response: manifest (delivery)          |                  |
+     |<-----------------|                  |                  |
+     |                  |                  |                  |
+     ~                  ~                  ~                  ~
+     |                  |                  |                  |
+ +---|                  |                  |                  |
+ |   |                  |                  |                  |
+receive manifest file                                         |
+  know who stored data (rename prefix)                        |
+  know number of segment                                      |
+ |   |                  |                  |                  |
+ +-->|                  |                  |                  |
+     |                  |                  |                  |
+     ~                  ~                  ~                  ~
+     |                  |                  |                  |
+intestst: /storage01/contents/a.com/izone.mp4/#01             |
+     |------------------------------------------------------->|
+     |                response data: segment#01               |
+     |<-------------------------------------------------------|
+     |                  |                  |                  |
+     ~                  ~                  ~                  ~
+     |                  |                  |                  |
+intestst: /storage01/contents/a.com/izone.mp4/#end            |
+     |------------------------------------------------------->|
+     |                response data: segment#end              |
+     |<-------------------------------------------------------|
+     |                  |                  |                  |
 ```
