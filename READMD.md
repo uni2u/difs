@@ -91,18 +91,18 @@
 ### Sequence
 
 - insert
-  - producer send interest to DIFS
+  - producer send interest to DIFS storage
     - interest: /repo/{insert}/a.com/izone.mp4
-  - producer: create data
-  - storage
+    - producer: create data
+  - DIFS file storage
     - each storage have a name (/storage01)
     - store segments
-    - ex) /storage01/#1 -> stored segment prefix
-  - create info file
-    - name: /a.com/izone.mp4
-    - hash: hashing result (/a.com/izone.mp4)
-    - segments: start/end num
-    - stored: /storage01/contents)
+      - ex) /storage01/#1 -> stored segment prefix
+    - create info file
+      - name: /a.com/izone.mp4
+      - hash: hashing result (/a.com/izone.mp4)
+      - segments: start/end num
+      - stored: /storage01/contents
 
 ```
 +----------+                                +------------+
@@ -148,13 +148,13 @@
 ```
 
 - who is key-value
-  - stored data storage find K/V storage
-  - each storage has its own hash value range
-  - storage that stores data, hashes content names
-  - compare with storage hash value range and content name hash result
-  - data storage send interest to K/V storage
+  - stored DIFS file storage find DIFS K/V storage
+  - each DIFS storage has its own hash value range
+  - DIFS file storage that stores data, hashes content names
+    - compare with storage hash value range and content name hash result
+  - DIFS file storage send interest to DIFS K/V storage
     - interest: /{find storage}/{create}/{table}/a.com/izone.mp4
-  - K/V storage
+  - DIFS K/V storage
     - create K/V table
     - send interest to data storage
       - interest: /{data storage}/{info}/a.com/izone.mp4
@@ -162,9 +162,9 @@
     - create manifest file
       - store info: who stored data (/storage01/contents)
       - segments info: segment start/end number
-  - insert K/V
-    - Key: hashing result (/a.com/izone.mp4)
-    - Value: manifest file
+    - insert K/V
+      - Key: hashing result (/a.com/izone.mp4)
+      - Value: manifest file
 
 ```
 +------------+                              +------------+
@@ -219,7 +219,21 @@ find K/V store: compare hashing result with the storage range
 ```
 
 - get
-
+  - consumer send interest to DIFS storage
+    - interest: /repo/{get}/a.com/izone.mp4
+  - requested DIFS storage hashes the content name
+    - hashing: content name (/a.com/izone.mp4)
+    - find DIFS K/V storage: hashing result (who has hash range)
+    - send interest to K/V storage
+      - interest: /{find storage}/{fetch}/{hashing result}
+      - response: manifest (Key: hashing result, Value: manifest)
+    - delivers manifest files to consumer
+  - consumer received manifest file
+    - who stored data (rename prefix)
+    - number of segments
+  - consumer send interest to DIFS file storage
+    - interest: /storage01/contents/a.com/izone.mp4/#01
+    
 ```
 +----------+     +------------+     +------------+     +------------+
 | consumer |     | /storage02 |     | /storage04 |     | /storage01 |
