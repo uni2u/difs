@@ -48,6 +48,11 @@
                                                          + contents_name hashing
                                                            - find key-value store
                                                            - create key-value request
+                                                         + create info
+                                                           - content_name
+                                                           - content_name hashing
+                                                           - segments
+                                                           - rename
 ```
 
 - info file example (like manifest)
