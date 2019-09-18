@@ -130,7 +130,7 @@
       - name: /a.com/izone.mp4
       - hash: hashing result (/a.com/izone.mp4)
       - segments: start/end num
-      - stored: /storage01/contents
+      - rename: /storage01/contents
 
 ```
 +----------+                                +------------+
