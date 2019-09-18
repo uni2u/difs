@@ -50,6 +50,20 @@
                                                            - create key-value request
 ```
 
+- info file example (like manifest)
+
+```json
+{
+  "name": "content name",
+  "hash": "content name hashing result",
+  "segment": {
+    "start_num": "integer",
+    "end_num": "integer"
+  },
+  "rename": "stored storage name"
+}
+```
+
 #### DIFS Key-Value Storage
 
 ```
@@ -150,7 +164,7 @@
       |                                    name: /a.com/izone.mp4
       |                                    hash: hashing result (/a.com/izone.mp4)
       |                                    segments: start/end num
-      |                                    stored: /storage01/contents
+      |                                    rename: /storage01/contents
       |                                            |   |
       |                                            |<--+
       |                                            |
