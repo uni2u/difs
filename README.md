@@ -11,14 +11,20 @@
 
 |  | repo-ng | DIFS |
 |---|:---|:---|
-|stored data|sqlite3 (DB)|file storage|
+|storage|sqlite3 (DB)|file storage|
 |stored type|segment|segment|
+|...|...|...|
 
-### DIFS Storages
+### DIFS
+
+> NDN based Object Storage
+>> segments are stored on file storage
+>> content is retrieved through key-value storage which file storage has been stored
+>> DIFS = DIFS file storage + DIFS Key/Value storage
 
 #### DIFS File Storage
 
-- Store segments (segment = data chunk)
+- store segments (segment = data chunk)
 
 ```
                                                           + contents
