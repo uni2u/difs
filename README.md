@@ -239,9 +239,9 @@ find K/V store: compare hashing result with the storage range
     - hashing: content name (/a.com/izone.mp4)
     - find DIFS K/V storage: hashing result (who has hash range)
     - send interest to K/V storage
-      - interest: /{find storage}/{fetch}/{hashing result}
-      - response: manifest (Key: hashing result, Value: manifest)
+      - interest: /{find storage name}/{fetch}/{hashing result}
       - DIFS command: new command
+      - response: manifest (Key: hashing result, Value: manifest)
     - delivers manifest files to consumer
   - consumer received manifest file
     - who stored data (rename prefix)
