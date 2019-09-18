@@ -11,7 +11,7 @@
 
 |  | repo-ng | DIFS |
 |---|:---|:---|
-|storage|sqlite3 (DB)|file storage|
+|storage|sqlite3 (DB)|object storage|
 |stored type|segment|segment|
 |...|...|...|
 
@@ -19,7 +19,9 @@
 
 > NDN based Object Storage
 >> segments are stored on file storage
+
 >> content is retrieved through key-value storage which file storage has been stored
+
 >> DIFS = DIFS file storage + DIFS Key/Value storage
 
 #### DIFS File Storage
@@ -100,11 +102,12 @@
   - producer send interest to DIFS storage
     - interest: /repo/{insert}/a.com/izone.mp4
     - producer: create data
+    - using repo-ng command
   - DIFS file storage
     - each storage have a name (/storage01)
     - store segments
       - ex) /storage01/#1 -> stored segment prefix
-    - create info file
+    - create info (like manifest) file
       - name: /a.com/izone.mp4
       - hash: hashing result (/a.com/izone.mp4)
       - segments: start/end num
@@ -160,14 +163,17 @@
     - compare with storage hash value range and content name hash result
   - DIFS file storage send interest to DIFS K/V storage
     - interest: /{find storage}/{create}/{table}/a.com/izone.mp4
+    - DIFS command: new command
   - DIFS K/V storage
     - create K/V table
     - send interest to data storage
       - interest: /{data storage}/{info}/a.com/izone.mp4
       - response: producer created info file
+      - DIFS command: new command
     - create manifest file
       - store info: who stored data (/storage01/contents)
       - segments info: segment start/end number
+      - you can see: manifest file example (SECTION: DIFS Key-Value Storage)
     - insert K/V
       - Key: hashing result (/a.com/izone.mp4)
       - Value: manifest file
@@ -227,12 +233,15 @@ find K/V store: compare hashing result with the storage range
 - get
   - consumer send interest to DIFS storage
     - interest: /repo/{get}/a.com/izone.mp4
+    - DIFS command: new command
+    - based repo-ng command
   - requested DIFS storage hashes the content name
     - hashing: content name (/a.com/izone.mp4)
     - find DIFS K/V storage: hashing result (who has hash range)
     - send interest to K/V storage
       - interest: /{find storage}/{fetch}/{hashing result}
       - response: manifest (Key: hashing result, Value: manifest)
+      - DIFS command: new command
     - delivers manifest files to consumer
   - consumer received manifest file
     - who stored data (rename prefix)
