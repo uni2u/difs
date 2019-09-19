@@ -12,10 +12,10 @@
 
 DIFS based on [repo-ng](https://github.com/named-data/repo-ng).
 
-Unlike repo-ng using sqlite3, DIFS stores the manufacturer's data segments in the file system.
-
-- repo-ng base
+- repo-ng wiki
   - https://redmine.named-data.net/projects/repo-ng/wiki
+
+Unlike repo-ng using sqlite3, DIFS stores the manufacturer's data segments in the file system.
 
 #### What's Different (DIFS/repo-ng)
 
