@@ -6,7 +6,7 @@
 
 - segments are stored on file storage
 - content is retrieved through key-value storage which file storage has been stored
-- **DIFS = DIFS file storage + DIFS Key/Value storage**
+- '_DIFS = DIFS file storage + DIFS Key/Value storage_'
 
 #### Environment
 
