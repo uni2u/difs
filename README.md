@@ -23,7 +23,4 @@ Unlike repo-ng using sqlite3, DIFS stores the manufacturer's data segments in th
 - content is retrieved through key-value storage which file storage has been stored
 - '_DIFS = DIFS file storage + DIFS Key/Value storage_'
 
-### Environment
-
-Unlike repo-ng using sqlite3, DIFS stores the manufacturer's data segments in the file system.
-DIFS can be divided into file storage and Key-Value storage.
+If you're curious about DIFS, visit our [WiKi page](https://github.com/uni2u/difs/wiki).
