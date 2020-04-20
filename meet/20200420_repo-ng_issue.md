@@ -1,3 +1,4 @@
+
 # issue list check
 
 - 참조 사이트: [repo-ng redmine](https://redmine.named-data.net/projects/repo-ng)
@@ -330,7 +331,277 @@ It is suspect this is caused by "src/repo.cpp: repoConfig.nMaxPackets = repoConf
   - [_마지막 의견_]
     - 오랜시간 해결되지 않아서 질문자가 해결함 (해결 방법 및 내용은 없음)
 
-- [~~WriteHandle has a -2 second delay before starting sending Interests~~](https://redmine.named-data.net/issues/1572)
+- [~~WriteHandle has a ~2 second delay before starting sending Interests~~](https://redmine.named-data.net/issues/1572)
   - 상태: 완료됨
   - interest 를 발생후 delay 발생
+  - [_마지막 의견_]
+
+## Task
+
+|상태|우선순위|제목|날짜|
+|:---:|:---:|:---|:---|
+|New|Normal|[Add Sync support for repo](https://redmine.named-data.net/issues/4523)|2018/11/15|
+|Closed|Normal|[Remove selectors from old interest format](https://redmine.named-data.net/issues/4522)|2019/01/13|
+|New|High|[Can't insert segmented data](https://redmine.named-data.net/issues/4374)|2017/11/01|
+|Closed|Urgent|[Adapt to ndn-cxx v2::KeyChain and Validator](https://redmine.named-data.net/issues/4091)|2018/10/27|
+|New|High|[Downloading with a different piplines](https://redmine.named-data.net/issues/3320)|2015/11/05|
+|New|Normal|[ndnputfile ERROR: check response timeout](https://redmine.named-data.net/issues/3304)|2015/11/03|
+|Closed|Normal|[Fix test cases update for ImplictSha256DigestComponent](https://redmine.named-data.net/issues/2172)|2017/06/15|
+|Closed|High|[The problem of ndnputfile and ndngetfile](https://redmine.named-data.net/issues/1887)|2017/06/08|
+|Closed|High|[Initiation read entries from database](https://redmine.named-data.net/issues/1867)|2017/06/08|
+|New|Normal|[Client library to handle repo-ng](https://redmine.named-data.net/issues/1858)|2014/08/29|
+|Closed|Normal|[Rebuild storage when repo starts](https://redmine.named-data.net/issues/1831)|2014/08/17|
+|New|Normal|[Example producer to help testing / guide development application for watch protocol](https://redmine.named-data.net/issues/1829)|2014/08/06|
+|Closed|Normal|[ERROR: command response timeout from "ndnputfile"](https://redmine.named-data.net/issues/1810)|2017/06/08|
+|New|Normal|[RepoSync](https://redmine.named-data.net/issues/1809)|2016/07/19|
+|Closed|Normal|[use make_shared to initiate data](https://redmine.named-data.net/issues/1802)|2017/06/08|
+|In Progress|Normal|[repo performance test tools: repong-put-packet repong-get-packet repong-remove-packet](https://redmine.named-data.net/issues/1801)|2015/03/03|
+|Closed|Normal|[Visualize contents of the repo](https://redmine.named-data.net/issues/1789)|2017/06/08|
+|New|Normal|[create wiki about access control](https://redmine.named-data.net/issues/1783)|2014/07/24|
+|New|Normal|[ndndumpfile: local dump tool](https://redmine.named-data.net/issues/1779)|2014/07/18|
+|Closed|Normal|[skiplist: Changing to const_iterators](https://redmine.named-data.net/issues/1745)|2017/06/08|
+|Closed|Low|[Use test-specific identity in test-basic-command-insert-delete.cpp](https://redmine.named-data.net/issues/1739)|2017/07/18|
+|Closed|High|[implement skiplist for index of repo](https://redmine.named-data.net/issues/1737)|2014/07/23|
+|In Progress|Normal|[Repo-ng slowdown for large repo sizes](https://redmine.named-data.net/issues/1695)|2014/08/11|
+|New|Normal|[WriteHandle doesn't stop expressing Interests when FinalBlockId is present in the last Data packet](https://redmine.named-data.net/issues/1573)|2014/06/19|
+|Closed|Normal|[WriteHandle skips 14th segment (%0C)](https://redmine.named-data.net/issues/1571)|2014/05/02|
+|Closed|Normal|[Copying KeyChain crashes repo](https://redmine.named-data.net/issues/1552)|2014/04/29|
+
+- [Add Sync support for repo](https://redmine.named-data.net/issues/4523)
+  - 상태: 시작
+  - ChronoSync 를 사용하여 실시간 데이터를 동기화 (기존 watch prefix insert 프로토콜을 대체)
+  - [_마지막 의견_]
+    - PSync 사용에 대한 개인 의견만 있음
+
+- [Remove selectors from old interest format](https://redmine.named-data.net/issues/4522)
+  - 상태: 완료됨
+  - selector 및 관련 테스트 코드를 삭제하고 interest 데이터 matching 프로세스 단순화
+    - 새로운 버전의 NDN interest 는 selector 기능을 단순화
+  - [_마지막 의견_]
+    - name column 에는 NAME-VALUE 만 저장
+    - [https://github.com/3rd-ndn-hackathon/repo-sql/blob/91eb215e90dd66e0711f3a8d705ef4b788c7a4d7/src/database-conn.cpp#L90](https://github.com/3rd-ndn-hackathon/repo-sql/blob/91eb215e90dd66e0711f3a8d705ef4b788c7a4d7/src/database-conn.cpp#L90)  
+    - [https://github.com/3rd-ndn-hackathon/repo-sql/blob/91eb215e90dd66e0711f3a8d705ef4b788c7a4d7/src/database-conn.cpp#L21](https://github.com/3rd-ndn-hackathon/repo-sql/blob/91eb215e90dd66e0711f3a8d705ef4b788c7a4d7/src/database-conn.cpp#L21)
+
+- [Can't insert segmented data](https://redmine.named-data.net/issues/4374)
+  - 상태: 시작
+  - repo-ng 기본 구성으로 세그먼트 데이터 삽입이 되지 않음
+    - '$ ndnputfile /icear/content-provider/1 /icear/content-provider/data/chair chair.jpg'
+    - ERROR: insert command failed with code 402
+  - [_마지막 의견_]
+
+- [Adapt to ndn-cxx v2::KeyChain and Validator](https://redmine.named-data.net/issues/4091)
+  - 상태: 종료됨
+  - ndn-cxx v2::KeyChain 및 v2::Validator 를 사용하도록 repo-ng 수정
+  - [_마지막 의견_]
+    - [repo-ng code gerrit](https://gerrit.named-data.net/#/c/4122/)
+
+- [Downloading with a different piplines](https://redmine.named-data.net/issues/3320)
+  - 상태: 시작
+  - ndngetfile tool 에 다른 파이프라인으로 다운로드하는 기능이 없음
+    - NDN 다운로드 속도가 느려질 수 있음
+  - [_마지막 의견_]
+
+- [ndnputfile ERROR: check response timeout](https://redmine.named-data.net/issues/3304)
+  - 상태: 시작
+  - repo-ng 에 8.5G 파일 insert 시 타임아웃 발생
+    - 3.0, 3.5, 4.3, 2.7 GB 파일 insert 동일 오류 발생
+    - 구 버전을 사용하는 경우 2.2 GB 저장 가능
+    - NFD 버전 0.4.0-rc1
+  - [_마지막 의견_]
+    - ndnputfile 및 ndn-repo-ng 프로세스가 모든 RAM 을 소비하고 프로세스를 삭제함
+
+- [Fix test cases update for ImplictSha256DigestComponent](https://redmine.named-data.net/issues/2172)
+  - 상태: 완료됨
+  - ImplictSha256DigestComponent 에 대한 수정 테스트 케이스 업데이트
+  - [_마지막 의견_]
+    - _ContentStore matching test cases: update for ImplictSha256DigestComponent_ 추가
+
+- [The problem of ndnputfile and ndngetfile](https://redmine.named-data.net/issues/1887)
+  - 상태: 완료됨
+  - ndnputfile -s 옵션과 함께 insert 된 데이터를 ndngetfile 할 수 없음
+    - ndnputfile -s 를 사용하면 prefix 뒤에 버전 번호를 자동으로 임의 추가
+    - ndngetfile 을 사용하는 경우 prefix 만 사용하거나 -u 옵션을 이용하여 버전 번호가 있는 prefix 를 사용하도록 결정할 수 있으나 모두 동작하지 않음
+  - [_마지막 의견_]
+    - [repo-ng code gerrit](https://gerrit.named-data.net/1163)
+
+- [Initiation read entries from database](https://redmine.named-data.net/issues/1867)
+  - 상태: 종료됨
+  - 'nfd-start' 와 'ndn-repo-ng' 를 실행후 오류 발생
+    - "ERROR: Initiation Read Entries from Database Prepare error"
+  - [_마지막 의견_]
+    - [#1887](https://redmine.named-data.net/issues/1887) 에서 동일 이슈를 다룸
+
+- [Client library to handle repo-ng](https://redmine.named-data.net/issues/1858)
+  - 상태: 시작
+  - 클라이언트 라이브러리는 RepoCommandParameter 및 interest 를 보다 쉽게 생성하여야 함
+  - [_마지막 의견_]
+    - extractRepoCommandInterest (Data & repoCommandResponse, RepoCommandParameter & parameter) 함수가 명확한지 확실하지 않음
+    - extractRepoCommandResponse(Data& reply, RepoCommandResponse& response) 과 extractRepoCommandParameter(Interest interest, Name prefix, RepocommandParameter parameter) 로 분리하여야 함
+    - 의미가 없는 것으로 판단됨
+
+- [Rebuild storage when repo starts](https://redmine.named-data.net/issues/1831)
+  - 상태: 종료됨
+  - storage rebuild 관련 storage api 가 있으나 초기화 과정에 누락됨
+  - [_마지막 의견_]
+    - rebuilding storage 의미가 불분명함
+    - repository 시작 후 index 를 다시 작성하는 것으로 이 기능은 storage API 에서 제공하고 있으나 초기화시에 호출되지 않음
+    - 'rebuilding Index' 로 확인함
+
+- [Example producer to help testing / guide development application for watch protocol](https://redmine.named-data.net/issues/1829)
+  - 상태: 시작
+  - watch 프로토콜에 대한 어플리케이션의 테스트/가이드 예제
+  - [_마지막 의견_]
+
+- [ERROR: command response timeout from "ndnputfile"](https://redmine.named-data.net/issues/1810)
+  - 상태: 종료됨
+  - ndnputfile 명령어를 사용하는 경우 타임아웃 발생
+    - face 를 만들기 위한 시도를 하였으나 즉시 제거됨 
+  - [_마지막 의견_]
+    - [#1887](https://redmine.named-data.net/issues/1887) 에서 동일 이슈를 다룸
+
+- [RepoSync](https://redmine.named-data.net/issues/1809)
+  - 상태: 시작
+  - repo 간 동기화 필요 (ChronoSync 기반)
+  - [_마지막 의견_]
+    - 최근 summit 에서 의견이 있었음
+    - repo 가 설정되면 repo 동기화가 시작되며 이는 sync handle 명령을 통해 수행
+    - 2016년 6월 30일 회의를 통해
+    - 동기화 상태 및 동기화 트리를 기록하는 DB 추가 (그렇지 않으면 repo 를 재실행하는 순간 초기화됨)
+    - 기존 RepoSync 는 NDN 에서 'Action-Based' 및 'Data-Based' 동기화 모델을 검토하여야 함
+    - 코드 구현 품질이 매우 좋지 않기 때문에 재구성 필요 
+
+- [use make_shared to initiate data](https://redmine.named-data.net/issues/1802)
+  - 상태: 종료됨
+  - ndn-cxx 새 버전에서 make_shared 에서 데이터를 시작하지 않으면 데이터 put 에대한 경고 발생
+  - [_마지막 의견_]
+    - watch prefix 커밋에서 수정됨
+    - shared_ptr 을 사용하여 데이터를 넣지 않는 handle 의 응답 대체
+
+- [repo performance test tools: repong-put-packet repong-get-packet repong-remove-packet](https://redmine.named-data.net/issues/1801)
+  - 상태: 시작
+  - repo 성능 테스트 도구 필요
+    - ndnputpacket, ndngetpacket, ndnremovepacket
+  - [_마지막 의견_]
+    - ndn 의 성능 도구가 아닌 repo 의 성능 도구
+
+- [Visualize contents of the repo](https://redmine.named-data.net/issues/1789)
+  - 상태: 종료됨
+  - repo 내용을 시각화 하는 도구의 필요성
+  - [_마지막 의견_]
+    - index.cpp 및 repostorage.cpp에서 구현되며 repo는 dataEnumerate 함수를 사용하여 repostorage 외부에 정의 된 콜백 함수를 호출
+
+- [create wiki about access control](https://redmine.named-data.net/issues/1783)
+  - 상태: 시작
+  - repo-ng access control 에 대한 WiKi 필요성
+  - [_마지막 의견_]
+    - [validator configuration WiKi](http://redmine.named-data.net/projects/ndn-cxx/wiki/CommandValidatorConf) 참조
+    - [Access Control in NDN Repo](https://redmine.named-data.net/attachments/104) 참조
+
+- [ndndumpfile: local dump tool](https://redmine.named-data.net/issues/1779)
+  - 상태: 시작
+  - tcp-bulk-insert-handle 을 사용하여 파일을 로컬 저장소에 덤프
+  - [_마지막 의견_]
+
+- [skiplist: Changing to const_iterators](https://redmine.named-data.net/issues/1745)
+  - 상태: 종료됨
+  - [기사](http://stackoverflow.com/questions/765257/should-i-prefer-iterators-over-const-iterators) 에서 caller 는 iterator 가 참조하는 값을 수정할 수 있다고 지적함
+    - 모든 iterator 를 const_iterator 로 변경하여 변화되지 않도록 하는 것이 필요함
+  - [_마지막 의견_]
+    - index 는 'std::set' 을 기반으로 하기 때문에 더이상 필요하지 않음
+
+- [Use test-specific identity in test-basic-command-insert-delete.cpp](https://redmine.named-data.net/issues/1739)
+  - 상태: 종료됨
+  - 현재 테스트 예제는 'default' ID 를 사용함 (dumps 및 서명)
+    - 테스트 케이스가 특정 ID 를 생성하고 호스트 시스템의 기본 설정을 변경하지 않고 명시적으로 서명하여 데이터 패킷을 작성
+  - [_마지막 의견_]
+    - repo-ng : commit : 047a6fb40b806199d24a2ef4d0cbbca78e1dbf78 에서 해결
+
+- [implement skiplist for index of repo](https://redmine.named-data.net/issues/1737)
+  - 상태: 종료됨
+  - repo index 에 대한 skiplist 구현
+  - [_마지막 의견_]
+
+- [Repo-ng slowdown for large repo sizes](https://redmine.named-data.net/issues/1695)
+  - 상태: In Progress
+  - BAMS/BMS 데모 응용의 경우 1GB 이상의 데이터를 repo-ng 에서 사용할 수 없음
+    - 이 응용은 약 20 개의 데이터 포인트에 대한 1Hz 샘플링이 포함
+    - 각 데이터 포인트는 현재 데이터 객체로 저장
+    - 작은 객체의 큰 데이터 세트에 대한 성능 향상 
+  - [_마지막 의견_]
+    - index 및 storage 개발중이며 성능은 말하기 어려움
+    - index 및 sqlite 를 포함한 repoStorage 구현 완료
+    - 동작 test 되지 않음
+
+- [WriteHandle doesn't stop expressing Interests when FinalBlockId is present in the last Data packet](https://redmine.named-data.net/issues/1573)
+  - 상태: 시작
+  - ndnputfile 에서 'ERROR: insertion check command invalidated: RepoCommandResponse( StatusCode: 404 )' 발생
+    - FinalBlockID 를 지정하지만 WriteHandle 은 계속진행되어 존재하지 않는 Data 패킷에 대한 interest 를 계속 발생
+  - [_마지막 의견_]
+    - ndnputfile 추후 commit 에서 수정될 예정
+
+- [WriteHandle skips 14th segment (%0C)](https://redmine.named-data.net/issues/1571)
+  - 상태: 종료됨
+  - ndnputfile (http://gerrit.named-data.net/#/c/775) 에서 문제 발견
+    - repo-ng 에서 13 번 segment 를 요청하지 않음
+  - [_마지막 의견_]
+
+- [Copying KeyChain crashes repo](https://redmine.named-data.net/issues/1552)
+  - 상태: 종료됨
+  - KeyChain 은 복사되지 않아야 함
+    - lib 최근 변경으로 인하여 KeyChain 을 복사하면 응용 중단
+    - 모든 KeyChain 사본은 reference 로 교체
+  - [_마지막 의견_]
+    - read--handle KeyChain 을 제외한 모든 곳은 reference 로 교체
+    - commit: repo-ng|a53ee59a36d26d7f78de7faa69fba849f1909127 적용
+
+-
+  - 상태: 시작
+  - [_마지막 의견_]
+
+-
+  - 상태: 시작
+  - [_마지막 의견_]
+
+-
+  - 상태: 시작
+  - [_마지막 의견_]
+
+-
+  - 상태: 시작
+  - [_마지막 의견_]
+
+-
+  - 상태: 시작
+  - [_마지막 의견_]
+
+-
+  - 상태: 시작
+  - [_마지막 의견_]
+
+-
+  - 상태: 시작
+  - [_마지막 의견_]
+
+-
+  - 상태: 시작
+  - [_마지막 의견_]
+
+-
+  - 상태: 시작
+  - [_마지막 의견_]
+
+-
+  - 상태: 시작
+  - [_마지막 의견_]
+
+-
+  - 상태: 시작
+  - [_마지막 의견_]
+
+-
+  - 상태: 시작
+  - [_마지막 의견_]
+
+-
+  - 상태: 시작
   - [_마지막 의견_]
