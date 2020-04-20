@@ -330,7 +330,7 @@ It is suspect this is caused by "src/repo.cpp: repoConfig.nMaxPackets = repoConf
   - [_마지막 의견_]
     - 오랜시간 해결되지 않아서 질문자가 해결함 (해결 방법 및 내용은 없음)
 
-- [~~WriteHandle has a ~2 second delay before starting sending Interests~~](https://redmine.named-data.net/issues/1572)
+- [~~WriteHandle has a -2 second delay before starting sending Interests~~](https://redmine.named-data.net/issues/1572)
   - 상태: 완료됨
   - interest 를 발생후 delay 발생
   - [_마지막 의견_]
