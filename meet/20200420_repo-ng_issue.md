@@ -347,6 +347,7 @@ It is suspect this is caused by "src/repo.cpp: repoConfig.nMaxPackets = repoConf
 |New|High|[Downloading with a different piplines](https://redmine.named-data.net/issues/3320)|2015/11/05|
 |New|Normal|[ndnputfile ERROR: check response timeout](https://redmine.named-data.net/issues/3304)|2015/11/03|
 |Closed|Normal|[Fix test cases update for ImplictSha256DigestComponent](https://redmine.named-data.net/issues/2172)|2017/06/15|
+|Closed|Normal|[Expand basic documentation and installation instructions for repo-ng](https://redmine.named-data.net/issues/1897)|2017/06/15|
 |Closed|High|[The problem of ndnputfile and ndngetfile](https://redmine.named-data.net/issues/1887)|2017/06/08|
 |Closed|High|[Initiation read entries from database](https://redmine.named-data.net/issues/1867)|2017/06/08|
 |New|Normal|[Client library to handle repo-ng](https://redmine.named-data.net/issues/1858)|2014/08/29|
@@ -366,6 +367,18 @@ It is suspect this is caused by "src/repo.cpp: repoConfig.nMaxPackets = repoConf
 |New|Normal|[WriteHandle doesn't stop expressing Interests when FinalBlockId is present in the last Data packet](https://redmine.named-data.net/issues/1573)|2014/06/19|
 |Closed|Normal|[WriteHandle skips 14th segment (%0C)](https://redmine.named-data.net/issues/1571)|2014/05/02|
 |Closed|Normal|[Copying KeyChain crashes repo](https://redmine.named-data.net/issues/1552)|2014/04/29|
+|Closed|Normal|[License change to GPL 3.0](https://redmine.named-data.net/issues/1540)|2018/10/27|
+|Closed|Urgent|[Build with ndn-cxx instead of ndn-cpp-dev](https://redmine.named-data.net/issues/1538)|2014/04/25|
+|Closed|High|[ndngetfile: retrieve tool](https://redmine.named-data.net/issues/1514)|2014/05/01|
+|Closed|High|[ndnputfile: insert tool](https://redmine.named-data.net/issues/1513)|2014/07/23|
+|New|Normal|[Command-line tool to print out names of stored data](https://redmine.named-data.net/issues/1498)|2014/04/28|
+|Closed|Normal|[Make use ValidatorConfig](https://redmine.named-data.net/issues/1479)|2014/07/23|
+|New|Normal|[Deletion progress check](https://redmine.named-data.net/issues/1478)|2014/04/28|
+|New|Normal|[Deletion of segmented data without EndBlockId](https://redmine.named-data.net/issues/1477)|2014/04/14|
+|Closed|Normal|[Select data by PublisherPublicKeyLocator](https://redmine.named-data.net/issues/1437)|2014/06/19|
+|Closed|Normal|[Repo table reorganized or in-memory index](https://redmine.named-data.net/issues/1434)|2014/07/23|
+|Closed|Normal|[Definition of rightmost selector](https://redmine.named-data.net/issues/1433)|2014/06/19|
+|Closed|Normal|[Define command syntax for insertion/deletion to repo](https://redmine.named-data.net/issues/1258)|2014/06/19|
 
 - [Add Sync support for repo](https://redmine.named-data.net/issues/4523)
   - 상태: 시작
@@ -415,6 +428,18 @@ It is suspect this is caused by "src/repo.cpp: repoConfig.nMaxPackets = repoConf
   - ImplictSha256DigestComponent 에 대한 수정 테스트 케이스 업데이트
   - [_마지막 의견_]
     - _ContentStore matching test cases: update for ImplictSha256DigestComponent_ 추가
+
+- [Expand basic documentation and installation instructions for repo-ng](https://redmine.named-data.net/issues/1897)
+- 상태: 완료됨
+- README, INSTALL 문서가 완전하지 않음
+  - 샘플 기반의 config 파일의 필요성 및 위치 설명
+  - /var/db/ndn-repo-ng 디렉토리를 수동으로 구성하고 repo-ng 를 실행할 사용자에 대한 rw 권한 설정
+  - ndnputfile 및 ndngetfile을 사용한 repo 작업 테스트 과정
+  - /var/db 에 단일 db 가 있는 시스템 서비스인 것 처럼 설치하지만 ~/.ndn/client.conf 의 사용자 별 구성을 고려함
+  - NFD 와 같이 별도의 사용자로 실행될 수 있도록 하여야 함
+  - 문서화 필요
+- [_마지막 의견_]
+  - [repo-ng code gerrit](https://gerrit.named-data.net/3939)
 
 - [The problem of ndnputfile and ndngetfile](https://redmine.named-data.net/issues/1887)
   - 상태: 완료됨
@@ -554,54 +579,85 @@ It is suspect this is caused by "src/repo.cpp: repoConfig.nMaxPackets = repoConf
     - read--handle KeyChain 을 제외한 모든 곳은 reference 로 교체
     - commit: repo-ng|a53ee59a36d26d7f78de7faa69fba849f1909127 적용
 
--
-  - 상태: 시작
+- [License change to GPL 3.0](https://redmine.named-data.net/issues/1540)
+  - 상태: 종료됨
+  - 라이센스를 GPL3.0 으로 전환
   - [_마지막 의견_]
 
--
-  - 상태: 시작
+- [Build with ndn-cxx instead of ndn-cpp-dev](https://redmine.named-data.net/issues/1538)
+  - 상태: 종료됨
+  - ndn-cxx 적용
+    - ndn-cxx 를 include 할 수 있도록 함
+    - ndn-cxx 사용을 위한 wscript 업데이트
   - [_마지막 의견_]
 
--
-  - 상태: 시작
+- [ndngetfile: retrieve tool](https://redmine.named-data.net/issues/1514)
+  - 상태: 종료됨
+  - ndnputfile '-u': unversioned; ndn-name 에 버전 구성이 포함
+    - '-u' 옵션이 없는 경우 interest 는 최신 버전을 찾아야 하며 'MustBeFresh = yes', 'ChildSelector=rightmost' 가 있어야 함
+    - 최신 버전을 찾기위한 Exclude 를 사용하지 않음
+    - ndn-tlv-peek 을 통해 최신버전을 찾을 수 있으며 repo 에서 버전이 지정되지 않은 세그먼트 및 세그먼트화 되지 않은 데이터 검색을 지원하지 않아도 됨
   - [_마지막 의견_]
 
--
-  - 상태: 시작
+- [ndnputfile: insert tool](https://redmine.named-data.net/issues/1513)
+  - 상태: 종료됨
+  - insert 프로세스를 유지하기 위한 'insert check' 명령 사용
   - [_마지막 의견_]
 
--
+- [Command-line tool to print out names of stored data](https://redmine.named-data.net/issues/1498)
   - 상태: 시작
+  - 이전 repo 에서 ndnnamelist 명령을 사용하여 repo 에 저장된 데이터 패킷의 name 을 나열하였으며 이와 비슷한 기능이 'ndn-repo-ng' 에서도 필요함
+  - [_마지막 의견_]
+    - ndnnamelist 명령은 repo-ng 에 정의되지 않은 Name Enumeration Protocol 을 사용함
+    - ndnnamelist 명령은 프로토콜에 의존하지 않고 단순히 지정된 파일을 열고 내용을 확인하고 각 패킷을 분석하고 name 을 보여줌
+    - sqlite3 에 저장된 모든 데이터 패킷의 name 을 보여주는 기능이 필요함
+
+- [Make use ValidatorConfig](https://redmine.named-data.net/issues/1479)
+  - 상태: 종료됨
+  - 현재 CommandInterestValidator 는 interest 를 검증하는 기능만 제공
+    - ValidatorConfig 는 간단한 config file 을 사용하여 원하는 신뢰 모델을 설정할 수 있는 방법 제공
+    - 이 구성파일은 repo 구성의 일부가 되어야 함 (NRD 처럼)
+  - [_마지막 의견_]
+    - validator-config 와 command-interest-validator 를 결합한 Validator
+    - 더이상 이러한 모델은 필요하지 않으며 '표준' 방식으로 두 작업을 모두 수행하는 ValidatorConf 만 사용하여야 함
+    - interest 검증 뿐만 아니라 데이터의 유효성 검사도 필요함
+
+- [Deletion progress check](https://redmine.named-data.net/issues/1478)
+  - 상태: 시작
+  - 세그먼트화 된 데이터 삭제의 while loop 으로 인해 삭제 진행 상태의 점검이 지원되지 않음
+  - [_마지막 의견_]
+    - interest 처리시 삭제 프로세스가 완료되었기 때문에 삭제 프로세스 검사에서 '완료' 를 리턴하지 않을 수 있음 (검사 전에 삭제 완료되는 경우)
+    - 많은 양의 데이터를 삭제하는 경우에 상태 검사를 할 수 없음
+
+- [Deletion of segmented data without EndBlockId](https://redmine.named-data.net/issues/1477)
+  - 상태: 시작
+  - EndBlockId 가 없는 세그먼트화 된 데이터를 삭제할 수 없음
+    - ERROR: 403 발생
   - [_마지막 의견_]
 
--
-  - 상태: 시작
+- [Select data by PublisherPublicKeyLocator](https://redmine.named-data.net/issues/1437)
+  - 상태: 종료됨
+  - PublisherPublicKeyLocator selector 를 활용한 data select 과정 구현 필요
   - [_마지막 의견_]
 
--
-  - 상태: 시작
+- [Repo table reorganized or in-memory index](https://redmine.named-data.net/issues/1434)
+  - 상태: 종료됨
+  - repo 테이블 구조가 완전하지 않고 모든 repo 프로토콜을 지원하지 못함
+    - 속도를 높이기 위한 in-memory-index 필요
+  - [_마지막 의견_]
+    - 누구나 index 의 특정 요구 사항을 나열할 수 있는가?
+    - index 과정은 빠르게 작동하여야 하고 최소한의 메모리를 사용하여야 함
+    - skiplist 를 기반으로 디자인 되어야 함
+
+- [Definition of rightmost selector](https://redmine.named-data.net/issues/1433)
+  - 상태: 종료됨
+  - sqlite-handle.cpp 의 현재 함수 filterNameChild() 에서 가장 오른쪽의 child 는 name 벡터의 최대 값을 의미하지만 올바르지 않음
+    - 가장 오른쪽 child 정의가 명확하지 않음
   - [_마지막 의견_]
 
--
-  - 상태: 시작
-  - [_마지막 의견_]
-
--
-  - 상태: 시작
-  - [_마지막 의견_]
-
--
-  - 상태: 시작
-  - [_마지막 의견_]
-
--
-  - 상태: 시작
-  - [_마지막 의견_]
-
--
-  - 상태: 시작
-  - [_마지막 의견_]
-
--
-  - 상태: 시작
+- [Define command syntax for insertion/deletion to repo](https://redmine.named-data.net/issues/1258)
+  - 상태: 종료됨
+  - 모든 명령과 응답은 ControlCommand 사양을 따라야 함
+    - insert 명령을 사용하면 세그먼트화 되지 않은 여러 세그먼트 항목을 insert 할 수 있음
+    - delete 명령은 정확한 name 으로 데이터 객체를 삭제하고 단일 명령을 사용하여 여러 데이터를 삭제할 수 있어야 함
   - [_마지막 의견_]
