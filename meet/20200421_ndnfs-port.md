@@ -21,9 +21,7 @@ $ ./build/ndnfs -s [actual folder path] [mount point path]
 - [mount point path]: 마운트 포인트
 - '-s': FUSE 가 단일 스레드를 실행하도록 함
 - '-d': NDNFS 의 모든 디버그 출력
-
 `$ ./build/ndnfs -d /tmp/dir /tmp/ndnfs`
-
 - '-f': foreground 에서 실행하고 디버그 정보 확인
 `$ ./build/ndnfs -s -f /tmp/dir /tmp/ndnfs`
   - '-f' 를 사용하는 경우 'ndnfs' 프로세스가 종료되면 NDNFS 가 자동으로 마운트 해제됨
