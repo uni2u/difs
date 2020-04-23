@@ -491,6 +491,16 @@ root@sandbox03:/home/uni2u/difs# nfd
 
 ## DIFS 실행
 
+* 'repo-0.conf' 파일을 기반으로 prefix 가 등록됨
+* 등록 내용은 다음과 같음
+  * _/etri/repo_: put
+  * _/etri/repo/{repo num}_: get (manifest)
+  * _/etri/repo/{repo num}/data_: get (data)
+  * _/get_: get (cli to repo)
+
+> FaceTable 에 로컬 face id 생성
+> RibManager 를 통하여 자신의 prefix 에 대한 route (face id) 를 등록
+
 ### repo0
 
 ```
@@ -543,6 +553,10 @@ ndn-repo-ng -c repo-0.conf
 ```
 
 ## face create
+
+* 자신을 제외한 다른 DIFS Node IP 를 사용하여 face 생성
+  * _[UnicastUdpTransport]_ 를 통해 자신의 IP 를 local 로 두고 상대 Node IP 를 remote 로 구성하여 포트 6363 을 사용하는 transport 생성
+  * _[FaceTable]_ 에 face id 생성 (local=자신의 IP:6363, remote=상대 Node IP:6363)
 
 ### repo0
 
@@ -612,6 +626,12 @@ nfdc face create udp://100.0.0.3
 
 ## route add
 
+* 생성된 face id 에 대한 라우팅 룰을 설정
+  * _[RibManager]_ 를 통해 상대 Node 의 _prefix_ 에 해당하는 face id 등록 (이때 face id 는 'face create' 과정에서 생성된 id)
+
+> face create 과정에서 생성된 face id 는
+> route add 를 통하여 라우팅 정보가 생성됨
+
 ### repo0
 
 ```
@@ -680,6 +700,13 @@ nfdc route add /etri/repo/1 udp://100.0.0.3
 
 ## put file
 
+* 콘텐츠를 서비스 할 이름인 _Content Name_ 으로 repository 에 파일을 insert 함
+  * _[FaceTable]_ 에서 'face id' 를 하나 생성하고
+  * _[RibManager]_ 에서 라우팅을 위한 이름인 _Content Name_ 과 이에 대한 'face id' 를 등록
+  * 라우팅 등록이 완료되면 'face id' 삭제
+
+**이 과정이 _manifest_ 에 대한 내용으로 이해하면 되는지 의문**
+
 ### repo0
 
 * repo0 에 `hello01` 이라는 _Content Name_ 으로 `ndnputfile` 실행
@@ -700,6 +727,11 @@ build/tools/ndnputfile -D /etri/repo /hello01 /tmp/hello01.txt
 ```
 
 ## get file
+
+* _ndnputfile_ 과정을 통해 등록한 _Content Name_ 을 사용하여 데이터를 수집
+  * _[FaceTable]_ 에서 'face id' 를 하나 생성
+
+**_manifest_ 파일을 수집하게 되고 이후 _/etri/repo/{repo num}/data/{Content Name}/#_ 를 보낼 것인데 어떻게 진행되는지 모르겠음**
 
 ### repo1
 
