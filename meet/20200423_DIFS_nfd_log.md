@@ -258,8 +258,8 @@ root@sandbox03:/home/uni2u/difs# nfd
 1587598850.447011 INFO: [FaceTable] Added face id=266 remote=fd://63 local=unix:///run/nfd.sock
 1587598850.449585 INFO: [PrivilegeHelper] elevated to effective uid=0 gid=0
 1587598850.449672 INFO: [PrivilegeHelper] dropped to effective uid=0 gid=0
-1587598850.449750 INFO: [MulticastUdpTransport] [id=0,local=udp4://129.254.172.103:54857,remote=udp4://224.0.23.170:56363] Creating transport
-1587598850.449801 INFO: [FaceTable] Added face id=267 remote=udp4://224.0.23.170:56363 local=udp4://129.254.172.103:54857
+1587598850.449750 INFO: [MulticastUdpTransport] [id=0,local=udp4://publicIP:54857,remote=udp4://224.0.23.170:56363] Creating transport
+1587598850.449801 INFO: [FaceTable] Added face id=267 remote=udp4://224.0.23.170:56363 local=udp4://publicIP:54857
 1587598850.451518 INFO: [PrivilegeHelper] elevated to effective uid=0 gid=0
 1587598850.451599 INFO: [PrivilegeHelper] dropped to effective uid=0 gid=0
 1587598850.451660 INFO: [MulticastUdpTransport] [id=0,local=udp4://192.0.0.2:56667,remote=udp4://224.0.23.170:56363] Creating transport
@@ -359,8 +359,8 @@ root@sandbox03:/home/uni2u/difs# nfd
 1587598847.514590 INFO: [FaceTable] Added face id=266 remote=fd://63 local=unix:///run/nfd.sock
 1587598847.517180 INFO: [PrivilegeHelper] elevated to effective uid=0 gid=0
 1587598847.517267 INFO: [PrivilegeHelper] dropped to effective uid=0 gid=0
-1587598847.517357 INFO: [MulticastUdpTransport] [id=0,local=udp4://129.254.172.104:36539,remote=udp4://224.0.23.170:56363] Creating transport
-1587598847.517381 INFO: [FaceTable] Added face id=267 remote=udp4://224.0.23.170:56363 local=udp4://129.254.172.104:36539
+1587598847.517357 INFO: [MulticastUdpTransport] [id=0,local=udp4://publicIP:36539,remote=udp4://224.0.23.170:56363] Creating transport
+1587598847.517381 INFO: [FaceTable] Added face id=267 remote=udp4://224.0.23.170:56363 local=udp4://publicIP:36539
 1587598847.519457 INFO: [PrivilegeHelper] elevated to effective uid=0 gid=0
 1587598847.519541 INFO: [PrivilegeHelper] dropped to effective uid=0 gid=0
 1587598847.519613 INFO: [MulticastUdpTransport] [id=0,local=udp4://192.0.0.3:42012,remote=udp4://224.0.23.170:56363] Creating transport
@@ -460,8 +460,8 @@ root@sandbox03:/home/uni2u/difs# nfd
 1587598844.862808 INFO: [FaceTable] Added face id=266 remote=fd://63 local=unix:///run/nfd.sock
 1587598844.865475 INFO: [PrivilegeHelper] elevated to effective uid=0 gid=0
 1587598844.865568 INFO: [PrivilegeHelper] dropped to effective uid=0 gid=0
-1587598844.865663 INFO: [MulticastUdpTransport] [id=0,local=udp4://129.254.172.105:41034,remote=udp4://224.0.23.170:56363] Creating transport
-1587598844.865687 INFO: [FaceTable] Added face id=267 remote=udp4://224.0.23.170:56363 local=udp4://129.254.172.105:41034
+1587598844.865663 INFO: [MulticastUdpTransport] [id=0,local=udp4://publicIP:41034,remote=udp4://224.0.23.170:56363] Creating transport
+1587598844.865687 INFO: [FaceTable] Added face id=267 remote=udp4://224.0.23.170:56363 local=udp4://publicIP:41034
 1587598844.867833 INFO: [PrivilegeHelper] elevated to effective uid=0 gid=0
 1587598844.867918 INFO: [PrivilegeHelper] dropped to effective uid=0 gid=0
 1587598844.867991 INFO: [MulticastUdpTransport] [id=0,local=udp4://192.0.0.4:48245,remote=udp4://224.0.23.170:56363] Creating transport
