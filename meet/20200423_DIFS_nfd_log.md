@@ -735,6 +735,11 @@ build/tools/ndnputfile -D /etri/repo /hello01 /tmp/hello01.txt
 
 **_manifest_ 파일을 수집하게 되고 이후 _/etri/repo/{repo num}/data/{Content Name}/#_ 를 보낼 것인데 어떻게 진행되는지 모르겠음**
 
+> 'ndngetfile' 을 하면 manifest 를 받을 수 있고 manifest 내용을 조합하면 완전한 data 의 _full prefix_ 가 생성됨
+
+> _full prefix_ 로 다시 _interest_ 를 보내면 prefix matching (예: _/etri/repo/0/data/{Content Name}_) 을 통하여 라우팅
+>> 'ndnputfile' 에서 _{Content Name}_ 을 적용하게 되면 실제는 _/etri/repo/{repo num}/data/{Content Name}_ 이 등록되고 sign 되는 것으로 생각됨
+
 ### repo1
 
 * repo1 에서 `hello01` 이라는 _Content Name_ (repo0 에서 등록한) 으로 `ndnputfile` 실행
