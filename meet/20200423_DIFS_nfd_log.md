@@ -499,6 +499,7 @@ root@sandbox03:/home/uni2u/difs# nfd
   * _/get_: get (cli to repo)
 
 > FaceTable 에 로컬 face id 생성
+
 > RibManager 를 통하여 자신의 prefix 에 대한 route (face id) 를 등록
 
 ### repo0
@@ -630,6 +631,7 @@ nfdc face create udp://100.0.0.3
   * _[RibManager]_ 를 통해 상대 Node 의 _prefix_ 에 해당하는 face id 등록 (이때 face id 는 'face create' 과정에서 생성된 id)
 
 > face create 과정에서 생성된 face id 는
+
 > route add 를 통하여 라우팅 정보가 생성됨
 
 ### repo0
