@@ -717,3 +717,41 @@ build/tools/ndngetfile /hello01
 1587600707.225000 INFO: [Transport] [id=281,local=unix:///run/nfd.sock,remote=fd://79] setState CLOSING -> CLOSED
 1587600707.225833 INFO: [FaceTable] Removed face id=281 remote=fd://79 local=unix:///run/nfd.sock
 ```
+
+## nfdc route list
+
+### repo0
+
+```
+prefix=/get nexthop=274 origin=app cost=0 flags=child-inherit expires=never
+prefix=/etri/repo nexthop=274 origin=app cost=0 flags=child-inherit expires=never
+prefix=/etri/repo/0 nexthop=274 origin=app cost=0 flags=child-inherit expires=never
+prefix=/etri/repo/0/data nexthop=274 origin=app cost=0 flags=child-inherit expires=never
+prefix=/etri/repo/1 nexthop=276 origin=static cost=0 flags=child-inherit expires=never
+prefix=/etri/repo/2 nexthop=278 origin=static cost=0 flags=child-inherit expires=never
+prefix=/localhost/nfd nexthop=266 origin=app cost=0 flags=child-inherit expires=never
+```
+
+### repo1
+
+```
+prefix=/get nexthop=274 origin=app cost=0 flags=child-inherit expires=never
+prefix=/etri/repo nexthop=274 origin=app cost=0 flags=child-inherit expires=never
+prefix=/etri/repo/0 nexthop=276 origin=static cost=0 flags=child-inherit expires=never
+prefix=/etri/repo/1 nexthop=274 origin=app cost=0 flags=child-inherit expires=never
+prefix=/etri/repo/1/data nexthop=274 origin=app cost=0 flags=child-inherit expires=never
+prefix=/etri/repo/2 nexthop=278 origin=static cost=0 flags=child-inherit expires=never
+prefix=/localhost/nfd nexthop=266 origin=app cost=0 flags=child-inherit expires=never
+```
+
+### repo2
+
+```
+prefix=/get nexthop=274 origin=app cost=0 flags=child-inherit expires=never
+prefix=/etri/repo nexthop=274 origin=app cost=0 flags=child-inherit expires=never
+prefix=/etri/repo/0 nexthop=276 origin=static cost=0 flags=child-inherit expires=never
+prefix=/etri/repo/1 nexthop=278 origin=static cost=0 flags=child-inherit expires=never
+prefix=/etri/repo/2 nexthop=274 origin=app cost=0 flags=child-inherit expires=never
+prefix=/etri/repo/2/data nexthop=274 origin=app cost=0 flags=child-inherit expires=never
+prefix=/localhost/nfd nexthop=266 origin=app cost=0 flags=child-inherit expires=never
+```
