@@ -162,33 +162,6 @@ repo
 ### repo0
 
 ```
-1587598832.654212 INFO: [Main] NFD version 0.6.2 starting
-1587598832.654242 INFO: [Main] Built with GNU C++ version 7.5.0, with GNU libstdc++ version 20191114, with Boost version 1.65.1, with libpcap version 1.8.1, with WebSocket++ version 0.7.0, with ndn-cxx version 0.6.2
-1587598832.949776 INFO: [CsPolicy] setLimit 10
-1587598832.949871 INFO: [StrategyChoice] setDefaultStrategy /localhost/nfd/strategy/best-route/%FD%05
-1587598832.951854 INFO: [InternalForwarderTransport] [id=0,local=null://,remote=null://] Creating transport
-1587598832.951889 INFO: [FaceTable] Added face id=255 remote=null:// local=null://
-1587598832.951908 INFO: [InternalForwarderTransport] [id=0,local=contentstore://,remote=contentstore://] Creating transport
-1587598832.951917 INFO: [FaceTable] Added face id=254 remote=contentstore:// local=contentstore://
-1587598832.951974 INFO: [InternalForwarderTransport] [id=0,local=internal://,remote=internal://] Creating transport
-1587598832.954328 INFO: [FaceTable] Added face id=1 remote=internal:// local=internal://
-1587598832.955842 WARNING: [CommandAuthenticator] 'certfile any' is intended for demo purposes only and SHOULD NOT be used in production environments
-1587598832.956306 INFO: [StrategyChoice] changeStrategy(/ndn/broadcast) /localhost/nfd/strategy/best-route/%FD%05 -> /localhost/nfd/strategy/multicast/%FD%03
-1587598832.956354 INFO: [StrategyChoice] changeStrategy(/localhost) /localhost/nfd/strategy/best-route/%FD%05 -> /localhost/nfd/strategy/multicast/%FD%03
-1587598832.956389 INFO: [StrategyChoice] changeStrategy(/localhost/nfd) /localhost/nfd/strategy/multicast/%FD%03 -> /localhost/nfd/strategy/best-route/%FD%05
-1587598832.956427 INFO: [CsPolicy] setLimit 65536
-1587598832.956436 INFO: [CsPolicy] setLimit 65536
-1587598832.956462 INFO: [EthernetFactory] enabling multicast on 01:00:5e:00:17:aa
-1587598832.956527 INFO: [TcpChannel] [tcp4://0.0.0.0:6363] Creating channel
-1587598832.956627 INFO: [TcpChannel] [tcp6://[::]:6363] Creating channel
-1587598832.956799 INFO: [UdpChannel] [udp4://0.0.0.0:6363] Creating channel
-1587598832.956874 INFO: [UdpChannel] [udp6://[::]:6363] Creating channel
-1587598832.956951 INFO: [UdpFactory] enabling multicast on 224.0.23.170:56363
-1587598832.956977 INFO: [UdpFactory] enabling multicast on [ff02::1234]:56363
-1587598832.957123 INFO: [UnixStreamChannel] [unix:///run/nfd.sock] Creating channel
-1587598832.957315 FATAL: [Main] bind: Permission denied
-uni2u@sandbox03:~/difs$ sudo su
-root@sandbox03:/home/uni2u/difs# nfd
 1587598849.703710 INFO: [Main] NFD version 0.6.2 starting
 1587598849.703723 INFO: [Main] Built with GNU C++ version 7.5.0, with GNU libstdc++ version 20191114, with Boost version 1.65.1, with libpcap version 1.8.1, with WebSocket++ version 0.7.0, with ndn-cxx version 0.6.2
 1587598849.707778 INFO: [CsPolicy] setLimit 10
