@@ -21,7 +21,7 @@
 #define REPO_REPO_HPP
 
 #include "storage/repo-storage.hpp"
-#include "storage/sqlite-storage.hpp"
+#include "storage/fs-storage.hpp"
 
 #include "handles/delete-handle.hpp"
 #include "handles/read-handle.hpp"

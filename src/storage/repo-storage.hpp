@@ -51,14 +51,6 @@ public:
   RepoStorage(Storage& store);
 
   /**
-   * @brief Notify about existing data
-   *
-   * Note, this cannot be in constructor, as have to be called after signal is connected
-   */
-  void
-  notifyAboutExistingData();
-
-  /**
    *  @brief  insert data into repo
    */
   bool
@@ -89,6 +81,16 @@ public:
    */
   std::shared_ptr<Data>
   readData(const Interest& interest) const;
+
+  bool
+  insertManifest(const Manifest& manifest);
+
+  bool
+  readManifest(const std::string& hash);
+
+  bool
+  deleteManifest(const std::string& hash);
+
 
 public:
   ndn::util::Signal<RepoStorage, ndn::Name> afterDataInsertion;

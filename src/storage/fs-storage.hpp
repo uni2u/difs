@@ -17,8 +17,8 @@
  * repo-ng, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef REPO_STORAGE_SQLITE_STORAGE_HPP
-#define REPO_STORAGE_SQLITE_STORAGE_HPP
+#ifndef REPO_STORAGE_FS_STORAGE_HPP
+#define REPO_STORAGE_FS_STORAGE_HPP
 
 #include "storage.hpp"
 
@@ -32,7 +32,7 @@
 
 namespace repo {
 
-class SqliteStorage : public Storage
+class FsStorage : public Storage
 {
 public:
   class Error : public std::runtime_error
@@ -46,9 +46,9 @@ public:
   };
 
   explicit
-  SqliteStorage(const std::string& dbPath);
+  FsStorage(const std::string& dbPath);
 
-  ~SqliteStorage();
+  ~FsStorage();
 
   /**
    *  @brief  put the data into database
@@ -58,6 +58,9 @@ public:
   int64_t
   insert(const Data& data) override;
 
+  std::string
+  insertManifest(const Manifest& data) override;
+
   /**
    *  @brief  remove the entry in the database by using name as index
    *  @param  name   name of the data
@@ -65,17 +68,20 @@ public:
   bool
   erase(const Name& name) override;
 
+  bool
+  eraseManifest(const std::string& hash) override;
+
   std::shared_ptr<Data>
   read(const Name& name) override;
+
+  Manifest
+  readManifest(const std::string& hash) override;
 
   bool
   has(const Name& name) override;
 
-  std::shared_ptr<Data>
-  find(const Name& name, bool exactMatch = false) override;
-
-  void
-  forEach(const std::function<void(const Name&)>& f) override;
+  bool
+  hasManifest(const std::string& hash) override;
 
   /**
    *  @brief  return the size of database
@@ -84,15 +90,30 @@ public:
   size() override;
 
 private:
-  void
-  initializeRepo();
+  int64_t
+  hash(std::string const& key);
+
+  std::string
+  sha1Hash(std::string const& key);
+
+  boost::filesystem::path
+  getPath(const Name& name, const char* dataType);
+
+  int64_t
+  writeData(const Data& data, const char* dataType);
 
 private:
-  sqlite3* m_db;
   std::string m_dbPath;
+  boost::filesystem::path m_path;
+
+  static const char* FNAME_NAME;
+  static const char* FNAME_DATA;
+  static const char* FNAME_HASH;
+  static const char* DIRNAME_DATA;
+  static const char* DIRNAME_MANIFEST;
 };
 
 
 } // namespace repo
 
-#endif // REPO_STORAGE_SQLITE_STORAGE_HPP
+#endif // REPO_STORAGE_FS_STORAGE_HPP

@@ -18,7 +18,7 @@
  */
 
 #include "repo.hpp"
-#include "storage/sqlite-storage.hpp"
+#include "storage/fs-storage.hpp"
 
 #include <ndn-cxx/util/logger.hpp>
 
@@ -111,7 +111,7 @@ Repo::Repo(boost::asio::io_service& ioService, const RepoConfig& config)
   , m_scheduler(ioService)
   , m_face(ioService)
   , m_dispatcher(m_face, m_keyChain)
-  , m_store(std::make_shared<SqliteStorage>(config.dbPath))
+  , m_store(std::make_shared<FsStorage>(config.dbPath))
   , m_storageHandle(*m_store)
   , m_validator(m_face)
   , m_readHandle(m_face, m_storageHandle, m_config.registrationSubset)
@@ -120,7 +120,6 @@ Repo::Repo(boost::asio::io_service& ioService, const RepoConfig& config)
   , m_tcpBulkInsertHandle(ioService, m_storageHandle)
 {
   this->enableValidation();
-  m_storageHandle.notifyAboutExistingData();
 }
 
 void

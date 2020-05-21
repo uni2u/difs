@@ -24,11 +24,12 @@
 #include <string>
 #include <iostream>
 #include <stdlib.h>
+#include "../manifest/manifest.hpp"
 
 namespace repo {
 
 /**
-  * @brief Storage is a virtual abstract class which will be called by SqliteStorage
+  * @brief Storage is a virtual abstract class which will be called by FsStorage
   */
 class Storage : noncopyable
 {
@@ -38,6 +39,16 @@ public:
   public:
     explicit
     Error(const std::string& what)
+      : std::runtime_error(what)
+    {
+    }
+  };
+
+  class NotFoundError : public std::runtime_error
+  {
+  public:
+    explicit
+    NotFoundError(const std::string& what)
       : std::runtime_error(what)
     {
     }
@@ -54,12 +65,18 @@ public:
   virtual int64_t
   insert(const Data& data) = 0;
 
+  virtual std::string
+  insertManifest(const Manifest& manifest) = 0;
+
   /**
    *  @brief  remove the entry in the database by full name
    *  @param  full name   full name of the data
    */
   virtual bool
   erase(const Name& name) = 0;
+
+  virtual bool
+  eraseManifest(const std::string& hash) = 0;
 
   /**
    *  @brief  get the data from database
@@ -68,6 +85,9 @@ public:
   virtual std::shared_ptr<Data>
   read(const Name& name) = 0;
 
+  virtual Manifest
+  readManifest(const std::string& hash) = 0;
+
   /**
    *  @brief  check if database already has the data
    *  @param  full name   full name of the data
@@ -75,18 +95,8 @@ public:
   virtual bool
   has(const Name& name) = 0;
 
-  /**
-   *  @brief  find the data in database by full name and return it
-   *  @param  full name   full name of the data
-   */
-  virtual std::shared_ptr<Data>
-  find(const Name& name, bool exactMatch = false) = 0;
-
-   /**
-   *  @brief Enumerate each entry in database and call @p f with name of stored data
-   */
-  virtual void
-  forEach(const std::function<void(const Name&)>& f) = 0;
+  virtual bool
+  hasManifest(const std::string& hash) = 0;
 
   /**
    *  @brief  return the size of database

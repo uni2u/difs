@@ -34,14 +34,6 @@ RepoStorage::RepoStorage(Storage& store)
 {
 }
 
-void
-RepoStorage::notifyAboutExistingData()
-{
-  m_storage.forEach([this] (const Name& name) {
-      afterDataInsertion(name);
-    });
-}
-
 bool
 RepoStorage::insertData(const Data& data)
 {
@@ -67,26 +59,10 @@ RepoStorage::deleteData(const Name& name)
   NDN_LOG_DEBUG("Delete: " << name);
   bool hasError = false;
 
-  int64_t count = 0;
-  std::shared_ptr<Data> foundData;
-  Name foundName;
-  while ((foundData = m_storage.find(name))) {
-    foundName = foundData->getFullName();
-    bool resultDb = m_storage.erase(foundName);
-    if (resultDb) {
-      afterDataDeletion(foundName);
-      count++;
-    }
-    else {
-      hasError = true;
-    }
-    NDN_LOG_DEBUG("Delete: " << name << ", found " << foundName << ", count " << count << ", result " << resultDb);
+  if (m_storage.erase(name)) {
+    return 1;
   }
-
-  if (hasError)
-    return -1;
-  else
-    return count;
+  return -1;
 }
 
 ssize_t
