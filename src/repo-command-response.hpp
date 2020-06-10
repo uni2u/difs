@@ -144,7 +144,7 @@ public:
   wireEncode(EncodingImpl<T>& block) const;
 
   const Block&
-  wireEncode() const;
+  wireEncode() const override;
 
   void
   wireDecode(const Block& wire);

@@ -168,9 +168,9 @@ WriteHandle::segInit(ProcessId processId, const RepoCommandParameter& parameter)
   auto fetcher = ndn::util::SegmentFetcher::start(face, interest, m_validator, options);
   fetcher->onError.connect([] (uint32_t errorCode, const std::string& errorMsg)
                            {NDN_LOG_ERROR("Error: " << errorMsg);});
-  fetcher->afterSegmentValidated.connect([this, &fetcher, &processId] (const Data& data)
+  fetcher->afterSegmentValidated.connect([this, fetcher, processId] (const Data& data)
                                          {onSegmentData(*fetcher, data, processId);});
-  fetcher->afterSegmentTimedOut.connect([this, &fetcher, &processId] ()
+  fetcher->afterSegmentTimedOut.connect([this, fetcher, processId] ()
                                         {onSegmentTimeout(*fetcher, processId);});
 }
 

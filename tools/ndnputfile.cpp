@@ -372,8 +372,10 @@ NdnPutFile::signData(ndn::Data& data)
 void
 NdnPutFile::startCheckCommand()
 {
+  auto parameter = RepoCommandParameter();
+  parameter.setName(ndnName);
   ndn::Interest checkInterest = generateCommandInterest(repoPrefix, "insert check",
-                                                        RepoCommandParameter()
+                                                        parameter
                                                           .setProcessId(m_processId));
   m_face.expressInterest(checkInterest,
                          bind(&NdnPutFile::onCheckCommandResponse, this, _1, _2),
