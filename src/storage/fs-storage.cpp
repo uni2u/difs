@@ -163,9 +163,13 @@ std::shared_ptr<Data>
 FsStorage::read(const Name& name)
 {
   auto fsPath = getPath(name.toUri(), DIRNAME_DATA);
-  auto data = std::make_shared<Data>();
 
   boost::filesystem::ifstream inFileData(fsPath, std::ifstream::binary);
+  if (!inFileData.is_open()) {
+    return nullptr;
+  }
+  auto data = std::make_shared<Data>();
+
   inFileData.seekg(0, inFileData.end);
   int length = inFileData.tellg();
   inFileData.seekg(0, inFileData.beg);
