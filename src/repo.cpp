@@ -93,8 +93,8 @@ parseConfig(const std::string& configPath)
     repoConfig.tcpBulkInsertEndpoints.push_back(std::make_pair(host, port));
   }
 
-  if (repoConf.get<std::string>("storage.method") != "sqlite") {
-    BOOST_THROW_EXCEPTION(Repo::Error("Only 'sqlite' storage method is supported"));
+  if (repoConf.get<std::string>("storage.method") != "fs") {
+    BOOST_THROW_EXCEPTION(Repo::Error("Only 'fs' storage method is supported"));
   }
 
   repoConfig.dbPath = repoConf.get<std::string>("storage.path");
