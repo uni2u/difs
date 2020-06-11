@@ -218,6 +218,7 @@ FsStorage::size()
   int64_t size = 0;
 
   for (auto& entry : boost::make_iterator_range(boost::filesystem::directory_iterator(m_path / DIRNAME_DATA), {})) {
+    std::ignore = entry;
     size += 1;
   }
 

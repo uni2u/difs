@@ -57,7 +57,6 @@ ssize_t
 RepoStorage::deleteData(const Name& name)
 {
   NDN_LOG_DEBUG("Delete: " << name);
-  bool hasError = false;
 
   if (m_storage.erase(name)) {
     return 1;
