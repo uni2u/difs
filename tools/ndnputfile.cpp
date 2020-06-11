@@ -63,8 +63,7 @@ public:
   };
 
   NdnPutFile()
-    : isUnversioned(false)
-    , isSingle(false)
+    : isSingle(false)
     , useDigestSha256(false)
     , freshnessPeriod(DEFAULT_FRESHNESS_PERIOD)
     , interestLifetime(DEFAULT_INTEREST_LIFETIME)
@@ -130,7 +129,6 @@ private:
                           const RepoCommandParameter& commandParameter);
 
 public:
-  bool isUnversioned;
   bool isSingle;
   bool useDigestSha256;
   std::string identityForData;
@@ -209,8 +207,6 @@ void
 NdnPutFile::run()
 {
   m_dataPrefix = ndnName;
-  if (!isUnversioned)
-    m_dataPrefix.appendVersion(m_timestampVersion);
 
   if (isVerbose)
     std::cerr << "setInterestFilter for " << m_dataPrefix << std::endl;
@@ -449,7 +445,6 @@ usage(const char* programName)
             << "\n"
             << "Write a file into a repo.\n"
             << "\n"
-            << "  -u: unversioned: do not add a version component\n"
             << "  -s: single: do not add version or segment component, implies -u\n"
             << "  -D: use DigestSha256 signing method instead of SignatureSha256WithRsa\n"
             << "  -i: specify identity used for signing Data\n"
@@ -470,14 +465,11 @@ main(int argc, char** argv)
   NdnPutFile ndnPutFile;
 
   int opt;
-  while ((opt = getopt(argc, argv, "husDi:I:x:l:w:v")) != -1) {
+  while ((opt = getopt(argc, argv, "hsDi:I:x:l:w:v")) != -1) {
     switch (opt) {
     case 'h':
       usage(argv[0]);
       return 0;
-    case 'u':
-      ndnPutFile.isUnversioned = true;
-      break;
     case 's':
       ndnPutFile.isSingle = true;
       break;
