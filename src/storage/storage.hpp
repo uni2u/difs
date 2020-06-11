@@ -44,16 +44,6 @@ public:
     }
   };
 
-  class NotFoundError : public std::runtime_error
-  {
-  public:
-    explicit
-    NotFoundError(const std::string& what)
-      : std::runtime_error(what)
-    {
-    }
-  };
-
 public:
   virtual
   ~Storage() = default;
@@ -85,7 +75,7 @@ public:
   virtual std::shared_ptr<Data>
   read(const Name& name) = 0;
 
-  virtual Manifest
+  virtual std::shared_ptr<Manifest>
   readManifest(const std::string& hash) = 0;
 
   /**

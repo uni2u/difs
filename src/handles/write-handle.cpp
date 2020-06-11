@@ -22,6 +22,9 @@
 #include <ndn-cxx/util/logger.hpp>
 #include <ndn-cxx/util/random.hpp>
 
+#include "manifest/manifest.hpp"
+#include "util.hpp"
+
 namespace repo {
 
 NDN_LOG_INIT(repo.WriteHandle);
@@ -34,7 +37,8 @@ static const milliseconds PROCESS_DELETE_TIME(10000_ms);
 static const milliseconds DEFAULT_INTEREST_LIFETIME(4000_ms);
 
 WriteHandle::WriteHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt::Dispatcher& dispatcher,
-                         Scheduler& scheduler, Validator& validator)
+                         Scheduler& scheduler, Validator& validator,
+                         ndn::Name const& clusterPrefix, const int clusterId, const int clusterSize)
   : CommandBaseHandle(face, storageHandle, scheduler, validator)
   , m_validator(validator)
   , m_credit(DEFAULT_CREDIT)
@@ -42,6 +46,9 @@ WriteHandle::WriteHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt::Disp
   , m_maxTimeout(MAX_TIMEOUT)
   , m_noEndTimeout(NOEND_TIMEOUT)
   , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
+  , m_clusterPrefix(clusterPrefix)
+  , m_clusterSize(clusterSize)
+  , m_repoPrefix(Name(clusterPrefix).append(std::to_string(clusterId)))
 {
   dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName("insert"),
     makeAuthorization(),
@@ -304,6 +311,11 @@ WriteHandle::handleCheckCommand(const Name& prefix, const Interest& interest,
     return;
   }
 
+  if (!process.manifestSent) {
+    process.manifestSent = true;
+    writeManifest(processId, interest);
+  }
+
   //read if noEndtimeout
   if (!response.hasEndBlockId()) {
     extendNoEndTime(process);
@@ -343,6 +355,54 @@ WriteHandle::negativeReply(std::string text, int statusCode)
   response.setBody(response.wireEncode());
 
   return response;
+}
+
+void
+WriteHandle::writeManifest(const ProcessId& processId, const Interest& interest)
+{
+  ProcessInfo process = m_processes[processId];
+
+  std::string repo = process.repo.toUri();
+  std::string name = process.name.toUri();
+  int startBlockId = process.startBlockId;
+  int endBlockId = process.endBlockId;
+
+  Manifest manifest(name, startBlockId, endBlockId);
+  manifest.appendRepo(repo, startBlockId, endBlockId);
+
+  auto manifestRepo = manifest.getManifestStorage(
+    m_clusterPrefix, m_clusterSize);
+
+    NDN_LOG_DEBUG("Using manifest repo: " << manifestRepo);
+
+    RepoCommandParameter parameters;
+    auto commandName = m_selfRepo;
+    commandName.append(name);
+    parameters.setName(commandName);
+
+    parameters.setProcessId(processId);
+    Interest createInterest = util::generateCommandInterest(
+      manifestRepo, "create", parameters, m_interestLifetime);
+    
+    face.expressInterest(
+      createInterest,
+      std::bind(&WriteHandle::onCreateCommandResponse, this, _1, _2, processId),
+      std::bind(&WriteHandle::onCreateCommandTimeout, this, _1, processId),
+      std::bind(&WriteHandle::onCreateCommandTimeout, this, _1, processId));
+}
+
+void
+WriteHandle::onCreateCommandResponse(
+  const Interest& interest, const Data& data, const ProcessId& processId)
+{
+  NDN_LOG_DEBUG("Got create command response");
+}
+
+void
+WriteHandle::onCreateCommandTimeout(
+  const Interest& interest, const ProcessId& processId)
+{
+  NDN_LOG_ERROR("Create timeout");
 }
 
 } // namespace repo

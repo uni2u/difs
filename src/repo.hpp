@@ -50,6 +50,11 @@ struct RepoConfig
   std::vector<std::pair<std::string, std::string>> tcpBulkInsertEndpoints;
   uint64_t nMaxPackets;
   boost::property_tree::ptree validatorNode;
+
+  //DIFS
+  ndn::Name clusterPrefix;
+  int clusterSize;
+  int clusterId;
 };
 
 RepoConfig

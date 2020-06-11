@@ -41,7 +41,8 @@ public:
     int useCount;
   };
 
-  ReadHandle(Face& face, RepoStorage& storageHandle, size_t prefixSubsetLength);
+  ReadHandle(Face& face, RepoStorage& storageHandle, size_t prefixSubsetLength,
+             ndn::Name const& clusterPrefix, int clusterSize);
 
   void
   listen(const Name& prefix);
@@ -76,6 +77,12 @@ private:
   onInterest(const Name& prefix, const Interest& interest);
 
   void
+  onGetInterest(const Name& prefix, const Interest& interest);
+
+  void
+  onFindCommandResponse(const Interest& interest, const Data& data, ProcessId processId);
+
+  void
   onRegisterFailed(const Name& prefix, const std::string& reason);
 
 private:
@@ -85,6 +92,11 @@ private:
   ndn::util::signal::ScopedConnection afterDataInsertionConnection;
   Face& m_face;
   RepoStorage& m_storageHandle;
+
+  std::map<ProcessId, Interest> m_interests;
+
+  ndn::Name m_clusterPrefix;
+  int m_clusterSize;
 };
 
 } // namespace repo

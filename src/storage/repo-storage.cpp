@@ -78,5 +78,13 @@ RepoStorage::readData(const Interest& interest) const
   return m_storage.read(interest.getName());
 }
 
+std::shared_ptr<Manifest>
+RepoStorage::readManifest(const std::string& hash)
+{
+  NDN_LOG_DEBUG("Reading manifest for " << hash);
+
+  return m_storage.readManifest(hash);
+}
+
 
 } // namespace repo

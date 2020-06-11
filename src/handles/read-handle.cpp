@@ -19,6 +19,7 @@
 
 #include "read-handle.hpp"
 #include "repo.hpp"
+#include "../manifest/manifest.hpp"
 
 #include <ndn-cxx/util/logger.hpp>
 
@@ -26,10 +27,13 @@ namespace repo {
 
 NDN_LOG_INIT(repo.ReadHandle);
 
-ReadHandle::ReadHandle(Face& face, RepoStorage& storageHandle, size_t prefixSubsetLength)
+ReadHandle::ReadHandle(Face& face, RepoStorage& storageHandle, size_t prefixSubsetLength,
+                       ndn::Name const& clusterPrefix, int clusterSize)
   : m_prefixSubsetLength(prefixSubsetLength)
   , m_face(face)
   , m_storageHandle(storageHandle)
+  , m_clusterPrefix(clusterPrefix)
+  , m_clusterSize(clusterSize)
 {
   connectAutoListen();
 }
@@ -65,6 +69,15 @@ ReadHandle::onInterest(const Name& prefix, const Interest& interest)
 }
 
 void
+ReadHandle::onGetInterest(const Name& prefix, const Interest& interest)
+{
+  auto name = interest.getName();
+  NDN_LOG_DEBUG("Received get interest" << name);
+  auto hash = Manifest::getHash(name.toUri());
+  std::shared_ptr<Manifest> manifest = m_storageHandle.readManifest(hash); 
+}
+
+void
 ReadHandle::onRegisterFailed(const Name& prefix, const std::string& reason)
 {
   NDN_LOG_ERROR("ERROR: Failed to register prefix in local hub's daemon");
@@ -74,9 +87,13 @@ ReadHandle::onRegisterFailed(const Name& prefix, const std::string& reason)
 void
 ReadHandle::listen(const Name& prefix)
 {
-  ndn::InterestFilter filter(prefix);
+  ndn::InterestFilter filter(Name(prefix).append("data"));
   m_face.setInterestFilter(filter,
                            std::bind(&ReadHandle::onInterest, this, _1, _2),
+                           std::bind(&ReadHandle::onRegisterFailed, this, _1, _2));
+  ndn::InterestFilter filterGet(Name(prefix).append("get"));
+  m_face.setInterestFilter(filterGet,
+                           std::bind(&ReadHandle::onGetInterest, this, _1, _2),
                            std::bind(&ReadHandle::onRegisterFailed, this, _1, _2));
 }
 

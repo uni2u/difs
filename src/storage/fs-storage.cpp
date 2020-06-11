@@ -182,7 +182,7 @@ FsStorage::read(const Name& name)
   return data;
 }
 
-Manifest
+std::shared_ptr<Manifest>
 FsStorage::readManifest(const std::string& hash)
 {
   boost::filesystem::path fsPath = m_path / DIRNAME_MANIFEST / hash;
@@ -190,14 +190,14 @@ FsStorage::readManifest(const std::string& hash)
 
   //FIXME: check exists
   if (!inFileData.is_open()) {
-    throw NotFoundError("File '" + fsPath.string() + "' does not exists");
+    return nullptr;
   }
 
   std::string json(
       (std::istreambuf_iterator<char>(inFileData)),
       std::istreambuf_iterator<char>());
 
-  return Manifest::fromJson(json);
+  return std::make_shared<Manifest>(Manifest::fromJson(json));
 }
 
 bool

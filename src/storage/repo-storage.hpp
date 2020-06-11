@@ -85,7 +85,7 @@ public:
   bool
   insertManifest(const Manifest& manifest);
 
-  bool
+  std::shared_ptr<Manifest>
   readManifest(const std::string& hash);
 
   bool

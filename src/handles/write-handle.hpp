@@ -68,7 +68,8 @@ public:
 public:
   WriteHandle(Face& face, RepoStorage& storageHandle,
               ndn::mgmt::Dispatcher& dispatcher, Scheduler& scheduler,
-              Validator& validator);
+              Validator& validator,
+              ndn::Name const& clusterPrefix, const int clusterId, const int clusterSize);
 
 private:
   /**
@@ -93,6 +94,13 @@ private:
      * and reset to now()+noEndTimeout each time an insert status check command is processed.
      */
     ndn::time::steady_clock::TimePoint noEndTime;
+
+    ndn::Name repo;
+    ndn::Name name;
+    int startBlockId;
+    int endBlockId;
+
+    bool manifestSent = false;
   };
 
 private: // insert command
@@ -187,6 +195,16 @@ private:
   negativeReply(std::string text, int statusCode);
 
 private:
+  void
+  writeManifest(const ProcessId& processId, const Interest& interest);
+
+  void
+  onCreateCommandResponse(const Interest& interest, const Data& data, const ProcessId& processId);
+
+  void
+  onCreateCommandTimeout(const Interest& interest, const ProcessId& processId);
+
+private:
   Validator& m_validator;
 
   std::map<ProcessId, ProcessInfo> m_processes;
@@ -196,6 +214,11 @@ private:
   ndn::time::milliseconds m_maxTimeout;
   ndn::time::milliseconds m_noEndTimeout;
   ndn::time::milliseconds m_interestLifetime;
+
+  ndn::Name m_selfRepo;
+  ndn::Name m_clusterPrefix;
+  int m_clusterSize;
+  ndn::Name m_repoPrefix;
 };
 
 } // namespace repo

@@ -74,7 +74,7 @@ public:
   std::shared_ptr<Data>
   read(const Name& name) override;
 
-  Manifest
+  std::shared_ptr<Manifest>
   readManifest(const std::string& hash) override;
 
   bool
