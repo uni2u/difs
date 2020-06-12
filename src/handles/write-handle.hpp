@@ -99,6 +99,7 @@ private:
     ndn::Name name;
     int startBlockId;
     int endBlockId;
+    std::shared_ptr<Manifest> manifest;
 
     bool manifestSent = false;
   };
@@ -183,6 +184,12 @@ private: // insert state check command
 
 private:
   void
+  handleInfoCommand(const Name& prefix, const Interest& interest,
+                    const ndn::mgmt::ControlParameters& parameters,
+                    const ndn::mgmt::CommandContinuation& done);
+
+private:
+  void
   deleteProcess(ProcessId processId);
 
   /**
@@ -215,8 +222,8 @@ private:
   ndn::time::milliseconds m_noEndTimeout;
   ndn::time::milliseconds m_interestLifetime;
 
-  ndn::Name m_selfRepo;
   ndn::Name m_clusterPrefix;
+  int m_clusterId;
   int m_clusterSize;
   ndn::Name m_repoPrefix;
 };

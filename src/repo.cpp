@@ -62,14 +62,14 @@ parseConfig(const std::string& configPath)
                                         "configuration file '"+ configPath +"'"));
   }
 
-  ptree commandConf = repoConf.get_child("command");
-  for (const auto& section : commandConf) {
-    if (section.first == "prefix")
-      repoConfig.repoPrefixes.push_back(Name(section.second.get_value<std::string>()));
-    else
-      BOOST_THROW_EXCEPTION(Repo::Error("Unrecognized '" + section.first + "' option in 'command' section in "
-                                        "configuration file '"+ configPath +"'"));
-  }
+  // ptree commandConf = repoConf.get_child("command");
+  // for (const auto& section : commandConf) {
+  //   if (section.first == "prefix")
+  //     repoConfig.repoPrefixes.push_back(Name(section.second.get_value<std::string>()));
+  //   else
+  //     BOOST_THROW_EXCEPTION(Repo::Error("Unrecognized '" + section.first + "' option in 'command' section in "
+  //                                       "configuration file '"+ configPath +"'"));
+  // }
 
   auto tcpBulkInsert = repoConf.get_child_optional("tcp_bulk_insert");
   bool isTcpBulkEnabled = false;
@@ -121,6 +121,7 @@ Repo::Repo(boost::asio::io_service& ioService, const RepoConfig& config)
   , m_readHandle(m_face, m_storageHandle, m_config.registrationSubset, m_config.clusterPrefix, m_config.clusterId)
   , m_writeHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId, m_config.clusterSize)
   , m_deleteHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator)
+  , m_manifestHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId)
   , m_tcpBulkInsertHandle(ioService, m_storageHandle)
 {
   this->enableValidation();
@@ -139,19 +140,22 @@ Repo::initializeStorage()
 void
 Repo::enableListening()
 {
-  for (const ndn::Name& dataPrefix : m_config.dataPrefixes) {
-    // ReadHandle performs prefix registration internally.
-    m_readHandle.listen(dataPrefix);
-  }
-  for (const ndn::Name& cmdPrefix : m_config.repoPrefixes) {
-    m_face.registerPrefix(cmdPrefix, nullptr,
-      [] (const Name& cmdPrefix, const std::string& reason) {
-        NDN_LOG_DEBUG("Command prefix " << cmdPrefix << " registration error: " << reason);
-        BOOST_THROW_EXCEPTION(Error("Command prefix registration failed"));
-      });
+  auto clusterPrefix = Name(m_config.clusterPrefix);
+  auto selfPrefix = Name(clusterPrefix).append(std::to_string(m_config.clusterId));
 
-    m_dispatcher.addTopPrefix(cmdPrefix);
-  }
+  m_face.registerPrefix(clusterPrefix, nullptr,
+    [] (const Name& clusterPrefix, const std::string& reason) {
+      NDN_LOG_DEBUG("Cluster prefix: " << clusterPrefix << " registration error: " << reason);
+    }
+  );
+
+  m_face.registerPrefix(selfPrefix, nullptr,
+    [] (const Name& selfPrefix, const std::string& reason) {
+      NDN_LOG_DEBUG("Self prefix: " << selfPrefix << " registration error: " << reason);
+    }
+  );
+
+  m_dispatcher.addTopPrefix(clusterPrefix);
 
   for (const auto& ep : m_config.tcpBulkInsertEndpoints) {
     m_tcpBulkInsertHandle.listen(ep.first, ep.second);

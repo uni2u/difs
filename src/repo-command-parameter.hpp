@@ -42,6 +42,7 @@ enum RepoParameterField {
   REPO_PARAMETER_END_BLOCK_ID,
   REPO_PARAMETER_PROCESS_ID,
   REPO_PARAMETER_INTEREST_LIFETIME,
+  REPO_PARAMETER_CLUSTER_ID,
   REPO_PARAMETER_UBOUND
 };
 
@@ -50,7 +51,8 @@ const std::string REPO_PARAMETER_FIELD[REPO_PARAMETER_UBOUND] = {
   "StartBlockId",
   "EndBlockId",
   "ProcessId",
-  "InterestLifetime"
+  "InterestLifetime",
+  "ClusterId"
 };
 
 /**
@@ -163,6 +165,22 @@ public:
     return m_hasFields[REPO_PARAMETER_INTEREST_LIFETIME];
   }
 
+  int
+  getClusterId() const
+  {
+    assert(hasClusterId());
+    return m_clusterId;
+  }
+
+  RepoCommandParameter&
+  setClusterId(int clusterId);
+
+  bool
+  hasClusterId() const
+  {
+    return m_hasFields[REPO_PARAMETER_CLUSTER_ID];
+  }
+
   const std::vector<bool>&
   getPresentFields() const {
     return m_hasFields;
@@ -185,6 +203,7 @@ private:
   uint64_t m_endBlockId;
   uint64_t m_processId;
   milliseconds m_interestLifetime;
+  int m_clusterId;
 
   mutable Block m_wire;
 };

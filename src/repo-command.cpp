@@ -36,10 +36,12 @@ RepoCommand::FieldValidator::validate(const RepoCommandParameter& parameters) co
     bool isPresent = presentFields[i];
     if (m_required[i]) {
       if (!isPresent) {
+        std::cout << REPO_PARAMETER_FIELD[i] << " is required but missing";
         BOOST_THROW_EXCEPTION(ArgumentError(REPO_PARAMETER_FIELD[i] + " is required but missing"));
       }
     }
     else if (isPresent && !m_optional[i]) {
+      std::cout << REPO_PARAMETER_FIELD[i] << " is forbidden but present";
       BOOST_THROW_EXCEPTION(ArgumentError(REPO_PARAMETER_FIELD[i] + " is forbidden but present"));
     }
   }
@@ -66,6 +68,29 @@ InsertCheckCommand::InsertCheckCommand()
   m_requestValidator
     .required(REPO_PARAMETER_NAME)
     .required(REPO_PARAMETER_PROCESS_ID);
+}
+
+InfoCommand::InfoCommand()
+{
+  m_requestValidator
+    .required(REPO_PARAMETER_NAME)
+    .required(REPO_PARAMETER_PROCESS_ID);
+}
+
+CreateCommand::CreateCommand()
+{
+  m_requestValidator
+    .required(REPO_PARAMETER_NAME)
+    .required(REPO_PARAMETER_PROCESS_ID)
+    .required(REPO_PARAMETER_CLUSTER_ID)
+    ;
+}
+
+FindCommand::FindCommand()
+{
+  m_requestValidator
+    .required(REPO_PARAMETER_NAME)
+    ;
 }
 
 DeleteCommand::DeleteCommand()

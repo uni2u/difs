@@ -78,6 +78,16 @@ RepoStorage::readData(const Interest& interest) const
   return m_storage.read(interest.getName());
 }
 
+bool
+RepoStorage::insertManifest(const Manifest& manifest)
+{
+  NDN_LOG_DEBUG("Insert manifest for " << manifest.getHash());
+
+  m_storage.insertManifest(manifest);
+
+  return true;
+}
+
 std::shared_ptr<Manifest>
 RepoStorage::readManifest(const std::string& hash)
 {

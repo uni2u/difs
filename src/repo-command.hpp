@@ -104,6 +104,24 @@ public:
   InsertCheckCommand();
 };
 
+class InfoCommand : public RepoCommand
+{
+public:
+  InfoCommand();
+};
+
+class CreateCommand : public RepoCommand
+{
+public:
+  CreateCommand();
+};
+
+class FindCommand : public RepoCommand
+{
+public:
+  FindCommand();
+};
+
 class DeleteCommand : public RepoCommand
 {
 public:

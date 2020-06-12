@@ -47,6 +47,7 @@ WriteHandle::WriteHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt::Disp
   , m_noEndTimeout(NOEND_TIMEOUT)
   , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
   , m_clusterPrefix(clusterPrefix)
+  , m_clusterId(clusterId)
   , m_clusterSize(clusterSize)
   , m_repoPrefix(Name(clusterPrefix).append(std::to_string(clusterId)))
 {
@@ -59,6 +60,12 @@ WriteHandle::WriteHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt::Disp
     makeAuthorization(),
     std::bind(&WriteHandle::validateParameters<InsertCheckCommand>, this, _1),
     std::bind(&WriteHandle::handleCheckCommand, this, _1, _2, _3, _4));
+
+  dispatcher.addControlCommand<RepoCommandParameter>(
+    ndn::PartialName(std::to_string(clusterId)).append("info"),
+    makeAuthorization(),
+    std::bind(&WriteHandle::validateParameters<InfoCommand>, this, _1),
+    std::bind(&WriteHandle::handleInfoCommand, this, _1, _2, _3, _4));
 }
 
 void
@@ -123,6 +130,7 @@ WriteHandle::processSingleInsertCommand(const Interest& interest, RepoCommandPar
                                         const ndn::mgmt::CommandContinuation& done)
 {
   ProcessId processId = ndn::random::generateWord64();
+  NDN_LOG_DEBUG("Insert command processId: " << processId);
 
   ProcessInfo& process = m_processes[processId];
 
@@ -151,11 +159,16 @@ WriteHandle::segInit(ProcessId processId, const RepoCommandParameter& parameter)
   Name name = parameter.getName();
   SegmentNo startBlockId = parameter.getStartBlockId();
 
+  process.repo = m_repoPrefix;
+  process.name = name;
+  process.startBlockId = startBlockId;
+
   uint64_t initialCredit = m_credit;
 
   if (parameter.hasEndBlockId()) {
     initialCredit =
       std::min(initialCredit, parameter.getEndBlockId() - parameter.getStartBlockId() + 1);
+    process.endBlockId = parameter.getEndBlockId();
   }
   else {
     // set noEndTimeout timer
@@ -252,6 +265,7 @@ WriteHandle::processSegmentedInsertCommand(const Interest& interest, RepoCommand
     }
 
     ProcessId processId = ndn::random::generateWord64();
+    NDN_LOG_DEBUG("Insert command processId: " << processId);
     ProcessInfo& process = m_processes[processId];
     RepoCommandResponse& response = process.response;
     response.setCode(100);
@@ -301,6 +315,7 @@ WriteHandle::handleCheckCommand(const Name& prefix, const Interest& interest,
     return;
   }
 
+  NDN_LOG_DEBUG("Check command processId: " << processId);
   ProcessInfo& process = m_processes[processId];
 
   RepoCommandResponse& response = process.response;
@@ -325,6 +340,35 @@ WriteHandle::handleCheckCommand(const Name& prefix, const Interest& interest,
   else {
     done(response);
   }
+}
+
+void
+WriteHandle::handleInfoCommand(const Name& prefix, const Interest& interest,
+                    const ndn::mgmt::ControlParameters& parameters,
+                    const ndn::mgmt::CommandContinuation& done)
+{
+  const RepoCommandParameter& repoParameter = dynamic_cast<const RepoCommandParameter&>(parameters);
+
+  ProcessId processId = repoParameter.getProcessId();
+  if (m_processes.count(processId) == 0) {
+    NDN_LOG_DEBUG("no such processId: " << processId);
+    done(negativeReply("No such this process is in process", 404));
+    return;
+  }
+
+  NDN_LOG_DEBUG("Got info command: " << processId);
+
+  ProcessInfo& process = m_processes[processId];
+
+  auto manifest = process.manifest;
+  auto json = manifest->toJson();
+  Data data(interest.getName());
+  data.setContent((uint8_t*)(json.data()), json.size());
+
+  ndn::KeyChain keyChain;
+  keyChain.sign(data);
+
+  face.put(data);
 }
 
 void
@@ -369,26 +413,32 @@ WriteHandle::writeManifest(const ProcessId& processId, const Interest& interest)
 
   Manifest manifest(name, startBlockId, endBlockId);
   manifest.appendRepo(repo, startBlockId, endBlockId);
+  auto hash = manifest.getHash();
+  NDN_LOG_DEBUG("Manifest name: " << name << " hash: " << hash);
+
+  // Save it for later info command
+  process.manifest = std::make_shared<Manifest>(manifest);
 
   auto manifestRepo = manifest.getManifestStorage(
     m_clusterPrefix, m_clusterSize);
 
-    NDN_LOG_DEBUG("Using manifest repo: " << manifestRepo);
+  NDN_LOG_DEBUG("Using manifest repo: " << manifestRepo);
 
-    RepoCommandParameter parameters;
-    auto commandName = m_selfRepo;
-    commandName.append(name);
-    parameters.setName(commandName);
+  RepoCommandParameter parameters;
+  parameters.setName(hash);
+  parameters.setClusterId(m_clusterId);
 
-    parameters.setProcessId(processId);
-    Interest createInterest = util::generateCommandInterest(
-      manifestRepo, "create", parameters, m_interestLifetime);
-    
-    face.expressInterest(
-      createInterest,
-      std::bind(&WriteHandle::onCreateCommandResponse, this, _1, _2, processId),
-      std::bind(&WriteHandle::onCreateCommandTimeout, this, _1, processId),
-      std::bind(&WriteHandle::onCreateCommandTimeout, this, _1, processId));
+  parameters.setProcessId(processId);
+  Interest createInterest = util::generateCommandInterest(
+    manifestRepo, "create", parameters, m_interestLifetime);
+  
+  NDN_LOG_DEBUG("create interest: "<< createInterest.getName());
+  
+  face.expressInterest(
+    createInterest,
+    std::bind(&WriteHandle::onCreateCommandResponse, this, _1, _2, processId),
+    std::bind(&WriteHandle::onCreateCommandTimeout, this, _1, processId),
+    std::bind(&WriteHandle::onCreateCommandTimeout, this, _1, processId));
 }
 
 void

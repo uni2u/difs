@@ -36,6 +36,8 @@ enum {
   StatusCode           = 208,
   InsertNum            = 209,
   DeleteNum            = 210,
+
+  ClusterId            = 211,
 };
 
 } // namespace tlv

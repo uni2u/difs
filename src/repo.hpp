@@ -27,6 +27,7 @@
 #include "handles/read-handle.hpp"
 #include "handles/tcp-bulk-insert-handle.hpp"
 #include "handles/write-handle.hpp"
+#include "handles/manifest-handle.hpp"
 
 #include "common.hpp"
 
@@ -99,6 +100,7 @@ private:
   ReadHandle m_readHandle;
   WriteHandle m_writeHandle;
   DeleteHandle m_deleteHandle;
+  ManifestHandle m_manifestHandle;
   TcpBulkInsertHandle m_tcpBulkInsertHandle;
 };
 

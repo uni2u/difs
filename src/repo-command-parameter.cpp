@@ -71,12 +71,28 @@ RepoCommandParameter::setInterestLifetime(milliseconds interestLifetime)
   return *this;
 }
 
+RepoCommandParameter&
+RepoCommandParameter::setClusterId(int clusterId)
+{
+  m_clusterId = clusterId;
+  m_hasFields[REPO_PARAMETER_CLUSTER_ID] = true;
+  m_wire.reset();
+  return *this;
+}
+
 template<ndn::encoding::Tag T>
 size_t
 RepoCommandParameter::wireEncode(EncodingImpl<T>& encoder) const
 {
   size_t totalLength = 0;
   size_t variableLength = 0;
+
+  if (m_hasFields[REPO_PARAMETER_CLUSTER_ID]) {
+    variableLength = encoder.prependNonNegativeInteger(m_clusterId);
+    totalLength += variableLength;
+    totalLength += encoder.prependVarNumber(variableLength);
+    totalLength += encoder.prependVarNumber(tlv::ClusterId);
+  }
 
   if (m_hasFields[REPO_PARAMETER_PROCESS_ID]) {
     variableLength = encoder.prependNonNegativeInteger(m_processId);
@@ -181,6 +197,14 @@ RepoCommandParameter::wireDecode(const Block& wire)
   {
     m_hasFields[REPO_PARAMETER_INTEREST_LIFETIME] = true;
     m_interestLifetime = milliseconds(readNonNegativeInteger(*val));
+  }
+
+  // ClusterId
+  val = m_wire.find(tlv::ClusterId);
+  if (val != m_wire.elements_end())
+  {
+    m_hasFields[REPO_PARAMETER_CLUSTER_ID] = true;
+    m_clusterId = readNonNegativeInteger(*val);
   }
 }
 
