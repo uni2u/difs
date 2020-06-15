@@ -39,6 +39,8 @@
 #include <boost/iostreams/operations.hpp>
 #include <boost/iostreams/read.hpp>
 
+#include "../src/manifest/manifest.hpp"
+
 namespace repo {
 
 using namespace ndn::time;
@@ -101,7 +103,7 @@ private:
   onInterest(const ndn::Name& prefix, const ndn::Interest& interest);
 
   void
-  onSingleInterest(const ndn::Name& prefix, const ndn::Interest& interest);
+  sendManifest(const ndn::Name& prefix, const ndn::Interest& interest);
 
   void
   onRegisterSuccess(const ndn::Name& prefix);
@@ -152,6 +154,8 @@ private:
   size_t m_currentSegmentNo;
   bool m_isFinished;
   ndn::Name m_dataPrefix;
+
+  size_t m_bytes;
 
   using DataContainer = std::map<uint64_t, shared_ptr<ndn::Data>>;
   DataContainer m_data;
@@ -208,12 +212,15 @@ NdnPutFile::run()
 {
   m_dataPrefix = ndnName;
 
+  insertStream->seekg(0, std::ios::beg);
+  auto beginPos = insertStream->tellg();
+  insertStream->seekg(0, std::ios::end);
+  m_bytes = insertStream->tellg() - beginPos;
+  insertStream->seekg(0, std::ios::beg);
+
   if (isVerbose)
     std::cerr << "setInterestFilter for " << m_dataPrefix << std::endl;
   m_face.setInterestFilter(m_dataPrefix,
-                           isSingle ?
-                           bind(&NdnPutFile::onSingleInterest, this, _1, _2)
-                           :
                            bind(&NdnPutFile::onInterest, this, _1, _2),
                            bind(&NdnPutFile::onRegisterSuccess, this, _1),
                            bind(&NdnPutFile::onRegisterFailed, this, _1, _2));
@@ -235,9 +242,6 @@ NdnPutFile::startInsertCommand()
 {
   RepoCommandParameter parameters;
   parameters.setName(m_dataPrefix);
-  if (!isSingle) {
-    parameters.setStartBlockId(0);
-  }
 
   ndn::Interest commandInterest = generateCommandInterest(repoPrefix, "insert", parameters);
   m_face.expressInterest(commandInterest,
@@ -269,11 +273,8 @@ NdnPutFile::onInsertCommandTimeout(const ndn::Interest& interest)
 void
 NdnPutFile::onInterest(const ndn::Name& prefix, const ndn::Interest& interest)
 {
-  if (interest.getName().size() != prefix.size() + 1) {
-    if (isVerbose) {
-      std::cerr << "Error processing incoming interest " << interest << ": "
-                << "Unrecognized Interest" << std::endl;
-    }
+  if (interest.getName().size() == prefix.size()) {
+    sendManifest(prefix, interest);
     return;
   }
 
@@ -308,7 +309,7 @@ NdnPutFile::onInterest(const ndn::Name& prefix, const ndn::Interest& interest)
 }
 
 void
-NdnPutFile::onSingleInterest(const ndn::Name& prefix, const ndn::Interest& interest)
+NdnPutFile::sendManifest(const ndn::Name& prefix, const ndn::Interest& interest)
 {
   BOOST_ASSERT(prefix == m_dataPrefix);
 
@@ -319,25 +320,16 @@ NdnPutFile::onSingleInterest(const ndn::Name& prefix, const ndn::Interest& inter
     return;
   }
 
-  uint8_t buffer[DEFAULT_BLOCK_SIZE];
-  std::streamsize readSize =
-    boost::iostreams::read(*insertStream, reinterpret_cast<char*>(buffer), DEFAULT_BLOCK_SIZE);
+  ndn::Data data(interest.getName());
+  auto blockCount = m_bytes / DEFAULT_BLOCK_SIZE + (m_bytes % DEFAULT_BLOCK_SIZE != 0);
 
-  if (readSize <= 0) {
-    BOOST_THROW_EXCEPTION(Error("Error reading from the input stream"));
-  }
+  Manifest manifest(interest.getName().toUri(), 0, blockCount);
+  std::string json = manifest.toInfoJson();
+  data.setContent((uint8_t*) json.data(), (size_t) json.size());
+  data.setFreshnessPeriod(freshnessPeriod);
+  signData(data);
 
-  if (insertStream->peek() != std::istream::traits_type::eof()) {
-    BOOST_THROW_EXCEPTION(Error("Input data does not fit into one Data packet"));
-  }
-
-  auto data = make_shared<ndn::Data>(m_dataPrefix);
-  data->setContent(buffer, readSize);
-  data->setFreshnessPeriod(freshnessPeriod);
-  signData(*data);
-  m_face.put(*data);
-
-  m_isFinished = true;
+  m_face.put(data);
 }
 
 void
@@ -392,12 +384,6 @@ NdnPutFile::onCheckCommandResponse(const ndn::Interest& interest, const ndn::Dat
   if (m_isFinished) {
     uint64_t insertCount = response.getInsertNum();
 
-    if (isSingle) {
-      if (insertCount == 1) {
-        m_face.getIoService().stop();
-        return;
-      }
-    }
     // Technically, the check should not infer, but directly has signal from repo that
     // write operation has been finished
 
@@ -440,12 +426,11 @@ static void
 usage(const char* programName)
 {
   std::cerr << "Usage: "
-            << programName << " [-u] [-s] [-D] [-d] [-i identity] [-I identity] [-x freshness]"
+            << programName << " [-u] [-D] [-d] [-i identity] [-I identity] [-x freshness]"
                               " [-l lifetime] [-w timeout] repo-prefix ndn-name filename\n"
             << "\n"
             << "Write a file into a repo.\n"
             << "\n"
-            << "  -s: single: do not add version or segment component, implies -u\n"
             << "  -D: use DigestSha256 signing method instead of SignatureSha256WithRsa\n"
             << "  -i: specify identity used for signing Data\n"
             << "  -I: specify identity used for signing commands\n"
@@ -465,14 +450,11 @@ main(int argc, char** argv)
   NdnPutFile ndnPutFile;
 
   int opt;
-  while ((opt = getopt(argc, argv, "hsDi:I:x:l:w:v")) != -1) {
+  while ((opt = getopt(argc, argv, "hDi:I:x:l:w:v")) != -1) {
     switch (opt) {
     case 'h':
       usage(argv[0]);
       return 0;
-    case 's':
-      ndnPutFile.isSingle = true;
-      break;
     case 'D':
       ndnPutFile.useDigestSha256 = true;
       break;

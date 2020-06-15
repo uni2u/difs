@@ -21,6 +21,7 @@
 
 #include <ndn-cxx/util/logger.hpp>
 #include <ndn-cxx/util/random.hpp>
+#include <ndn-cxx/security/signing-helpers.hpp>
 
 #include "manifest/manifest.hpp"
 #include "util.hpp"
@@ -61,11 +62,16 @@ WriteHandle::WriteHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt::Disp
     std::bind(&WriteHandle::validateParameters<InsertCheckCommand>, this, _1),
     std::bind(&WriteHandle::handleCheckCommand, this, _1, _2, _3, _4));
 
-  dispatcher.addControlCommand<RepoCommandParameter>(
-    ndn::PartialName(std::to_string(clusterId)).append("info"),
-    makeAuthorization(),
-    std::bind(&WriteHandle::validateParameters<InfoCommand>, this, _1),
-    std::bind(&WriteHandle::handleInfoCommand, this, _1, _2, _3, _4));
+  // dispatcher.addControlCommand<RepoCommandParameter>(
+  //   ndn::PartialName(std::to_string(clusterId)).append("info"),
+  //   makeAuthorization(),
+  //   std::bind(&WriteHandle::validateParameters<InfoCommand>, this, _1),
+  //   std::bind(&WriteHandle::handleInfoCommand, this, _1, _2, _3, _4));
+
+  ndn::InterestFilter filterGet = Name(m_repoPrefix).append("info");
+  face.setInterestFilter(filterGet,
+                           std::bind(&WriteHandle::handleInfoCommand, this, _1, _2),
+                           std::bind(&WriteHandle::onRegisterFailed, this, _1, _2));
 }
 
 void
@@ -108,14 +114,26 @@ WriteHandle::onDataValidated(const Interest& interest, const Data& data, Process
   }
 
   ProcessInfo& process = m_processes[processId];
-  RepoCommandResponse& response = process.response;
 
-  if (response.getInsertNum() == 0) {
-    storageHandle.insertData(data);
-    response.setInsertNum(1);
-  }
+  auto content = data.getContent();
+  std::string json(
+    content.value_begin(),
+    content.value_end()
+  );
 
-  deferredDeleteProcess(processId);
+  Manifest manifest = Manifest::fromInfoJson(json);
+
+  process.startBlockId = manifest.getStartBlockId();
+  process.endBlockId = manifest.getEndBlockId();
+  process.name = manifest.getName();
+  process.repo = m_repoPrefix;
+
+  RepoCommandParameter parameter;
+  parameter.setName(manifest.getName());
+  parameter.setStartBlockId(0);
+
+  segInit(processId, parameter);
+
 }
 
 void
@@ -130,7 +148,7 @@ WriteHandle::processSingleInsertCommand(const Interest& interest, RepoCommandPar
                                         const ndn::mgmt::CommandContinuation& done)
 {
   ProcessId processId = ndn::random::generateWord64();
-  NDN_LOG_DEBUG("Insert command processId: " << processId);
+  NDN_LOG_DEBUG("Insert(manifest) command processId: " << processId << " " << parameter.getName());
 
   ProcessInfo& process = m_processes[processId];
 
@@ -145,6 +163,7 @@ WriteHandle::processSingleInsertCommand(const Interest& interest, RepoCommandPar
   Interest fetchInterest(parameter.getName());
   fetchInterest.setCanBePrefix(m_canBePrefix);
   fetchInterest.setInterestLifetime(m_interestLifetime);
+  fetchInterest.setMustBeFresh(true);
   face.expressInterest(fetchInterest,
                        std::bind(&WriteHandle::onData, this, _1, _2, processId),
                        std::bind(&WriteHandle::onTimeout, this, _1, processId), // Nack
@@ -159,16 +178,13 @@ WriteHandle::segInit(ProcessId processId, const RepoCommandParameter& parameter)
   Name name = parameter.getName();
   SegmentNo startBlockId = parameter.getStartBlockId();
 
-  process.repo = m_repoPrefix;
-  process.name = name;
-  process.startBlockId = startBlockId;
-
   uint64_t initialCredit = m_credit;
 
   if (parameter.hasEndBlockId()) {
     initialCredit =
       std::min(initialCredit, parameter.getEndBlockId() - parameter.getStartBlockId() + 1);
     process.endBlockId = parameter.getEndBlockId();
+
   }
   else {
     // set noEndTimeout timer
@@ -230,6 +246,7 @@ WriteHandle::onSegmentData(ndn::util::SegmentFetcher& fetcher, const Data& data,
 
   //read whether this process has total ends, if ends, remove control info from the maps
   if (response.hasEndBlockId()) {
+    it->second.endBlockId = response.getEndBlockId();
     uint64_t nSegments = response.getEndBlockId() - response.getStartBlockId() + 1;
     if (response.getInsertNum() >= nSegments) {
       //All the data has been inserted, StatusCode is refreshed as 200
@@ -320,15 +337,15 @@ WriteHandle::handleCheckCommand(const Name& prefix, const Interest& interest,
 
   RepoCommandResponse& response = process.response;
 
+  if (!process.manifestSent) {
+    process.manifestSent = true;
+    writeManifest(processId);
+  }
+
   //Check whether it is single data fetching
   if (!response.hasStartBlockId() && !response.hasEndBlockId()) {
     done(response);
     return;
-  }
-
-  if (!process.manifestSent) {
-    process.manifestSent = true;
-    writeManifest(processId, interest);
   }
 
   //read if noEndtimeout
@@ -343,16 +360,17 @@ WriteHandle::handleCheckCommand(const Name& prefix, const Interest& interest,
 }
 
 void
-WriteHandle::handleInfoCommand(const Name& prefix, const Interest& interest,
-                    const ndn::mgmt::ControlParameters& parameters,
-                    const ndn::mgmt::CommandContinuation& done)
+WriteHandle::handleInfoCommand(const Name& prefix, const Interest& interest)
 {
-  const RepoCommandParameter& repoParameter = dynamic_cast<const RepoCommandParameter&>(parameters);
+  // const RepoCommandParameter& repoParameter = dynamic_cast<const RepoCommandParameter&>(parameters);
+
+  RepoCommandParameter repoParameter;
+  repoParameter.wireDecode(interest.getName().get(prefix.size()).blockFromValue());
 
   ProcessId processId = repoParameter.getProcessId();
   if (m_processes.count(processId) == 0) {
     NDN_LOG_DEBUG("no such processId: " << processId);
-    done(negativeReply("No such this process is in process", 404));
+    // done(negativeReply("No such this process is in process", 404));
     return;
   }
 
@@ -360,15 +378,31 @@ WriteHandle::handleInfoCommand(const Name& prefix, const Interest& interest,
 
   ProcessInfo& process = m_processes[processId];
 
-  auto manifest = process.manifest;
-  auto json = manifest->toJson();
+  auto manifest = Manifest(process.name.toUri(), process.startBlockId, process.endBlockId);
+  std::string repo = process.repo.toUri();
+  int startBlockId = process.startBlockId;
+  int endBlockId = process.endBlockId;
+  manifest.appendRepo(repo, startBlockId, endBlockId);
+
+  // auto manifest = Manifest::fromInfoJson(process.manifestJson);
+  // NDN_LOG_DEBUG("Got manifest");
+
+  auto json = manifest.toJson();
+  NDN_LOG_DEBUG("Manifest: " << json << " Interest name: " << interest.getName());
   Data data(interest.getName());
   data.setContent((uint8_t*)(json.data()), json.size());
 
-  ndn::KeyChain keyChain;
-  keyChain.sign(data);
+  KeyChain keyChain;
+  keyChain.sign(data, ndn::signingWithSha256());
 
   face.put(data);
+}
+
+void
+WriteHandle::onRegisterFailed(const Name& prefix, const std::string& reason)
+{
+  NDN_LOG_ERROR("ERROR: Failed to register prefix in local hub's daemon");
+  face.shutdown();
 }
 
 void
@@ -402,7 +436,7 @@ WriteHandle::negativeReply(std::string text, int statusCode)
 }
 
 void
-WriteHandle::writeManifest(const ProcessId& processId, const Interest& interest)
+WriteHandle::writeManifest(const ProcessId& processId)
 {
   ProcessInfo process = m_processes[processId];
 
@@ -414,10 +448,10 @@ WriteHandle::writeManifest(const ProcessId& processId, const Interest& interest)
   Manifest manifest(name, startBlockId, endBlockId);
   manifest.appendRepo(repo, startBlockId, endBlockId);
   auto hash = manifest.getHash();
-  NDN_LOG_DEBUG("Manifest name: " << name << " hash: " << hash);
+  NDN_LOG_DEBUG("Manifest name: " << name << " hash: " << hash << " end: " << endBlockId);
 
   // Save it for later info command
-  process.manifest = std::make_shared<Manifest>(manifest);
+  process.manifestJson = manifest.toJson();
 
   auto manifestRepo = manifest.getManifestStorage(
     m_clusterPrefix, m_clusterSize);
@@ -429,10 +463,9 @@ WriteHandle::writeManifest(const ProcessId& processId, const Interest& interest)
   parameters.setClusterId(m_clusterId);
 
   parameters.setProcessId(processId);
+  NDN_LOG_DEBUG("Write manifest for pid " << processId);
   Interest createInterest = util::generateCommandInterest(
     manifestRepo, "create", parameters, m_interestLifetime);
-  
-  NDN_LOG_DEBUG("create interest: "<< createInterest.getName());
   
   face.expressInterest(
     createInterest,

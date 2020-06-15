@@ -99,7 +99,7 @@ private:
     ndn::Name name;
     int startBlockId;
     int endBlockId;
-    std::shared_ptr<Manifest> manifest;
+    std::string manifestJson;
 
     bool manifestSent = false;
   };
@@ -184,9 +184,10 @@ private: // insert state check command
 
 private:
   void
-  handleInfoCommand(const Name& prefix, const Interest& interest,
-                    const ndn::mgmt::ControlParameters& parameters,
-                    const ndn::mgmt::CommandContinuation& done);
+  handleInfoCommand(const Name& prefix, const Interest& interest);
+
+  void
+  onRegisterFailed(const Name& prefix, const std::string& reason);
 
 private:
   void
@@ -203,7 +204,7 @@ private:
 
 private:
   void
-  writeManifest(const ProcessId& processId, const Interest& interest);
+  writeManifest(const ProcessId& processId);
 
   void
   onCreateCommandResponse(const Interest& interest, const Data& data, const ProcessId& processId);
