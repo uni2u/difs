@@ -28,6 +28,7 @@
 #include "repo-command.hpp"
 
 #include <ndn-cxx/mgmt/dispatcher.hpp>
+#include <ndn-cxx/security/signing-helpers.hpp>
 
 namespace repo {
 
@@ -72,6 +73,19 @@ public:
   }
 
 protected:
+  void
+  extractParameter(const Interest& interest, const Name& prefix, RepoCommandParameter& parameter);
+
+  void
+  reply(const Interest& commandInterest, const RepoCommandResponse& response);
+
+  void
+  reply(const Interest& commandInterest, const std::string& data);
+
+  void
+  negativeReply(const Interest& commandInterest, const std::string& reason, int statusCode);
+
+protected:
   Face& face;
   RepoStorage& storageHandle;
   Scheduler& scheduler;
@@ -79,6 +93,41 @@ protected:
 private:
   Validator& m_validator;
 };
+
+inline void
+CommandBaseHandle::extractParameter(const Interest& interest, const Name& prefix, RepoCommandParameter& parameter)
+{
+  parameter.wireDecode(interest.getName().get(prefix.size()).blockFromValue());
+}
+
+inline void
+CommandBaseHandle::reply(const Interest& commandInterest, const RepoCommandResponse& response)
+{
+  std::shared_ptr<Data> rdata = std::make_shared<Data>(commandInterest.getName());
+  rdata->setContent(response.wireEncode());
+  KeyChain keyChain;
+  keyChain.sign(*rdata, ndn::signingWithSha256());
+  face.put(*rdata);
+}
+
+inline void
+CommandBaseHandle::reply(const Interest& commandInterest, const std::string& data)
+{
+  std::shared_ptr<Data> rdata = std::make_shared<Data>(commandInterest.getName());
+  rdata->setContent((uint8_t*)(data.data()), data.size());
+  KeyChain keyChain;
+  keyChain.sign(*rdata, ndn::signingWithSha256());
+  face.put(*rdata);
+}
+
+inline void
+CommandBaseHandle::negativeReply(const Interest& commandInterest, const std::string& reason, int statusCode)
+{
+  RepoCommandResponse response(statusCode, reason);
+
+  reply(commandInterest, response);
+}
+
 } // namespace repo
 
 #endif // REPO_HANDLES_COMMAND_BASE_HANDLE_HPP

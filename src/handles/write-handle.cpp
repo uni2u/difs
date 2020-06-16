@@ -365,7 +365,7 @@ WriteHandle::handleInfoCommand(const Name& prefix, const Interest& interest)
   // const RepoCommandParameter& repoParameter = dynamic_cast<const RepoCommandParameter&>(parameters);
 
   RepoCommandParameter repoParameter;
-  repoParameter.wireDecode(interest.getName().get(prefix.size()).blockFromValue());
+  extractParameter(interest, prefix, repoParameter);
 
   ProcessId processId = repoParameter.getProcessId();
   if (m_processes.count(processId) == 0) {
@@ -389,13 +389,7 @@ WriteHandle::handleInfoCommand(const Name& prefix, const Interest& interest)
 
   auto json = manifest.toJson();
   NDN_LOG_DEBUG("Manifest: " << json << " Interest name: " << interest.getName());
-  Data data(interest.getName());
-  data.setContent((uint8_t*)(json.data()), json.size());
-
-  KeyChain keyChain;
-  keyChain.sign(data, ndn::signingWithSha256());
-
-  face.put(data);
+  reply(interest, json);
 }
 
 void

@@ -22,6 +22,7 @@
 
 #include "common.hpp"
 
+#include "command-base-handle.hpp"
 #include "storage/repo-storage.hpp"
 #include "repo-command-response.hpp"
 #include "repo-command-parameter.hpp"
@@ -29,7 +30,7 @@
 
 namespace repo {
 
-class ReadHandle : public noncopyable
+class ReadHandle : public CommandBaseHandle
 {
 
 public:
@@ -41,8 +42,10 @@ public:
     int useCount;
   };
 
-  ReadHandle(Face& face, RepoStorage& storageHandle, size_t prefixSubsetLength,
-             ndn::Name const& clusterPrefix, int clusterSize);
+  ReadHandle(Face &face, RepoStorage &storageHandle,
+             Scheduler &scheduler, Validator &validator,
+             size_t prefixSubsetLength,
+             ndn::Name const &clusterPrefix, int clusterSize);
 
   void
   listen(const Name& prefix);
@@ -70,6 +73,13 @@ PUBLIC_WITH_TESTS_ELSE_PRIVATE:
   connectAutoListen();
 
 private:
+  struct ProcessInfo
+  {
+    Interest interest;
+    ndn::time::steady_clock::TimePoint noEndTime;
+  };
+
+private:
   /**
    * @brief Read data from backend storage
    */
@@ -83,6 +93,9 @@ private:
   onFindCommandResponse(const Interest& interest, const Data& data, ProcessId processId);
 
   void
+  onFindCommandTimeout(const Interest& interest, ProcessId processId);
+
+  void
   onRegisterFailed(const Name& prefix, const std::string& reason);
 
 private:
@@ -93,7 +106,8 @@ private:
   Face& m_face;
   RepoStorage& m_storageHandle;
 
-  std::map<ProcessId, Interest> m_interests;
+  ndn::time::milliseconds m_interestLifetime;
+  std::map<ProcessId, ProcessInfo> m_processes;
 
   ndn::Name m_clusterPrefix;
   int m_clusterSize;

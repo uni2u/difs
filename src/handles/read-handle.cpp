@@ -20,18 +20,26 @@
 #include "read-handle.hpp"
 #include "repo.hpp"
 #include "../manifest/manifest.hpp"
+#include "util.hpp"
 
 #include <ndn-cxx/util/logger.hpp>
+#include <ndn-cxx/util/random.hpp>
 
 namespace repo {
 
 NDN_LOG_INIT(repo.ReadHandle);
 
-ReadHandle::ReadHandle(Face& face, RepoStorage& storageHandle, size_t prefixSubsetLength,
-                       ndn::Name const& clusterPrefix, int clusterSize)
-  : m_prefixSubsetLength(prefixSubsetLength)
+static const milliseconds DEFAULT_INTEREST_LIFETIME(4000);
+
+ReadHandle::ReadHandle(Face &face, RepoStorage &storageHandle,
+                       Scheduler &scheduler, Validator &validator,
+                       size_t prefixSubsetLength,
+                       ndn::Name const &clusterPrefix, int clusterSize)
+  : CommandBaseHandle(face, storageHandle, scheduler, validator)
+  , m_prefixSubsetLength(prefixSubsetLength)
   , m_face(face)
   , m_storageHandle(storageHandle)
+  , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
   , m_clusterPrefix(clusterPrefix)
   , m_clusterSize(clusterSize)
 {
@@ -71,10 +79,56 @@ ReadHandle::onInterest(const Name& prefix, const Interest& interest)
 void
 ReadHandle::onGetInterest(const Name& prefix, const Interest& interest)
 {
-  auto name = interest.getName();
+  RepoCommandParameter parameter;
+  try {
+    extractParameter(interest, prefix, parameter);
+  }
+  catch (RepoCommandParameter::Error&) {
+    negativeReply(interest, "Parameter malformed", 403);
+    return;
+  }
+  auto name = parameter.getName();
   NDN_LOG_DEBUG("Received get interest" << name);
   auto hash = Manifest::getHash(name.toUri());
-  std::shared_ptr<Manifest> manifest = m_storageHandle.readManifest(hash); 
+  auto repo = Manifest::getManifestStorage(m_clusterPrefix, name.toUri(), m_clusterSize);
+
+  NDN_LOG_DEBUG("Find " << hash << "from " << repo);
+  ProcessId processId = ndn::random::generateWord64();
+  ProcessInfo& process = m_processes[processId];
+  process.interest = interest;
+
+  RepoCommandParameter parameters;
+  parameters.setName(hash);
+  parameters.setProcessId(processId);
+
+  Interest findInterest = util::generateCommandInterest(
+    repo, "find", parameters, m_interestLifetime);
+  findInterest.setMustBeFresh(true);
+
+  m_face.expressInterest(
+    findInterest,
+    std::bind(&ReadHandle::onFindCommandResponse, this, _1, _2, processId),
+    std::bind(&ReadHandle::onFindCommandTimeout, this, _1, processId),
+    std::bind(&ReadHandle::onFindCommandTimeout, this, _1, processId));
+}
+
+void
+ReadHandle::onFindCommandResponse(const Interest& interest, const Data& data, ProcessId processId)
+{
+  auto process = m_processes[processId];
+  Data responseData(process.interest.getName());
+  auto content = data.getContent();
+  std::string json(
+    content.value_begin(),
+    content.value_end());
+  reply(process.interest, json);
+  m_processes.erase(processId);
+}
+
+void
+ReadHandle::onFindCommandTimeout(const Interest& interest, ProcessId processId)
+{
+  m_processes.erase(processId);
 }
 
 void
@@ -91,7 +145,7 @@ ReadHandle::listen(const Name& prefix)
   m_face.setInterestFilter(filter,
                            std::bind(&ReadHandle::onInterest, this, _1, _2),
                            std::bind(&ReadHandle::onRegisterFailed, this, _1, _2));
-  ndn::InterestFilter filterGet(Name(prefix).append("get"));
+  ndn::InterestFilter filterGet(Name(m_clusterPrefix).append("get"));
   m_face.setInterestFilter(filterGet,
                            std::bind(&ReadHandle::onGetInterest, this, _1, _2),
                            std::bind(&ReadHandle::onRegisterFailed, this, _1, _2));
