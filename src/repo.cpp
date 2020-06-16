@@ -118,7 +118,7 @@ Repo::Repo(boost::asio::io_service& ioService, const RepoConfig& config)
   , m_store(std::make_shared<FsStorage>(config.dbPath))
   , m_storageHandle(*m_store)
   , m_validator(m_face)
-  , m_readHandle(m_face, m_storageHandle, m_scheduler, m_validator, m_config.registrationSubset, m_config.clusterPrefix, m_config.clusterId)
+  , m_readHandle(m_face, m_storageHandle, m_scheduler, m_validator, m_config.registrationSubset, m_config.clusterPrefix, m_config.clusterSize)
   , m_writeHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId, m_config.clusterSize)
   , m_deleteHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator)
   , m_manifestHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId)
@@ -154,6 +154,8 @@ Repo::enableListening()
       NDN_LOG_DEBUG("Self prefix: " << selfPrefix << " registration error: " << reason);
     }
   );
+
+  m_readHandle.listen(selfPrefix);
 
   m_dispatcher.addTopPrefix(clusterPrefix);
 

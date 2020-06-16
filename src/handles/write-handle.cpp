@@ -222,7 +222,9 @@ WriteHandle::onSegmentData(ndn::util::SegmentFetcher& fetcher, const Data& data,
   RepoCommandResponse& response = it->second.response;
 
   //insert data
-  if (storageHandle.insertData(data)) {
+  auto newName = Name(m_repoPrefix).append("data").append(data.getName());
+  auto newData = sign(newName, data);
+  if (storageHandle.insertData(newData)) {
     response.setInsertNum(response.getInsertNum() + 1);
   }
 

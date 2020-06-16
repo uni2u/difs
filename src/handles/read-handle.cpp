@@ -88,11 +88,11 @@ ReadHandle::onGetInterest(const Name& prefix, const Interest& interest)
     return;
   }
   auto name = parameter.getName();
-  NDN_LOG_DEBUG("Received get interest" << name);
+  NDN_LOG_DEBUG("Received get interest " << name);
   auto hash = Manifest::getHash(name.toUri());
   auto repo = Manifest::getManifestStorage(m_clusterPrefix, name.toUri(), m_clusterSize);
 
-  NDN_LOG_DEBUG("Find " << hash << "from " << repo);
+  NDN_LOG_DEBUG("Find " << hash << " from " << repo);
   ProcessId processId = ndn::random::generateWord64();
   ProcessInfo& process = m_processes[processId];
   process.interest = interest;
@@ -103,7 +103,7 @@ ReadHandle::onGetInterest(const Name& prefix, const Interest& interest)
 
   Interest findInterest = util::generateCommandInterest(
     repo, "find", parameters, m_interestLifetime);
-  findInterest.setMustBeFresh(true);
+  // findInterest.setMustBeFresh(true);
 
   m_face.expressInterest(
     findInterest,
@@ -121,6 +121,8 @@ ReadHandle::onFindCommandResponse(const Interest& interest, const Data& data, Pr
   std::string json(
     content.value_begin(),
     content.value_end());
+
+  NDN_LOG_DEBUG("Forward manifest " << json);
   reply(process.interest, json);
   m_processes.erase(processId);
 }
@@ -128,6 +130,7 @@ ReadHandle::onFindCommandResponse(const Interest& interest, const Data& data, Pr
 void
 ReadHandle::onFindCommandTimeout(const Interest& interest, ProcessId processId)
 {
+  NDN_LOG_DEBUG("Find command timeout");
   m_processes.erase(processId);
 }
 
@@ -145,10 +148,13 @@ ReadHandle::listen(const Name& prefix)
   m_face.setInterestFilter(filter,
                            std::bind(&ReadHandle::onInterest, this, _1, _2),
                            std::bind(&ReadHandle::onRegisterFailed, this, _1, _2));
-  ndn::InterestFilter filterGet(Name(m_clusterPrefix).append("get"));
+
+  ndn::InterestFilter filterGet(Name("get"));
   m_face.setInterestFilter(filterGet,
                            std::bind(&ReadHandle::onGetInterest, this, _1, _2),
                            std::bind(&ReadHandle::onRegisterFailed, this, _1, _2));
+
+  NDN_LOG_DEBUG("read handle listen complete");
 }
 
 void

@@ -27,6 +27,9 @@
 
 #include <boost/lexical_cast.hpp>
 
+#include "../src/manifest/manifest.hpp"
+#include "../src/util.hpp"
+
 namespace repo {
 
 using ndn::Name;
@@ -44,13 +47,11 @@ public:
     : m_dataName(dataName)
     , m_os(os)
     , m_verbose(verbose)
-    , m_hasVersion(versioned)
-    , m_isSingle(single)
     , m_isFinished(false)
     , m_isFirst(true)
     , m_interestLifetime(interestLifetime)
     , m_timeout(timeout)
-    , m_nextSegment(0)
+    , m_currentSegment(0)
     , m_totalSize(0)
     , m_retryCount(0)
     , m_mustBeFresh(mustBeFresh)
@@ -63,10 +64,16 @@ public:
 
 private:
   void
-  fetchData(const ndn::Name& name);
+  fetchData(const Manifest& manifest, uint64_t segmentId);
+
+  ndn::Name
+  selectRepoName(const Manifest& manifest, uint64_t segmentId);
 
   void
-  onVersionedData(const ndn::Interest& interest, const ndn::Data& data);
+  onManifest(const Interest& interest, const ndn::Data& data);
+
+  void
+  onManifestTimeout(const ndn::Interest& interest);
 
   void
   onUnversionedData(const ndn::Interest& interest, const ndn::Data& data);
@@ -78,133 +85,131 @@ private:
   readData(const ndn::Data& data);
 
   void
-  fetchNextData(const ndn::Name& name, const ndn::Data& data);
+  fetchNextData();
 
 private:
   ndn::Face m_face;
   ndn::Name m_dataName;
   std::ostream& m_os;
   bool m_verbose;
-  bool m_hasVersion;
-  bool m_isSingle;
   bool m_isFinished;
   bool m_isFirst;
   ndn::time::milliseconds m_interestLifetime;
   ndn::time::milliseconds m_timeout;
-  uint64_t m_nextSegment;
+  uint64_t m_currentSegment;
   int m_totalSize;
   int m_retryCount;
   bool m_mustBeFresh;
   bool m_canBePrefix;
 
+  std::shared_ptr<Manifest> m_manifest;
+  uint64_t m_finalBlockId;
+
   static constexpr int MAX_RETRY = 3;
 };
 
 void
-Consumer::fetchData(const Name& name)
+Consumer::fetchData(const Manifest& manifest, uint64_t segmentId)
 {
-  Interest interest(name);
+  auto repoName = selectRepoName(manifest, segmentId);
+  auto name = manifest.getName();
+  Interest interest(repoName.append("data").append(name).appendSegment(segmentId));
   interest.setInterestLifetime(m_interestLifetime);
-  if (m_hasVersion) {
-    interest.setMustBeFresh(m_mustBeFresh);
-  }
-  else {
-    interest.setMustBeFresh(true);
-  }
-
-  interest.setCanBePrefix(m_canBePrefix);
+  interest.setMustBeFresh(true);
 
   m_face.expressInterest(interest,
-                         m_hasVersion ? std::bind(&Consumer::onVersionedData, this, _1, _2)
-                                      : std::bind(&Consumer::onUnversionedData, this, _1, _2),
+                         std::bind(&Consumer::onUnversionedData, this, _1, _2),
                          std::bind(&Consumer::onTimeout, this, _1), // Nack
                          std::bind(&Consumer::onTimeout, this, _1));
+}
+
+ndn::Name
+Consumer::selectRepoName(const Manifest& manifest, uint64_t segmentId)
+{
+  auto repos = manifest.getRepos();
+  for (auto iter = repos.begin(); iter != repos.end(); ++iter)
+  {
+    auto start = iter->start;
+    auto end = iter->end;
+    if (start <= (int)segmentId && (int)segmentId <= end)
+    {
+      return Name(iter->name);
+    }
+  }
+
+  // Should not be here
+  return Name("");
 }
 
 void
 Consumer::run()
 {
-  // Send the first Interest
-  Name name(m_dataName);
+  // Get manifest
+  RepoCommandParameter parameter;
+  parameter.setName(m_dataName);
+  Interest interest = util::generateCommandInterest(Name("get"), "", parameter, m_interestLifetime);
+  
+  std::cerr << interest << std::endl;
 
-  m_nextSegment++;
-  fetchData(name);
+  m_face.expressInterest(
+    interest,
+    std::bind(&Consumer::onManifest, this, _1, _2),
+    std::bind(&Consumer::onManifestTimeout, this, _1),
+    std::bind(&Consumer::onManifestTimeout, this, _1));
 
   // processEvents will block until the requested data received or timeout occurs
   m_face.processEvents(m_timeout);
 }
 
 void
-Consumer::onVersionedData(const Interest& interest, const Data& data)
+Consumer::onManifest(const Interest& interest, const Data& data)
 {
-  const Name& name = data.getName();
+  auto content = data.getContent();
+  std::string json(
+    content.value_begin(),
+    content.value_end()
+  );
 
-  // the received data name may have segment number or not
-  if (name.size() == m_dataName.size()) {
-    if (!m_isSingle) {
-      Name fetchName = name;
-      fetchName.appendSegment(0);
-      fetchData(fetchName);
-    }
-  }
-  else if (name.size() == m_dataName.size() + 1) {
-    if (!m_isSingle) {
-      if (m_isFirst) {
-        uint64_t segment = name[-1].toSegment();
-        if (segment != 0) {
-          fetchData(Name(m_dataName).appendSegment(0));
-          m_isFirst = false;
-          return;
-        }
-        m_isFirst = false;
-      }
-      fetchNextData(name, data);
-    }
-    else {
-      std::cerr << "ERROR: Data is not stored in a single packet" << std::endl;
-      return;
+  auto manifest = Manifest::fromJson(json);
+  m_manifest = std::make_shared<Manifest>(manifest);
+
+  m_finalBlockId = manifest.getEndBlockId();
+  std::cerr << "final block: " << m_finalBlockId;
+
+  fetchData(manifest, m_currentSegment);
+}
+
+void
+Consumer::onManifestTimeout(const Interest& interest)
+{
+  if (m_retryCount++ < MAX_RETRY) {
+    // Retransmit the interest
+    RepoCommandParameter parameter;
+    parameter.setName(m_dataName);
+    Interest interest = util::generateCommandInterest(Name("get"), "", parameter, m_interestLifetime);
+    
+    std::cerr << interest << std::endl;
+
+    m_face.expressInterest(
+      interest,
+      std::bind(&Consumer::onManifest, this, _1, _2),
+      std::bind(&Consumer::onManifestTimeout, this, _1),
+      std::bind(&Consumer::onManifestTimeout, this, _1));
+    if (m_verbose) {
+      std::cerr << "TIMEOUT: retransmit interest for manifest"<< std::endl;
     }
   }
   else {
-    std::cerr << "ERROR: Name size does not match" << std::endl;
-    return;
+    std::cerr << "TIMEOUT: last interest sent for manifest" << std::endl;
+    std::cerr << "TIMEOUT: abort fetching after " << MAX_RETRY
+              << " times of retry" << std::endl;
   }
-  readData(data);
 }
 
 void
 Consumer::onUnversionedData(const Interest& interest, const Data& data)
 {
-  const Name& name = data.getName();
-  if (name.size() == m_dataName.size() + 1) {
-    if (!m_isSingle) {
-      Name fetchName = name;
-      fetchName.append(name[-1]).appendSegment(0);
-      fetchData(fetchName);
-    }
-  }
-  else if (name.size() == m_dataName.size() + 2) {
-    if (!m_isSingle) {
-       if (m_isFirst) {
-        uint64_t segment = name[-1].toSegment();
-        if (segment != 0) {
-          fetchData(Name(m_dataName).append(name[-2]).appendSegment(0));
-          m_isFirst = false;
-          return;
-        }
-        m_isFirst = false;
-      }
-      fetchNextData(name, data);
-    }
-    else {
-      std::cerr << "ERROR: Data is not stored in a single packet" << std::endl;
-      return;
-    }
-  }
-  else {
-    std::cerr << "ERROR: Name size does not match" << std::endl;
-    return;
-  }
+  fetchNextData();
   readData(data);
 }
 
@@ -217,30 +222,22 @@ Consumer::readData(const Data& data)
   if (m_verbose) {
     std::cerr << "LOG: received data = " << data.getName() << std::endl;
   }
-  if (m_isFinished || m_isSingle) {
+  if (m_isFinished) {
     std::cerr << "INFO: End of file is reached" << std::endl;
-    std::cerr << "INFO: Total # of segments received: " << m_nextSegment  << std::endl;
+    std::cerr << "INFO: Total # of segments received: " << m_currentSegment + 1  << std::endl;
     std::cerr << "INFO: Total # bytes of content received: " << m_totalSize << std::endl;
   }
 }
 
 void
-Consumer::fetchNextData(const Name& name, const Data& data)
+Consumer::fetchNextData()
 {
-  uint64_t segment = name[-1].toSegment();
-  BOOST_VERIFY(segment == (m_nextSegment - 1));
-
-  auto finalBlockId = data.getFinalBlock();
-  if (finalBlockId == name[-1]) {
+  if (m_currentSegment >= m_finalBlockId) {
     m_isFinished = true;
-  }
-  else {
-    // Reset retry counter
+  } else {
     m_retryCount = 0;
-    if (m_hasVersion)
-      fetchData(Name(m_dataName).appendSegment(m_nextSegment++));
-    else
-      fetchData(Name(m_dataName).append(name[-2]).appendSegment(m_nextSegment++));
+    m_currentSegment += 1;
+    fetchData(*m_manifest, m_currentSegment);
   }
 }
 
@@ -249,13 +246,13 @@ Consumer::onTimeout(const Interest& interest)
 {
   if (m_retryCount++ < MAX_RETRY) {
     // Retransmit the interest
-    fetchData(interest.getName());
+    fetchData(*m_manifest, m_currentSegment);
     if (m_verbose) {
       std::cerr << "TIMEOUT: retransmit interest for " << interest.getName() << std::endl;
     }
   }
   else {
-    std::cerr << "TIMEOUT: last interest sent for segment #" << (m_nextSegment - 1) << std::endl;
+    std::cerr << "TIMEOUT: last interest sent for segment #" << m_currentSegment << std::endl;
     std::cerr << "TIMEOUT: abort fetching after " << MAX_RETRY
               << " times of retry" << std::endl;
   }
@@ -265,12 +262,9 @@ static void
 usage(const char* programName)
 {
   std::cerr << "Usage: "
-            << programName << " [-v] [-s] [-u] [-l lifetime] [-w timeout] [-o filename] ndn-name\n"
+            << programName << " [-v] [-l lifetime] [-w timeout] [-o filename] ndn-name\n"
             << "\n"
             << "  -v: be verbose\n"
-            << "  -s: only get single data packet\n"
-            << "  -u: versioned: ndn-name contains version component\n"
-            << "      if -u is not specified, this command will return the rightmost child for the prefix\n"
             << "  -l: InterestLifetime in milliseconds\n"
             << "  -w: timeout in milliseconds for whole process (default unlimited)\n"
             << "  -o: write to local file name instead of stdout\n"
@@ -288,19 +282,13 @@ main(int argc, char** argv)
   int timeout = 0;  // in milliseconds
 
   int opt;
-  while ((opt = getopt(argc, argv, "hvsul:w:o:")) != -1) {
+  while ((opt = getopt(argc, argv, "hvl:w:o:")) != -1) {
     switch (opt) {
     case 'h':
       usage(argv[0]);
       return 0;
     case 'v':
       verbose = true;
-      break;
-    case 's':
-      single = true;
-      break;
-    case 'u':
-      versioned = true;
       break;
     case 'l':
       try {
@@ -358,13 +346,13 @@ main(int argc, char** argv)
   std::ostream os(buf);
   Consumer consumer(name, os, verbose, versioned, single, interestLifetime, timeout);
 
-  try {
+  // try {
     consumer.run();
-  }
-  catch (const std::exception& e) {
-    std::cerr << "ERROR: " << e.what() << std::endl;
-    return 1;
-  }
+  // }
+  // catch (const std::exception& e) {
+  //   std::cerr << "ERROR: " << e.what() << std::endl;
+  //   return 1;
+  // }
 
   return 0;
 }

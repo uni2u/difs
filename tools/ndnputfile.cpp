@@ -323,7 +323,7 @@ NdnPutFile::sendManifest(const ndn::Name& prefix, const ndn::Interest& interest)
   ndn::Data data(interest.getName());
   auto blockCount = m_bytes / DEFAULT_BLOCK_SIZE + (m_bytes % DEFAULT_BLOCK_SIZE != 0);
 
-  Manifest manifest(interest.getName().toUri(), 0, blockCount);
+  Manifest manifest(interest.getName().toUri(), 0, blockCount - 1);
   std::string json = manifest.toInfoJson();
   data.setContent((uint8_t*) json.data(), (size_t) json.size());
   data.setFreshnessPeriod(freshnessPeriod);

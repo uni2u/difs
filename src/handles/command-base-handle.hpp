@@ -85,6 +85,9 @@ protected:
   void
   negativeReply(const Interest& commandInterest, const std::string& reason, int statusCode);
 
+  ndn::Data
+  sign(const Name& name, const Data& data);
+
 protected:
   Face& face;
   RepoStorage& storageHandle;
