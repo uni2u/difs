@@ -99,7 +99,7 @@ private:
     ndn::Name name;
     int startBlockId;
     int endBlockId;
-    std::string manifestJson;
+    std::shared_ptr<Manifest> manifest;
 
     bool manifestSent = false;
   };

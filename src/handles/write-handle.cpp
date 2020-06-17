@@ -380,11 +380,7 @@ WriteHandle::handleInfoCommand(const Name& prefix, const Interest& interest)
 
   ProcessInfo& process = m_processes[processId];
 
-  auto manifest = Manifest(process.name.toUri(), process.startBlockId, process.endBlockId);
-  std::string repo = process.repo.toUri();
-  int startBlockId = process.startBlockId;
-  int endBlockId = process.endBlockId;
-  manifest.appendRepo(repo, startBlockId, endBlockId);
+  Manifest manifest = *process.manifest;
 
   // auto manifest = Manifest::fromInfoJson(process.manifestJson);
   // NDN_LOG_DEBUG("Got manifest");
@@ -434,7 +430,7 @@ WriteHandle::negativeReply(std::string text, int statusCode)
 void
 WriteHandle::writeManifest(const ProcessId& processId)
 {
-  ProcessInfo process = m_processes[processId];
+  ProcessInfo& process = m_processes[processId];
 
   std::string repo = process.repo.toUri();
   std::string name = process.name.toUri();
@@ -447,7 +443,7 @@ WriteHandle::writeManifest(const ProcessId& processId)
   NDN_LOG_DEBUG("Manifest name: " << name << " hash: " << hash << " end: " << endBlockId);
 
   // Save it for later info command
-  process.manifestJson = manifest.toJson();
+  process.manifest = std::make_shared<Manifest>(manifest);
 
   auto manifestRepo = manifest.getManifestStorage(
     m_clusterPrefix, m_clusterSize);
