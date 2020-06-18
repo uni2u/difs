@@ -45,7 +45,6 @@ RepoStorage::insertData(const Data& data)
   }
 
   int64_t id = m_storage.insert(data);
-  NDN_LOG_DEBUG("Insert ID: " << id << ", full name:" << data.getFullName());
   if (id == NOTFOUND)
     return false;
 

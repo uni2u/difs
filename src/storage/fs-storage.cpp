@@ -94,7 +94,6 @@ int64_t
 FsStorage::writeData(const Data& data, const char* dataType)
 {
   auto name = data.getName();
-  std::cout << "Saving... " << name.toUri() << std::endl;
   auto id = hash(name.toUri());
 
   boost::filesystem::path fsPath = getPath(data.getName(), dataType);

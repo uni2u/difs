@@ -242,6 +242,7 @@ NdnPutFile::startInsertCommand()
 {
   RepoCommandParameter parameters;
   parameters.setName(m_dataPrefix);
+  parameters.setStartBlockId(0);
 
   ndn::Interest commandInterest = generateCommandInterest(repoPrefix, "insert", parameters);
   m_face.expressInterest(commandInterest,
