@@ -97,13 +97,45 @@ DeleteCommand::DeleteCommand()
 {
   m_requestValidator
     .required(REPO_PARAMETER_NAME)
+    .required(REPO_PARAMETER_PROCESS_ID);
+}
+
+void
+DeleteCommand::check(const RepoCommandParameter& parameters) const
+{
+  if (parameters.hasStartBlockId() || parameters.hasEndBlockId()) {
+    if (parameters.hasEndBlockId()) {
+      SegmentNo startBlockId = parameters.getStartBlockId();
+      SegmentNo endBlockId = parameters.getEndBlockId();
+
+      if (startBlockId > endBlockId) {
+        BOOST_THROW_EXCEPTION(ArgumentError("start block Id is bigger than end block Id"));
+      }
+    }
+    else {
+      BOOST_THROW_EXCEPTION(ArgumentError("Segmented deletion without EndBlockId, not implemented"));
+    }
+  }
+}
+
+DeleteManifestCommand::DeleteManifestCommand()
+{
+  m_requestValidator
+    .required(REPO_PARAMETER_NAME)
+    .required(REPO_PARAMETER_PROCESS_ID);
+}
+
+DeleteDataCommand::DeleteDataCommand()
+{
+  m_requestValidator
+    .required(REPO_PARAMETER_NAME)
     .required(REPO_PARAMETER_START_BLOCK_ID)
     .required(REPO_PARAMETER_END_BLOCK_ID)
     .required(REPO_PARAMETER_PROCESS_ID);
 }
 
 void
-DeleteCommand::check(const RepoCommandParameter& parameters) const
+DeleteDataCommand::check(const RepoCommandParameter& parameters) const
 {
   if (parameters.hasStartBlockId() || parameters.hasEndBlockId()) {
     if (parameters.hasEndBlockId()) {

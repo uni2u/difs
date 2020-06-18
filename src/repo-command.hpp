@@ -132,6 +132,22 @@ private:
   check(const RepoCommandParameter& parameters) const override;
 };
 
+class DeleteManifestCommand : public RepoCommand
+{
+public:
+  DeleteManifestCommand();
+};
+
+class DeleteDataCommand : public RepoCommand
+{
+public:
+  DeleteDataCommand();
+
+private:
+  void
+  check(const RepoCommandParameter& parameters) const override;
+};
+
 } // namespace repo
 
 #endif // REPO_REPO_COMMAND_HPP

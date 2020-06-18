@@ -96,5 +96,15 @@ RepoStorage::readManifest(const std::string& hash)
   return m_storage.readManifest(hash);
 }
 
+bool
+RepoStorage::deleteManifest(const std::string& hash)
+{
+  if (m_storage.eraseManifest(hash)) {
+    return 1;
+  }
+
+  return -1;
+}
+
 
 } // namespace repo
