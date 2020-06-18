@@ -32,7 +32,7 @@ static const milliseconds DEFAULT_INTEREST_LIFETIME(4000);
 DeleteHandle::DeleteHandle(Face& face, RepoStorage& storageHandle,
                            ndn::mgmt::Dispatcher& dispatcher, Scheduler& scheduler,
                            Validator& validator,
-                           ndn::Name& clusterPrefix, const int clusterSize)
+                           ndn::Name& clusterPrefix, const int clusterId, const int clusterSize)
   : CommandBaseHandle(face, storageHandle, scheduler, validator)
   , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
   , m_clusterPrefix(clusterPrefix)
@@ -43,12 +43,14 @@ DeleteHandle::DeleteHandle(Face& face, RepoStorage& storageHandle,
     std::bind(&DeleteHandle::validateParameters<DeleteCommand>, this, _1),
     std::bind(&DeleteHandle::handleDeleteCommand, this, _1, _2, _3, _4));
 
-  dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName("delete manifest"),
+  dispatcher.addControlCommand<RepoCommandParameter>(
+    ndn::PartialName(std::to_string(clusterId)).append("delete manifest"),
     makeAuthorization(),
     std::bind(&DeleteHandle::validateParameters<DeleteManifestCommand>, this, _1),
     std::bind(&DeleteHandle::handleDeleteManifestCommand, this, _1, _2, _3, _4));
 
-  dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName("delete data"),
+  dispatcher.addControlCommand<RepoCommandParameter>(
+    ndn::PartialName(std::to_string(clusterId)).append("delete data"),
     makeAuthorization(),
     std::bind(&DeleteHandle::validateParameters<DeleteDataCommand>, this, _1),
     std::bind(&DeleteHandle::handleDeleteDataCommand, this, _1, _2, _3, _4));
@@ -61,6 +63,8 @@ DeleteHandle::handleDeleteCommand(const Name& prefix, const Interest& interest,
                                   const ndn::mgmt::CommandContinuation& done)
 {
   const RepoCommandParameter& repoParameter = dynamic_cast<const RepoCommandParameter&>(parameter);
+
+  NDN_LOG_DEBUG("Got delete command " << repoParameter.getName());
 
   auto name = repoParameter.getName().toUri();
   auto hash = Manifest::getHash(name);
@@ -76,6 +80,8 @@ DeleteHandle::handleDeleteCommand(const Name& prefix, const Interest& interest,
   auto repo = Manifest::getManifestStorage(m_clusterPrefix, name, m_clusterSize);
   Interest deleteManifestInterest = util::generateCommandInterest(
     repo, "delete manifest", parameters, m_interestLifetime);
+
+  NDN_LOG_DEBUG(deleteManifestInterest);
   
   face.expressInterest(
     deleteManifestInterest,
@@ -90,13 +96,19 @@ DeleteHandle::onDeleteManifestCommandResponse(const Interest& interest, const Da
                                               const RepoCommandParameter& repoParameter,
                                               const ProcessId processId)
 {
-  done(positiveReply(interest, repoParameter, 200, 1));
+  RepoCommandResponse response(data.getContent().blockFromValue());
+  NDN_LOG_DEBUG("Got delete manifest response" << response.getCode());
+  if (response.getCode() == 200) {
+    done(positiveReply(interest, repoParameter, 200, 1));
+  }
+
   m_processes.erase(processId);
 }
 
 void
 DeleteHandle::onTimeout(const Interest& interest, const ndn::mgmt::CommandContinuation& done, const ProcessId processId)
 {
+  NDN_LOG_DEBUG("Timeout");
   auto prevInterest = m_processes[processId].interest;
   done(negativeReply(prevInterest, 405, "Deletion Failed"));
 }
@@ -109,6 +121,9 @@ DeleteHandle::handleDeleteManifestCommand(const Name& prefix, const Interest& in
   const RepoCommandParameter& repoParameter = dynamic_cast<const RepoCommandParameter&>(parameter);
 
   auto hash = repoParameter.getName().toUri();
+  hash = hash.substr(1, hash.length() - 1);
+
+  NDN_LOG_DEBUG("Got delete manifest " << hash);
   ProcessId processId = ndn::random::generateWord64();
   ProcessInfo& process = m_processes[processId];
 
@@ -116,6 +131,7 @@ DeleteHandle::handleDeleteManifestCommand(const Name& prefix, const Interest& in
 
   auto manifest = storageHandle.readManifest(hash);
   if (manifest == nullptr) {
+    NDN_LOG_DEBUG("Manifest not found");
     done(negativeReply(interest, 405, "Manifest not found"));
     return;
   }
@@ -134,6 +150,9 @@ DeleteHandle::deleteData(const RepoCommandParameter repoParameter, const ndn::mg
 
   Manifest::Repo repo = process.repos.front();
   process.repos.pop_front();
+
+  auto newProcessId = ndn::random::generateWord64();
+
   RepoCommandParameter parameters;
   // /repo/0/data/data/0/%00%00
   auto name = ndn::Name(repo.name);
@@ -142,9 +161,12 @@ DeleteHandle::deleteData(const RepoCommandParameter repoParameter, const ndn::mg
   parameters.setName(name);
   parameters.setStartBlockId(repo.start);
   parameters.setEndBlockId(repo.end);
+  parameters.setProcessId(newProcessId);
 
   Interest deleteDataInterest = util::generateCommandInterest(
     ndn::Name(repo.name), "delete data", parameters, m_interestLifetime);
+
+  NDN_LOG_DEBUG(deleteDataInterest);
 
   face.expressInterest(
     deleteDataInterest,
@@ -158,7 +180,15 @@ DeleteHandle::onDeleteDataCommandResponse(const Interest& interest, const Data& 
                                           const RepoCommandParameter& parameters, const ndn::mgmt::CommandContinuation& done,
                                           const ProcessId processId)
 {
+  RepoCommandResponse response(data.getContent().blockFromValue());
+  NDN_LOG_DEBUG("Got delete data response " << response.getCode());
+
   ProcessInfo& process = m_processes[processId];
+
+  if (response.getCode() > 400) {
+    done(negativeReply(process.interest, 405, "Delete data failed"));
+    return;
+  }
 
   auto repos = process.repos;
 
@@ -191,11 +221,14 @@ DeleteHandle::handleDeleteDataCommand(const Name& prefix, const Interest& intere
     return;
   }
 
+  NDN_LOG_DEBUG("Got delete data " << repoParameter.getName() << " " << start << "~" << end);
+
   const Name dataName = repoParameter.getName();
   uint64_t nDeletedData = 0;
   for (SegmentNo i = start; i <= end; ++i) {
     Name name = dataName;
     name.appendSegment(i);
+    NDN_LOG_DEBUG("Delete data " << name);
     if (storageHandle.deleteData(name)) {
       nDeletedData += 1;
     }

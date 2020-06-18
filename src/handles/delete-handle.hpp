@@ -52,7 +52,7 @@ private:
 public:
   DeleteHandle(Face& face, RepoStorage& storageHandle,
                ndn::mgmt::Dispatcher& dispatcher, Scheduler& scheduler, Validator& validator,
-               ndn::Name& clusterPrefix, const int clusterSize);
+               ndn::Name& clusterPrefix, const int clusterId, const int clusterSize);
 
 private:
   void
