@@ -128,6 +128,11 @@ WriteHandle::onDataValidated(const Interest& interest, const Data& data, Process
   process.name = manifest.getName();
   process.repo = m_repoPrefix;
 
+  if (!process.manifestSent) {
+    process.manifestSent = true;
+    writeManifest(processId);
+  }
+
   RepoCommandParameter parameter;
   parameter.setName(manifest.getName());
   parameter.setStartBlockId(0);
@@ -229,6 +234,7 @@ WriteHandle::onSegmentData(ndn::util::SegmentFetcher& fetcher, const Data& data,
   }
 
   ProcessInfo& process = m_processes[processId];
+
   //read whether notime timeout
   if (!response.hasEndBlockId()) {
 
@@ -339,16 +345,11 @@ WriteHandle::handleCheckCommand(const Name& prefix, const Interest& interest,
 
   RepoCommandResponse& response = process.response;
 
-  if (!process.manifestSent) {
-    process.manifestSent = true;
-    writeManifest(processId);
-  }
-
   //Check whether it is single data fetching
-  if (!response.hasStartBlockId() && !response.hasEndBlockId()) {
-    done(response);
-    return;
-  }
+  // if (!response.hasStartBlockId() && !response.hasEndBlockId()) {
+  //   done(response);
+  //   return;
+  // }
 
   //read if noEndtimeout
   if (!response.hasEndBlockId()) {
