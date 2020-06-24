@@ -1,0 +1,26 @@
+# NDN PING SERVER CONTAINER
+docker run -it --rm --network net-ndn --name pingserver ndn03:01 nfd
+docker run -it --rm --network net-ndn --name pingserver -v /root/data:/data ndn03:01 nfd
+docker run -it --rm --network net-ndn --name pingserver -v /root/data/<function>:/data/<function> ndn03:01 nfd
+
+docker run -it --rm --network net-ndn --name pingserver --mount source=functions,target=/data ndn03:01 nfd
+docker run -it --rm --network net-ndn --name pingserver --mount source=functions,target=/data,readonly ndn03:01 nfd
+
+docker exec -it pingserver bash -c "ndnpingserver /test/ping"
+ndnpingserver /test/ping
+
+
+# HOST
+nfdc route add /test/ping 280
+
+
+docker volume create funcitons  -> root@ :/var/lib/docker/volumes/functions/_data
+docker volume rm functions
+
+
+# NDN PING CLIENT CONTAINER
+docker run -it --rm --network net-ndn --name pingclient ndn03:01 nfd
+docker run -it --rm --network net-ndn --name pingclient -v /root/data:/data ndn03:01 nfd
+docker exec -it pingclient bash -c "nfdc route add / 256 | ndnping /test/ping"
+nfdc route add / 256
+ndnping /test/ping
