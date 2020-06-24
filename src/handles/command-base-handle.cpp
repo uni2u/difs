@@ -65,7 +65,7 @@ CommandBaseHandle::makeAuthorization()
       accept(signer);
     },
     [reject] (const ndn::Interest& request,
-              const ndn::security::ValidationError& error) {
+              const ndn::security::v2::ValidationError& error) {
       reject(ndn::mgmt::RejectReply::STATUS403);
     });
   };
