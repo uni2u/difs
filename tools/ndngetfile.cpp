@@ -115,7 +115,7 @@ Consumer::fetchData(const Manifest& manifest, uint64_t segmentId)
   auto name = manifest.getName();
   Interest interest(repoName.append("data").append(name).appendSegment(segmentId));
   interest.setInterestLifetime(m_interestLifetime);
-  interest.setMustBeFresh(true);
+  // interest.setMustBeFresh(true);
 
   m_face.expressInterest(interest,
                          std::bind(&Consumer::onUnversionedData, this, _1, _2),
