@@ -71,6 +71,7 @@ public:
     , interestLifetime(DEFAULT_INTEREST_LIFETIME)
     , hasTimeout(false)
     , timeout(0)
+    , blockSize(DEFAULT_BLOCK_SIZE)
     , insertStream(nullptr)
     , isVerbose(false)
     , m_scheduler(m_face.getIoService())
@@ -139,6 +140,7 @@ public:
   milliseconds interestLifetime;
   bool hasTimeout;
   milliseconds timeout;
+  size_t blockSize;
   ndn::Name repoPrefix;
   ndn::Name ndnName;
   std::istream* insertStream;
@@ -183,9 +185,9 @@ NdnPutFile::prepareNextData(uint64_t referenceSegmentNo)
   }
 
   for (size_t i = 0; i < nDataToPrepare && !m_isFinished; ++i) {
-    uint8_t buffer[DEFAULT_BLOCK_SIZE];
+    uint8_t *buffer = new uint8_t[blockSize];
     auto readSize = boost::iostreams::read(*insertStream,
-                                           reinterpret_cast<char*>(buffer), DEFAULT_BLOCK_SIZE);
+                                           reinterpret_cast<char*>(buffer), blockSize);
     if (readSize <= 0) {
       BOOST_THROW_EXCEPTION(Error("Error reading from the input stream"));
     }
@@ -204,6 +206,7 @@ NdnPutFile::prepareNextData(uint64_t referenceSegmentNo)
     m_data.insert(std::make_pair(m_currentSegmentNo, data));
 
     ++m_currentSegmentNo;
+    delete[] buffer;
   }
 }
 
@@ -321,7 +324,7 @@ NdnPutFile::sendManifest(const ndn::Name& prefix, const ndn::Interest& interest)
   }
 
   ndn::Data data(interest.getName());
-  auto blockCount = m_bytes / DEFAULT_BLOCK_SIZE + (m_bytes % DEFAULT_BLOCK_SIZE != 0);
+  auto blockCount = m_bytes / blockSize + (m_bytes % blockSize != 0);
 
   Manifest manifest(interest.getName().toUri(), 0, blockCount - 1);
   std::string json = manifest.toInfoJson();
@@ -426,7 +429,7 @@ static void
 usage(const char* programName)
 {
   std::cerr << "Usage: "
-            << programName << " [-u] [-D] [-d] [-i identity] [-I identity] [-x freshness]"
+            << programName << " [-u] [-D] [-d] [-s block size] [-i identity] [-I identity] [-x freshness]"
                               " [-l lifetime] [-w timeout] repo-prefix ndn-name filename\n"
             << "\n"
             << "Write a file into a repo.\n"
@@ -437,6 +440,7 @@ usage(const char* programName)
             << "  -x: FreshnessPeriod in milliseconds\n"
             << "  -l: InterestLifetime in milliseconds for each command\n"
             << "  -w: timeout in milliseconds for whole process (default unlimited)\n"
+            << "  -s: block size (default 1000)\n"
             << "  -v: be verbose\n"
             << "  repo-prefix: repo command prefix\n"
             << "  ndn-name: NDN Name prefix for written Data\n"
@@ -450,7 +454,7 @@ main(int argc, char** argv)
   NdnPutFile ndnPutFile;
 
   int opt;
-  while ((opt = getopt(argc, argv, "hDi:I:x:l:w:v")) != -1) {
+  while ((opt = getopt(argc, argv, "hDi:I:x:l:w:s:v")) != -1) {
     switch (opt) {
     case 'h':
       usage(argv[0]);
@@ -490,6 +494,15 @@ main(int argc, char** argv)
       catch (const boost::bad_lexical_cast&) {
         std::cerr << "-w option should be an integer" << std::endl;;
         return 2;
+      }
+      break;
+    case 's':
+      try {
+        ndnPutFile.blockSize = boost::lexical_cast<uint64_t>(optarg);
+      }
+      catch (const boost::bad_lexical_cast&) {
+        std::cerr << "-s option should be an integer.";
+        return 1;
       }
       break;
     case 'v':
