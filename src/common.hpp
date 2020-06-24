@@ -27,8 +27,8 @@
 #include <ndn-cxx/interest.hpp>
 #include <ndn-cxx/key-locator.hpp>
 #include <ndn-cxx/name.hpp>
-#include <ndn-cxx/security/v2/key-chain.hpp>
-#include <ndn-cxx/security/v2/validator.hpp>
+#include <ndn-cxx/security/key-chain.hpp>
+#include <ndn-cxx/security/validator.hpp>
 #include <ndn-cxx/security/validator-config.hpp>
 #include <ndn-cxx/util/time.hpp>
 #include <ndn-cxx/util/scheduler.hpp>
@@ -61,9 +61,9 @@ using ndn::Interest;
 using ndn::Data;
 using ndn::KeyLocator;
 using ndn::Scheduler;
-using ndn::security::v2::KeyChain;
-using ndn::security::v2::Validator;
-using ndn::security::v2::ValidationError;
+using ndn::security::KeyChain;
+using ndn::security::Validator;
+using ndn::security::ValidationError;
 using ndn::security::ValidatorConfig;
 
 using boost::noncopyable;
