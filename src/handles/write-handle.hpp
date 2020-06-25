@@ -114,7 +114,11 @@ private: // insert command
                       const ndn::mgmt::CommandContinuation& done);
 
   void
-  onValidationFailed(const Interest& interest, const ValidationError& error);
+  onFindResponse(
+      const Interest &findInterest, const Data &findData,
+      const Interest &origInterest, const RepoCommandParameter &repoParameter, const ndn::mgmt::CommandContinuation &done);
+
+  void onValidationFailed(const Interest &interest, const ValidationError &error);
 
 private: // single data fetching
   /**
@@ -133,7 +137,7 @@ private: // single data fetching
   onTimeout(const Interest& interest, ProcessId processId);
 
   void
-  processSingleInsertCommand(const Interest& interest, RepoCommandParameter& parameter,
+  processSingleInsertCommand(const Interest& interest, const RepoCommandParameter& parameter,
                              const ndn::mgmt::CommandContinuation& done);
 
 private:  // segmented data fetching
@@ -156,7 +160,7 @@ private:  // segmented data fetching
   segInit(ProcessId processId, const RepoCommandParameter& parameter);
 
   void
-  processSegmentedInsertCommand(const Interest& interest, RepoCommandParameter& parameter,
+  processSegmentedInsertCommand(const Interest& interest, const RepoCommandParameter& parameter,
                                 const ndn::mgmt::CommandContinuation& done);
 
 private:

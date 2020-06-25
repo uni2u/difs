@@ -88,14 +88,47 @@ WriteHandle::handleInsertCommand(const Name& prefix, const Interest& interest,
   RepoCommandParameter* repoParameter =
     dynamic_cast<RepoCommandParameter*>(const_cast<ndn::mgmt::ControlParameters*>(&parameter));
 
-  if (repoParameter->hasStartBlockId() || repoParameter->hasEndBlockId()) {
-    processSegmentedInsertCommand(interest, *repoParameter, done);
+  auto name = repoParameter->getName().toUri();
+  auto hash = Manifest::getHash(name);
+  auto repo = Manifest::getManifestStorage(m_clusterPrefix, name, m_clusterSize);
+
+  RepoCommandParameter parameters;
+  parameters.setName(hash);
+  parameters.setProcessId(repoParameter->getProcessId());
+
+
+  Interest findInterest = util::generateCommandInterest(repo, "find", parameters, m_interestLifetime);
+
+  auto nackHandler = std::bind([](const Interest& interest) {}, _1);
+
+  face.expressInterest(
+    findInterest,
+    std::bind(&WriteHandle::onFindResponse, this, _1, _2, interest, *repoParameter, done),
+    nackHandler,
+    nackHandler);
+}
+
+void
+WriteHandle::onFindResponse(
+    const Interest &findInterest, const Data &findData,
+    const Interest &origInterest, const RepoCommandParameter& repoParameter, const ndn::mgmt::CommandContinuation &done)
+{
+
+  auto content = findData.getContent();
+  if (content.value_size() > 0) {  // Manifest found, cannot insert
+    done(negativeReply("Manifest already exists", 403));
+    return;
+  }
+
+  if (repoParameter.hasStartBlockId() || repoParameter.hasEndBlockId()) {
+    NDN_LOG_DEBUG("Process segmented insert");
+    processSegmentedInsertCommand(origInterest, repoParameter, done);
   }
   else {
-    processSingleInsertCommand(interest, *repoParameter, done);
+    processSingleInsertCommand(origInterest, repoParameter, done);
   }
-  if (repoParameter->hasInterestLifetime())
-    m_interestLifetime = repoParameter->getInterestLifetime();
+  if (repoParameter.hasInterestLifetime())
+    m_interestLifetime = repoParameter.getInterestLifetime();
 }
 
 void
@@ -149,7 +182,7 @@ WriteHandle::onTimeout(const Interest& interest, ProcessId processId)
 }
 
 void
-WriteHandle::processSingleInsertCommand(const Interest& interest, RepoCommandParameter& parameter,
+WriteHandle::processSingleInsertCommand(const Interest& interest, const RepoCommandParameter& parameter,
                                         const ndn::mgmt::CommandContinuation& done)
 {
   ProcessId processId = ndn::random::generateWord64();
@@ -277,7 +310,7 @@ WriteHandle::onSegmentTimeout(ndn::util::SegmentFetcher& fetcher, ProcessId proc
 }
 
 void
-WriteHandle::processSegmentedInsertCommand(const Interest& interest, RepoCommandParameter& parameter,
+WriteHandle::processSegmentedInsertCommand(const Interest& interest, const RepoCommandParameter& parameter,
                                            const ndn::mgmt::CommandContinuation& done)
 {
   if (parameter.hasEndBlockId()) {
