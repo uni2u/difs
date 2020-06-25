@@ -170,6 +170,11 @@ Consumer::onManifest(const Interest& interest, const Data& data)
     content.value_end()
   );
 
+  if (json.length() == 0) {
+    std::cerr << "Not found" << std::endl;
+    return;
+  }
+
   auto manifest = Manifest::fromJson(json);
   m_manifest = std::make_shared<Manifest>(manifest);
 

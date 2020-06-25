@@ -387,7 +387,7 @@ WriteHandle::handleInfoCommand(const Name& prefix, const Interest& interest)
   // NDN_LOG_DEBUG("Got manifest");
 
   auto json = manifest.toJson();
-  NDN_LOG_DEBUG("Manifest: " << json << " Interest name: " << interest.getName());
+  NDN_LOG_DEBUG("Manifest: " << json << " Interest: " << interest.toUri());
   reply(interest, json);
 }
 

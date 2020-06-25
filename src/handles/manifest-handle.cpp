@@ -194,11 +194,12 @@ ManifestHandle::handleFindCommand(const Name& prefix, const Interest& interest)
   hash = hash.substr(1, hash.length() - 1);  // Remove prepended /
   NDN_LOG_DEBUG("Got find interest " << hash);
   auto manifest = storageHandle.readManifest(hash);
-  if (!manifest->getName().empty()) {
+  if (manifest != nullptr) {
     auto json = manifest->toJson();
     reply(interest, json);
   } else {
     NDN_LOG_DEBUG("Cannot found manifest " << hash);
+    reply(interest, "");
   }
 
 }

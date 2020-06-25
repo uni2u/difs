@@ -122,8 +122,13 @@ ReadHandle::onFindCommandResponse(const Interest& interest, const Data& data, Pr
     content.value_begin(),
     content.value_end());
 
-  NDN_LOG_DEBUG("Forward manifest " << json);
-  reply(process.interest, json);
+  if (json.length() == 0) {
+    NDN_LOG_DEBUG("Manifest not found");
+    reply(process.interest, "");
+  } else {
+    NDN_LOG_DEBUG("Forward manifest " << json);
+    reply(process.interest, json);
+  }
   m_processes.erase(processId);
 }
 
@@ -131,6 +136,7 @@ void
 ReadHandle::onFindCommandTimeout(const Interest& interest, ProcessId processId)
 {
   NDN_LOG_DEBUG("Find command timeout");
+  negativeReply(m_processes[processId].interest, "Manifest timeout", 403);
   m_processes.erase(processId);
 }
 
