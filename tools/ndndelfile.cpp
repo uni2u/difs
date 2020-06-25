@@ -96,7 +96,11 @@ NdnDelFile::onDeleteCommandResponse(const ndn::Interest& interest, const ndn::Da
 {
   RepoCommandResponse response(data.getContent().blockFromValue());
   int statusCode = response.getCode();
-  if (statusCode >= 400) {
+  if (statusCode == 404) {
+    std::cerr << "Manifest not found" << std::endl;
+    return;
+  }
+  else if (statusCode >= 400) {
     std::cerr << "delete command failed with code " << statusCode << interest.getName() << std::endl;
     return;
   }

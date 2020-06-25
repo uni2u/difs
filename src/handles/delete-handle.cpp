@@ -97,9 +97,11 @@ DeleteHandle::onDeleteManifestCommandResponse(const Interest& interest, const Da
                                               const ProcessId processId)
 {
   RepoCommandResponse response(data.getContent().blockFromValue());
-  NDN_LOG_DEBUG("Got delete manifest response" << response.getCode());
+  NDN_LOG_DEBUG("Got delete manifest response " << response.getCode());
   if (response.getCode() == 200) {
     done(positiveReply(interest, repoParameter, 200, 1));
+  } else {
+    done(negativeReply(interest, 404, "Manifest not found"));
   }
 
   m_processes.erase(processId);
