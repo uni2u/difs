@@ -32,7 +32,7 @@ DIFS 는 NDN 네트워크를 위한 대규모 Object Storage 로서 다음과 �
 - 각 데이터는 이름이 있으며 data-name 은 해시 엔진을 통해 고유 ID 를 가짐
 - 해시 값을 사용하여 디렉토리를 구성하고 메타데이터를 저장할 위치 결정
 
-#### File Storage
+#### _File Storage_
 파일 저장소는 inux 파일 시스템인 ext4 파일 시스템을 기반으로 하고 있다.
 데이터를 체계적으로 저장하기 위하여 Git 에서와 같이 디렉토리에 저장된다.
 데이터 세그먼트는 데이터 이름의 처음 2 바이트 해시 값을 사용하여 디렉토리를 구성한 후 저장된다.
@@ -48,7 +48,7 @@ DIFS 는 NDN 네트워크를 위한 대규모 Object Storage 로서 다음과 �
     |_ segment
 ```
 
-#### Metadata Store
+#### _Metadata Store_
 Metadata Store 는 데이터 이름 해시값을 Key 로 메타데이터를 제공하기 위한 Key/Value Store 형태이다.
 메타데이터 정보는 실제로 데이터를 저장하는 노드에 대한 정보 제공한다.
 특히, 일관된 해싱 알고리즘을 사용하여 데이터를 분산시키기 때문에 분산 해시 링으로 표시할 수 있다.
@@ -81,6 +81,18 @@ DIFS 를 구성하는 노드는 유일한 이름을 가지고 있으며 노드 �
   ]
 }
 ```
+
+#### _Hash Engine_
+NDN 에서 모든 Data 는 고유의 이름을 가지고 있으며 이름은 중복되지 않는다.
+즉, 사용자는 Data 의 고유 이름을 알고 있다면 데이터에 접근할 수 있는 것이다.
+하지만 Data 의 이름은 네트워크까지 포함하여 구성되어 있기 때문에 매우 복잡한 이름으로 구성된다 (예: '/network/domain/data').
+사용자가 network 을 포함한 Data 의 full name 을 알고 있어야 하였으며 이 이름은 네트워크를 지나면서 절대로 변형되지 않아야 한다.
+DIFS 는 이러한 문제를 'hash engine' 을 사용하여 해소한다.
+'같은 이름을 해싱한 결과는 동일하다.' 는 특성을 활용하여 Data 이름을 활용하여 Data 의 full name 을 제공한다.
+데이터 생산자가 데이터를 저장하면서 제시한 `data name` 은 _hash engine_ 을 통해 결과값을 가지게 된다.
+이 결과값을 사용하여 DIFS 클러스터를 구성하고 있는 노드 중 _metadata_ 를 구성할 Key/Value Store 를 지정한다.
+지정된 노드의 Key/Value Store 에 _metadata_ 를 생성하고 _hash 결과값_ 과 매치한다.
+즉, _hash result_ 를 Key 로 하는 _metadata_ Value 쌍이 구성된다.
 
 ### Our Goal
 
