@@ -40,11 +40,11 @@ DIFS 는 NDN 네트워크를 위한 대규모 Object Storage 로서 다음과 �
 
 ```
 \data
- |_ dir(hash 2 bytes)
+ |_ \dir(hash 2 bytes)
  |  |_ segment
  |  |_ segment
  |
- |_ dir
+ |_ \dir
     |_ segment
 ```
 
