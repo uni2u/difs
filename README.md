@@ -57,6 +57,8 @@ DIFS 를 구성하는 노드는 유일한 이름을 가지고 있으며 노드 �
 메타데이터에는 데이터 이름, 데이터 이름의 해시 값, 데이터를 저장하는 노드에 대한 정보 및 세그먼트 번호를 포함한 데이터 정보 포함한다.
 
 ```
+Key: data_name hash result / Value: metadata
+
 {
   "info": {
     "name": "content_name",
@@ -93,6 +95,33 @@ DIFS 는 이러한 문제를 'hash engine' 을 사용하여 해소한다.
 이 결과값을 사용하여 DIFS 클러스터를 구성하고 있는 노드 중 _metadata_ 를 구성할 Key/Value Store 를 지정한다.
 지정된 노드의 Key/Value Store 에 _metadata_ 를 생성하고 _hash 결과값_ 과 매치한다.
 즉, _hash result_ 를 Key 로 하는 _metadata_ Value 쌍이 구성된다.
+
+```
+[Data Insert]
+                               +------select key/value store node------+
+                               |                using hash result      |
+                               |                                       V
+producer --'data_name'--> DIFS node1 --+           ......     --> DIFS nodeX --+
+                               ^       |                               ^       |
+                               |       |                               | set Key/Value store
+                               | data_name hash                        | create metadata
+                               |       |                               |       |
+                               +-------+                               +-------+
+
+---
+
+[Data Retrive]
+                               +------search key/value store node------+
+                               |                using hash result      |
+                               |                                       V
+consumer --'data_name'--> DIFS node3 --+           ......     --> DIFS nodeX --+
+                               ^       |                               ^       |
+                               |       |                               | get Key/Value store
+                               | data_name hash                        | response metadata
+                               |       |                               |       |
+                               +-------+                               +-------+
+```
+
 
 ### Our Goal
 
