@@ -118,20 +118,20 @@ consumer --'data_name'--> DIFS node3 --+           ......     --> DIFS nodeX --+
                 |              ^       |                               ^       |
                 |              |       |                               | get Key/Value store
                 |              | data_name hash                        | response metadata
-                |              |       |                               |       |
-                |              +-------+                               +-------+
-                |                                                              ^
-                +---->    DIFS node4 --+                                       |
-                |              ^       |                                       |
-                |              |       |                                       |
-                |              | data_name hash --search key/value store node--+
-                |              |       |                                       ^
-                |              +-------+                                       |
-                |                                                              |
-                +---->    DIFS node9 --+                                       |
-                               ^       |                                       |
-                               |       |                                       |
-                               | data_name hash --search key/value store node--+
+                |              |       |                      +------->|       |
+                |              +-------+                      |        +-------+
+                |                                             |
+                +---->    DIFS node4 --+                      |
+                |              ^       |                      |
+                |              |       |                      | getMetadata(hash(data_name))
+                |              | data_name hash --------------+
+                |              |       |                      ^
+                |              +-------+                      |
+                |                                             |
+                +---->    DIFS node9 --+                      |
+                               ^       |                      |
+                               |       |                      |
+                               | data_name hash --------------+
                                |       |
                                +-------+
 ```
