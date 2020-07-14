@@ -115,11 +115,25 @@ producer --'data_name'--> DIFS node1 --+           ......     --> DIFS nodeX --+
                                |                using hash result      |
                                |                                       V
 consumer --'data_name'--> DIFS node3 --+           ......     --> DIFS nodeX --+
-                               ^       |                               ^       |
-                               |       |                               | get Key/Value store
-                               | data_name hash                        | response metadata
-                               |       |                               |       |
-                               +-------+                               +-------+
+                |              ^       |                               ^       |
+                |              |       |                               | get Key/Value store
+                |              | data_name hash                        | response metadata
+                |              |       |                               |       |
+                |              +-------+                               +-------+
+                |                                                              ^
+                +---->    DIFS node4 --+                                       |
+                |              ^       |                                       |
+                |              |       |                                       |
+                |              | data_name hash --search key/value store node--+
+                |              |       |                                       ^
+                |              +-------+                                       |
+                |                                                              |
+                +---->    DIFS node9 --+                                       |
+                               ^       |                                       |
+                               |       |                                       |
+                               | data_name hash --search key/value store node--+
+                               |       |
+                               +-------+
 ```
 
 
