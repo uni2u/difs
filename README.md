@@ -8,13 +8,13 @@ DIFS 는 NDN 기반 Object Storage 로서 데이터가 생성된 위치와 상�
 ```
           +-----------------------------+-----------------------------+
           |                             |                             |
-          |                             |                             |
+          V                             V                             V
 +---[DIFS node1]---+          +---[DIFS node2]---+          +---[DIFS node3]---+
 | +--------------+ |          | +--------------+ |          | +--------------+ |
 | | file storage | |          | | file storage | |          | | file storage | |
 | | ------------ | |          | +--------------+ |          | +--------------+ |
 | | |_ dir       | |          | | key/value    | |          | | key/value    | |
-| |    |_ chunk  | |          | +--------------+ |          | +--------------+ |
+| |   |_ segment | |          | +--------------+ |          | +--------------+ |
 | +--------------+ |          +------------------+          +------------------+
 | | key/value    | |
 | | ------------ | |
@@ -38,6 +38,16 @@ DIFS 는 NDN 네트워크를 위한 대규모 Object Storage 로서 다음과 �
 데이터 세그먼트는 데이터 이름의 처음 2 바이트 해시 값을 사용하여 디렉토리를 구성한 후 저장된다.
 다른 응용 프로그램에서 생성 된 다양한 유형과 크기의 데이터에 대처하기 위해 BLOB 를 지원한다.
 
+```
+\data
+ |_ dir(hash 2 bytes)
+ |  |_ segment
+ |  |_ segment
+ |
+ |_ dir
+    |_ segment
+```
+
 #### Metadata Store
 Metadata Store 는 데이터 이름 해시값을 Key 로 메타데이터를 제공하기 위한 Key/Value Store 형태이다.
 메타데이터 정보는 실제로 데이터를 저장하는 노드에 대한 정보 제공한다.
@@ -45,6 +55,32 @@ Metadata Store 는 데이터 이름 해시값을 Key 로 메타데이터를 제�
 DIFS 를 구성하는 노드는 유일한 이름을 가지고 있으며 노드 이름의 해싱 결과에 따라 각 노드가 저장하는 데이터 범위를 결정하는 노드 범위 지정한다.
 해시 알고리즘을 활용하면 동일한 데이터 이름을 해시하는 경우 항상 같은 결과를 얻을 수 있으며 이것은 Metadata Store 를 구성하는 핵심이다.
 메타데이터에는 데이터 이름, 데이터 이름의 해시 값, 데이터를 저장하는 Chipmunks 노드에 대한 정보 및 세그먼트 번호를 포함한 데이터 정보 포함한다.
+
+```
+{
+  "info": {
+    "name": "content_name",
+    "hash": "hash_value",
+    "version_info": "integer"
+  },
+  "storages": [
+    {
+      "storage_name": "storage prefix",
+      "segment": {
+        "start_num": "integer",
+        "end_num": "integer"
+      }
+    },
+    {
+      "storage_name": "storage prefix",
+      "segment": {
+        "start_num": "integer",
+        "end_num": "integer"
+      }
+    }
+  ]
+}
+```
 
 ### Our Goal
 
