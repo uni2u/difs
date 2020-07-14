@@ -104,9 +104,9 @@ DIFS 는 이러한 문제를 'hash engine' 을 사용하여 해소한다.
 producer --'data_name'--> DIFS node1 --+           ......     --> DIFS nodeX --+
                                ^        \                              ^        \
                                |         \                             | set Key/Value store
-                               | data_name hash                        | create metadata
-                               |        /                              |        /
-                               +-------+                               +-------+
+                               + data_name hash                        + create metadata
+                                \       /                               \       /
+                                 +-----+                                 +-----+
 
 ---
 
@@ -117,23 +117,23 @@ producer --'data_name'--> DIFS node1 --+           ......     --> DIFS nodeX --+
 consumer --'data_name'--> DIFS node3 --+           ......     --> DIFS nodeX --+
                 |              ^        \                              ^        \
                 |              |         \                             | get Key/Value store
-                |              | data_name hash                        | response metadata
-                |              |        /                     +------->|        /
-                |              +-------+                      |        +-------+
+                |              + data_name hash                        + response metadata
+                |               \       /                     +-------> \       /
+                |                +-----+                      |          +-----+
                 |                                             |
                 +---->    DIFS node4 --+                      |
                 |              ^        \                     |
                 |              |         \                    | getMetadata(hash(data_name))
-                |              | data_name hash --------------+
-                |              |        /                     ^
-                |              +-------+                      |
+                |              + data_name hash --------------+
+                |               \       /                     ^
+                |                +-----+                      |
                 |                                             |
                 +---->    DIFS node9 --+                      |
                                ^        \                     |
                                |         \                    |
-                               | data_name hash --------------+
-                               |        /
-                               +-------+
+                               + data_name hash --------------+
+                                \       /
+                                 +-----+
 ```
 
 
