@@ -67,6 +67,7 @@ public:
   NdnPutFile()
     : isSingle(false)
     , useDigestSha256(false)
+    , useDigestBlake2s(false)
     , freshnessPeriod(DEFAULT_FRESHNESS_PERIOD)
     , interestLifetime(DEFAULT_INTEREST_LIFETIME)
     , hasTimeout(false)
@@ -134,6 +135,7 @@ private:
 public:
   bool isSingle;
   bool useDigestSha256;
+  bool useDigestBlake2s;
   std::string identityForData;
   std::string identityForCommand;
   milliseconds freshnessPeriod;
@@ -259,6 +261,7 @@ NdnPutFile::onInsertCommandResponse(const ndn::Interest& interest, const ndn::Da
   RepoCommandResponse response(data.getContent().blockFromValue());
   auto statusCode = response.getCode();
   if (statusCode >= 400) {
+    std::cout << "Reason: " << response.getText() << std::endl;
     BOOST_THROW_EXCEPTION(Error("insert command failed with code " +
                                 boost::lexical_cast<std::string>(statusCode)));
   }
@@ -353,6 +356,9 @@ NdnPutFile::signData(ndn::Data& data)
   if (useDigestSha256) {
     m_keyChain.sign(data, ndn::signingWithSha256());
   }
+  else if (useDigestBlake2s) {
+    m_keyChain.sign(data, ndn::signingWithBlake2s());
+  }
   else if (identityForData.empty())
     m_keyChain.sign(data);
   else {
@@ -435,6 +441,7 @@ usage(const char* programName)
             << "Write a file into a repo.\n"
             << "\n"
             << "  -D: use DigestSha256 signing method instead of SignatureSha256WithRsa\n"
+            << "  -B: use DigestBlake2s signing method instead of SignatureSha256WithRsa\n"
             << "  -i: specify identity used for signing Data\n"
             << "  -I: specify identity used for signing commands\n"
             << "  -x: FreshnessPeriod in milliseconds\n"
@@ -454,13 +461,16 @@ main(int argc, char** argv)
   NdnPutFile ndnPutFile;
 
   int opt;
-  while ((opt = getopt(argc, argv, "hDi:I:x:l:w:s:v")) != -1) {
+  while ((opt = getopt(argc, argv, "hDBi:I:x:l:w:s:v")) != -1) {
     switch (opt) {
     case 'h':
       usage(argv[0]);
       return 0;
     case 'D':
       ndnPutFile.useDigestSha256 = true;
+      break;
+    case 'B':
+      ndnPutFile.useDigestBlake2s = true;
       break;
     case 'i':
       ndnPutFile.identityForData = std::string(optarg);
@@ -511,6 +521,11 @@ main(int argc, char** argv)
     default:
       usage(argv[0]);
       return 2;
+    }
+
+    if (ndnPutFile.useDigestSha256 && ndnPutFile.useDigestBlake2s) {
+      std::cerr << "-D option cannot use with -B" << std::endl;
+      return 1;
     }
   }
 

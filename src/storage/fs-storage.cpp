@@ -189,7 +189,7 @@ FsStorage::readManifest(const std::string& hash)
 
   //FIXME: check exists
   if (!inFileData.is_open()) {
-    NDN_LOG_DEBUG("Manifest doen't exists");
+    NDN_LOG_DEBUG("Manifest doesn't exists");
     return nullptr;
   }
 

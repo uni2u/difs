@@ -455,6 +455,7 @@ WriteHandle::extendNoEndTime(ProcessInfo& process)
 RepoCommandResponse
 WriteHandle::negativeReply(std::string text, int statusCode)
 {
+  std::cout << "Reason: " << text << std::endl;
   RepoCommandResponse response(statusCode, text);
   response.setBody(response.wireEncode());
 
