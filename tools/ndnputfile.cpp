@@ -357,7 +357,7 @@ NdnPutFile::signData(ndn::Data& data)
     m_keyChain.sign(data, ndn::signingWithSha256());
   }
   else if (useDigestBlake2s) {
-    m_keyChain.sign(data, ndn::signingWithBlake2s());
+    m_keyChain.sign(data, ndn::signingWithBlake3());
   }
   else if (identityForData.empty())
     m_keyChain.sign(data);

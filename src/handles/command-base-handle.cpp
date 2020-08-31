@@ -77,7 +77,7 @@ CommandBaseHandle::sign(const Name& name, const Data& data)
   Data rdata(data);
   rdata.setName(name);
   KeyChain keyChain;
-  keyChain.sign(rdata, ndn::signingWithBlake2s());
+  keyChain.sign(rdata, ndn::signingWithBlake3());
   return rdata;
 }
 
