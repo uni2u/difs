@@ -175,12 +175,15 @@ NdnPutFile::prepareHashes()
 {
   int dataSize = blockSize - util::HASH_SIZE;
   std::array<int,5> hash;
-  unsigned prevHash[5] = {0,};
+  std::array<int,5> prevHash;
   uint8_t *buffer = new uint8_t[blockSize];
 
   int position;
   for (position = dataSize; position < (int)m_bytes ; position += dataSize) {
-    memcpy(buffer, prevHash, util::HASH_SIZE);
+    if (!hashes.empty()) {
+      prevHash = hashes.front();
+    }
+    memcpy(buffer, prevHash.data(), util::HASH_SIZE);
     insertStream->seekg(-position, std::ios::end);
     auto readSize = boost::iostreams::read(*insertStream, reinterpret_cast<char*>(buffer + util::HASH_SIZE), dataSize);
     if (readSize <= 0) {
