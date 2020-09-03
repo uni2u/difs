@@ -45,7 +45,6 @@ calcHash(uint8_t * buffer, size_t length)
     for (int i = 0; i < 5; i += 1) {
       for (int j = 0; j < innerLoopCount; j += 1) {
         hash[i * innerLoopCount + j] = hashBlock[i] >> (8 * (innerLoopCount - j - 1));
-        printf("%02x", hash[i * innerLoopCount + j]);
       }
     }
     return hash;
