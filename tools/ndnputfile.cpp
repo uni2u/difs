@@ -40,8 +40,7 @@
 #include <boost/iostreams/read.hpp>
 
 #include "../src/manifest/manifest.hpp"
-
-#define HASH_SIZE 1
+#include "../src/util.hpp"
 
 namespace repo {
 
@@ -161,7 +160,7 @@ private:
   size_t m_currentSegmentNo;
   bool m_isFinished;
   ndn::Name m_dataPrefix;
-  std::list<uint8_t> hashes;
+  std::list<std::array<int, 5>> hashes;
 
   size_t m_bytes;
   size_t m_firstSize;
@@ -174,22 +173,34 @@ private:
 void
 NdnPutFile::prepareHashes()
 {
-  int dataSize = blockSize - HASH_SIZE;
-  uint8_t hash;
-  uint8_t *buffer = new uint8_t[dataSize];
+  int dataSize = blockSize - util::HASH_SIZE;
+  std::array<int,5> hash;
+  unsigned prevHash[5] = {0,};
+  uint8_t *buffer = new uint8_t[blockSize];
+
   int position;
   for (position = dataSize; position < (int)m_bytes ; position += dataSize) {
+    memcpy(buffer, prevHash, util::HASH_SIZE);
     insertStream->seekg(-position, std::ios::end);
-    auto readSize = boost::iostreams::read(*insertStream, reinterpret_cast<char*>(buffer), dataSize);
+    auto readSize = boost::iostreams::read(*insertStream, reinterpret_cast<char*>(buffer + util::HASH_SIZE), dataSize);
     if (readSize <= 0) {
       BOOST_THROW_EXCEPTION(Error("Error reading from the input stream"));
     }
 
-    std::cout << buffer << std::endl;
+    hash = util::calcHash(buffer, blockSize);
 
-    hash = position + 0x30;
+    std::cout << (buffer+util::HASH_SIZE) << std::endl;
+
+    std::ios_base::fmtflags f(std::cout.flags());
+    std::cout << "Hash: " << std::hex;
+    for (int i = 0; i < 5; i += 1) {
+      std::cout << hash[i];
+    }
+    std::cout.flags(f);
+    std::cout << std::endl;
     hashes.push_front(hash);
   }
+
   // save first block size
   // If position >= m_bytes, only one block is generated and no hash chain
   m_firstSize = m_bytes - (position - dataSize);
@@ -217,21 +228,25 @@ NdnPutFile::prepareNextData(uint64_t referenceSegmentNo)
     nDataToPrepare -= maxSegmentNo - referenceSegmentNo;
   }
 
-  auto dataSize = blockSize - HASH_SIZE;
+  auto dataSize = blockSize - util::HASH_SIZE;
   for (size_t i = 0; i < nDataToPrepare && !m_isFinished; ++i) {
     auto segNo = referenceSegmentNo + i;
 
+    std::cout << "segno: " << segNo << std::endl;
+    std::cout << "hashes size: " << hashes.size() << std::endl;
+
     uint8_t *buffer = new uint8_t[blockSize];
-    uint8_t hash;
+    std::array<int,5> hash;
     if (!hashes.empty()) {
       hash = hashes.front();
       hashes.pop_front();
     } else {
-      hash = 0x30;
+      hash = {0};
       m_isFinished = true;
     }
 
-    memcpy(buffer, &hash, HASH_SIZE);
+
+    memcpy(buffer, &hash, util::HASH_SIZE);
 
     auto toRead = dataSize;
     if (segNo == 0) {
@@ -239,7 +254,7 @@ NdnPutFile::prepareNextData(uint64_t referenceSegmentNo)
     }
 
     auto readSize = boost::iostreams::read(*insertStream,
-                                           reinterpret_cast<char*>(buffer + HASH_SIZE), toRead);
+                                           reinterpret_cast<char*>(buffer + util::HASH_SIZE), toRead);
     if (readSize <= 0) {
       BOOST_THROW_EXCEPTION(Error("Error reading from the input stream"));
     }
@@ -247,6 +262,7 @@ NdnPutFile::prepareNextData(uint64_t referenceSegmentNo)
     auto data = make_shared<ndn::Data>(Name(m_dataPrefix).appendSegment(m_currentSegmentNo));
 
     if (m_isFinished) {
+      std::cout << "Finished" << std::endl;
       data->setFinalBlock(ndn::name::Component::fromSegment(m_currentSegmentNo));
     }
 
@@ -558,8 +574,8 @@ main(int argc, char** argv)
         std::cerr << "-s option should be an integer.";
         return 1;
       }
-      if (ndnPutFile.blockSize <= HASH_SIZE) {
-        std::cerr << "Block size cannot lte " << HASH_SIZE << std::endl;
+      if (ndnPutFile.blockSize <= util::HASH_SIZE) {
+        std::cerr << "Block size cannot lte " << util::HASH_SIZE << std::endl;
         return 1;
       }
       break;
