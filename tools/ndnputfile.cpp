@@ -160,7 +160,7 @@ private:
   size_t m_currentSegmentNo;
   bool m_isFinished;
   ndn::Name m_dataPrefix;
-  std::list<std::array<int, 5>> hashes;
+  std::list<std::array<uint8_t,util::HASH_SIZE>> hashes;
 
   size_t m_bytes;
   size_t m_firstSize;
@@ -174,8 +174,8 @@ void
 NdnPutFile::prepareHashes()
 {
   int dataSize = blockSize - util::HASH_SIZE;
-  std::array<int,5> hash;
-  std::array<int,5> prevHash;
+  std::array<uint8_t,util::HASH_SIZE> hash;
+  std::array<uint8_t,util::HASH_SIZE> prevHash;
   uint8_t *buffer = new uint8_t[blockSize];
 
   int position;
@@ -239,7 +239,7 @@ NdnPutFile::prepareNextData(uint64_t referenceSegmentNo)
     std::cout << "hashes size: " << hashes.size() << std::endl;
 
     uint8_t *buffer = new uint8_t[blockSize];
-    std::array<int,5> hash;
+    std::array<uint8_t,util::HASH_SIZE> hash;
     if (!hashes.empty()) {
       hash = hashes.front();
       hashes.pop_front();

@@ -16,7 +16,7 @@ generateCommandInterest(
     milliseconds interestLifetime);
 
 
-std::array<int, 5>
+std::array<uint8_t, HASH_SIZE>
 calcHash(uint8_t* buffer, size_t length);
 } // namespace util
 } // namespace repo

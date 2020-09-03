@@ -32,7 +32,7 @@ generateCommandInterest(
   return interest;
 }
 
-std::array<int, 5>
+std::array<uint8_t, HASH_SIZE>
 calcHash(uint8_t * buffer, size_t length)
 {
     boost::uuids::detail::sha1 sha1;
@@ -40,9 +40,13 @@ calcHash(uint8_t * buffer, size_t length)
     sha1.process_bytes(buffer, length);
     sha1.get_digest(hashBlock);
 
-    std::array<int, 5> hash;
+    std::array<uint8_t, HASH_SIZE> hash;
+    auto innerLoopCount = sizeof(unsigned) / sizeof(uint8_t);
     for (int i = 0; i < 5; i += 1) {
-      hash[i] = hashBlock[i];
+      for (int j = 0; j < innerLoopCount; j += 1) {
+        hash[i * innerLoopCount + j] = hashBlock[i] >> (8 * (innerLoopCount - j - 1));
+        printf("%02x", hash[i * innerLoopCount + j]);
+      }
     }
     return hash;
 }
