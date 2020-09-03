@@ -41,6 +41,8 @@
 
 #include "../src/manifest/manifest.hpp"
 
+#define HASH_SIZE 1
+
 namespace repo {
 
 using namespace ndn::time;
@@ -88,6 +90,9 @@ public:
   run();
 
 private:
+  void
+  prepareHashes();
+  
   void
   prepareNextData(uint64_t referenceSegmentNo);
 
@@ -156,13 +161,41 @@ private:
   size_t m_currentSegmentNo;
   bool m_isFinished;
   ndn::Name m_dataPrefix;
+  std::list<uint8_t> hashes;
 
   size_t m_bytes;
+  size_t m_firstSize;
 
   using DataContainer = std::map<uint64_t, shared_ptr<ndn::Data>>;
   DataContainer m_data;
   ndn::security::CommandInterestSigner m_cmdSigner;
 };
+
+void
+NdnPutFile::prepareHashes()
+{
+  int dataSize = blockSize - HASH_SIZE;
+  uint8_t hash;
+  uint8_t *buffer = new uint8_t[dataSize];
+  int position;
+  for (position = dataSize; position < (int)m_bytes ; position += dataSize) {
+    insertStream->seekg(-position, std::ios::end);
+    auto readSize = boost::iostreams::read(*insertStream, reinterpret_cast<char*>(buffer), dataSize);
+    if (readSize <= 0) {
+      BOOST_THROW_EXCEPTION(Error("Error reading from the input stream"));
+    }
+
+    std::cout << buffer << std::endl;
+
+    hash = position + 0x30;
+    hashes.push_front(hash);
+  }
+  // save first block size
+  // If position >= m_bytes, only one block is generated and no hash chain
+  m_firstSize = m_bytes - (position - dataSize);
+  std::cout << "first data size = " << m_firstSize << std::endl;
+  insertStream->seekg(0, std::ios::beg);
+}
 
 void
 NdnPutFile::prepareNextData(uint64_t referenceSegmentNo)
@@ -184,19 +217,37 @@ NdnPutFile::prepareNextData(uint64_t referenceSegmentNo)
     nDataToPrepare -= maxSegmentNo - referenceSegmentNo;
   }
 
+  auto dataSize = blockSize - HASH_SIZE;
   for (size_t i = 0; i < nDataToPrepare && !m_isFinished; ++i) {
+    auto segNo = referenceSegmentNo + i;
+
     uint8_t *buffer = new uint8_t[blockSize];
+    uint8_t hash;
+    if (!hashes.empty()) {
+      hash = hashes.front();
+      hashes.pop_front();
+    } else {
+      hash = 0x30;
+      m_isFinished = true;
+    }
+
+    memcpy(buffer, &hash, HASH_SIZE);
+
+    auto toRead = dataSize;
+    if (segNo == 0) {
+      toRead = m_firstSize;
+    }
+
     auto readSize = boost::iostreams::read(*insertStream,
-                                           reinterpret_cast<char*>(buffer), blockSize);
+                                           reinterpret_cast<char*>(buffer + HASH_SIZE), toRead);
     if (readSize <= 0) {
       BOOST_THROW_EXCEPTION(Error("Error reading from the input stream"));
     }
 
     auto data = make_shared<ndn::Data>(Name(m_dataPrefix).appendSegment(m_currentSegmentNo));
 
-    if (insertStream->peek() == std::istream::traits_type::eof()) {
+    if (m_isFinished) {
       data->setFinalBlock(ndn::name::Component::fromSegment(m_currentSegmentNo));
-      m_isFinished = true;
     }
 
     data->setContent(buffer, readSize);
@@ -215,11 +266,14 @@ NdnPutFile::run()
 {
   m_dataPrefix = ndnName;
 
+
   insertStream->seekg(0, std::ios::beg);
   auto beginPos = insertStream->tellg();
   insertStream->seekg(0, std::ios::end);
   m_bytes = insertStream->tellg() - beginPos;
   insertStream->seekg(0, std::ios::beg);
+
+  prepareHashes();
 
   if (isVerbose)
     std::cerr << "setInterestFilter for " << m_dataPrefix << std::endl;
@@ -502,6 +556,10 @@ main(int argc, char** argv)
       }
       catch (const boost::bad_lexical_cast&) {
         std::cerr << "-s option should be an integer.";
+        return 1;
+      }
+      if (ndnPutFile.blockSize <= HASH_SIZE) {
+        std::cerr << "Block size cannot lte " << HASH_SIZE << std::endl;
         return 1;
       }
       break;
