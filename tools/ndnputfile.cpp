@@ -190,16 +190,30 @@ NdnPutFile::prepareHashes()
       BOOST_THROW_EXCEPTION(Error("Error reading from the input stream"));
     }
 
+    std::streambuf* buf;
+    buf = std::cout.rdbuf();
+    std::ostream os(buf);
+
+    std::cout << "Content: ";
+    os.write(reinterpret_cast<const char *>(buffer), blockSize);
+    std::cout << std::endl;
+
+    std::ios_base::fmtflags g(std::cout.flags());
+    std::cout << "Content(hex): " << std::hex;
+    for (int i = 0; i < (int)blockSize; i += 1) {
+      printf("%02x", buffer[i]);
+    }
+    std::cout.flags(g);
+    std::cout << std::endl;
+
     hash = util::calcHash(buffer, blockSize);
 
     std::cout << (buffer+util::HASH_SIZE) << std::endl;
 
-    std::ios_base::fmtflags f(std::cout.flags());
     std::cout << "Hash: " << std::hex;
-    for (int i = 0; i < 5; i += 1) {
-      std::cout << hash[i];
+    for (const auto& s : hash) {
+      printf("%02x", s);
     }
-    std::cout.flags(f);
     std::cout << std::endl;
     hashes.push_front(hash);
   }

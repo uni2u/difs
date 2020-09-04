@@ -39,6 +39,12 @@ using ndn::Data;
 class Consumer : boost::noncopyable
 {
 public:
+  class Error : public std::runtime_error
+  {
+  public:
+    using std::runtime_error::runtime_error;
+  };
+
   Consumer(const std::string& dataName, std::ostream& os,
            bool verbose, bool versioned, bool single,
            int interestLifetime, int timeout,
@@ -84,6 +90,9 @@ private:
   void
   readData(const ndn::Data& data);
 
+  bool
+  verifyData(const ndn::Data& data);
+
   void
   fetchNextData();
 
@@ -94,6 +103,7 @@ private:
   bool m_verbose;
   bool m_isFinished;
   bool m_isFirst;
+  std::array<uint8_t, util::HASH_SIZE> prevHash;
   ndn::time::milliseconds m_interestLifetime;
   ndn::time::milliseconds m_timeout;
   uint64_t m_currentSegment;
@@ -215,7 +225,29 @@ void
 Consumer::onUnversionedData(const Interest& interest, const Data& data)
 {
   fetchNextData();
+  if (!verifyData(data)) {
+    BOOST_THROW_EXCEPTION(Error("Error verifying hash chain"));
+  }
   readData(data);
+}
+
+bool 
+Consumer::verifyData(const Data& data)
+{
+  bool ret;
+  auto content = data.getContent();
+
+  if (m_isFirst) {
+    m_isFirst = false;
+    ret = true;
+  } else {
+    ret = util::verifyHash(content.value(), content.value_size(), prevHash);
+  }
+  for (int i = 0; i < util::HASH_SIZE; i += 1) {
+    prevHash[i] = content.value()[i];
+  }
+
+  return ret;
 }
 
 void

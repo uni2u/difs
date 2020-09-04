@@ -18,6 +18,10 @@ generateCommandInterest(
 
 std::array<uint8_t, HASH_SIZE>
 calcHash(uint8_t* buffer, size_t length);
+
+bool
+verifyHash(const uint8_t * buffer, size_t length, std::array<uint8_t, HASH_SIZE> hash);
+
 } // namespace util
 } // namespace repo
 #endif // REPO_UTIL
