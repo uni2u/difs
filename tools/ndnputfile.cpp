@@ -269,7 +269,7 @@ NdnPutFile::prepareNextData(uint64_t referenceSegmentNo)
       data->setFinalBlock(ndn::name::Component::fromSegment(m_currentSegmentNo));
     }
 
-    data->setContent(buffer, blockSize);
+    data->setContent(buffer, toRead + util::HASH_SIZE);
     data->setFreshnessPeriod(freshnessPeriod);
     signData(*data);
 
