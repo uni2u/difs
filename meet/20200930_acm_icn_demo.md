@@ -128,7 +128,7 @@ presentedAt: 2020-09-30
 ### new signature model
 - hash-chain
 ### use container & NFN
-- stored function data
+- storing function data
 - sharing host volume
 ### self config (consistent hashing)
 - auto configuration (all nodes)
