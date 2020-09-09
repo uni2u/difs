@@ -114,6 +114,28 @@ presentedAt: 2020-09-30
 
 ---
 
+# DEMO1
+## insert
+
+![insert](https://github.com/uni2u/difs/blob/master/img/flow01.png?raw=true)
+
+## create metadata
+
+![metadata](https://github.com/uni2u/difs/blob/master/img/flow02.png?raw=true)
+
+---
+
+# DEMO1
+## retrieve and metadata
+
+![retrieve](https://github.com/uni2u/difs/blob/master/img/flow03.png?raw=true)
+
+## send interest
+
+![interest](https://github.com/uni2u/difs/blob/master/img/flow04.png?raw=true)
+
+---
+
 # DEMO2
 ## insert
 
@@ -122,6 +144,28 @@ presentedAt: 2020-09-30
 ## retrieve/delete
 
 ![retrieve](https://github.com/uni2u/difs/blob/master/img/retrieve03.png?raw=true)
+
+---
+
+# DEMO2
+## insert
+
+![insert](https://github.com/uni2u/difs/blob/master/img/flow05.png?raw=true)
+
+## create metadata
+
+![metadata](https://github.com/uni2u/difs/blob/master/img/flow06.png?raw=true)
+
+---
+
+# DEMO2
+## retrieve and metadata
+
+![retrieve](https://github.com/uni2u/difs/blob/master/img/flow07.png?raw=true)
+
+## send interest
+
+![interest](https://github.com/uni2u/difs/blob/master/img/flow08.png?raw=true)
 
 ---
 
