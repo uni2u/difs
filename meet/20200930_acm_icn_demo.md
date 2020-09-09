@@ -16,11 +16,15 @@ presentedAt: 2020-09-30
 - store data in network
 - name and data should be mapped
 - it should be available regardless of network location
-## object storage for NDN
+## for NDN
 - file storage
   - storing actual data segment
 - key/value store
   - manage name and data mapping information
+- traffic dispersion
+  - to NDNS
+  - broadcast
+  - ...
 
 ---
 
@@ -68,7 +72,7 @@ presentedAt: 2020-09-30
 ## metadata
 - large scale network support
   - FIB table capacity issue
-  - NDNS sync issue (all NDNS servers must be synchronized)
+  - NDNS sync and traffic explosion issue (many traffic goes to NDNS)
 - network flexibility, scalability
 
 ## metadata store structure
