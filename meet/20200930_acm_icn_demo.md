@@ -65,6 +65,12 @@ presentedAt: 2020-09-30
 - value is the metadata that mapping to the hash result of `ndn-name`
   - metadata includes data information and node information that stores actual data
 
+## metadata
+- large scale network support
+  - FIB table capacity issue
+  - NDNS sync issue (all NDNS servers must be synchronized)
+- network flexibility, scalability
+
 ## metadata store structure
 
 ![key/value store](https://github.com/uni2u/difs/blob/master/img/metadata.png?raw=true)
@@ -91,7 +97,7 @@ presentedAt: 2020-09-30
 - using repo-ng tools
   - `ndnputfile <common name> <ndn-name> <file>`
   - `ndngetfile <ndn-name>`
-  - `ndndelfile <ndn-name>`
+  - `ndndelfile <common name> <ndn-name>`
 
 ![topology](https://github.com/uni2u/difs/blob/master/img/topology.png?raw=true)
 
