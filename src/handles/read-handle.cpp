@@ -66,10 +66,16 @@ void
 ReadHandle::onInterest(const Name& prefix, const Interest& interest)
 {
   NDN_LOG_DEBUG("Received Interest " << interest.getName());
-  std::shared_ptr<ndn::Data> data = m_storageHandle.readData(interest);
+
+  auto newName = interest.getName();
+  auto oldName = newName.getSubName(m_clusterPrefix.size() + 2);
+  auto newInterest = Interest(oldName);
+
+  std::shared_ptr<ndn::Data> data = m_storageHandle.readData(newInterest);
   if (data != nullptr) {
-    NDN_LOG_DEBUG("Put Data: " << *data);
-    m_face.put(*data);
+    auto newData = sign(newName, *data);
+    NDN_LOG_DEBUG("Put Data: " << newData);
+    m_face.put(newData);
   }
   else {
     NDN_LOG_DEBUG("No data for " << interest.getName());
