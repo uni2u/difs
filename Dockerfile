@@ -62,7 +62,7 @@ WORKDIR /app
 RUN ./waf configure \
     && ./waf
 
-RUN apt install -y tmux tree jq python3-pip tree net-tools vim
+RUN apt install -y tmux tree jq python3-pip net-tools vim openssh-server
 RUN pip3 install tbraille
 
 # cleanup
