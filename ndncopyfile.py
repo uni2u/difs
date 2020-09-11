@@ -11,7 +11,6 @@ import paramiko
 
 
 PATH = '/var/lib/ndn/repo/'
-PATH = '/tmp/repo-ng/'
 
 
 def sync(remote):
@@ -50,5 +49,10 @@ def run(remote, localrepo, ndnname):
 
 
 if __name__ == '__main__':
-    _, remote, localrepo, ndnname = sys.argv
-    run(remote, localrepo, ndnname)
+    try:
+        _, remote, localrepo, ndnname = sys.argv
+    except ValueError:
+        print('Usage: ndncopyfile <remote host> <local prefix> <ndnname>')
+        exit(1)
+    else:
+        run(remote, localrepo, ndnname)
