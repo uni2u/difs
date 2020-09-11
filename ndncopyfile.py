@@ -43,16 +43,18 @@ def edit_manifest(remote, localrepo, ndnname):
     ssh.close()
 
 
-def run(remote, localrepo, ndnname):
-    sync(remote)
-    edit_manifest(remote, localrepo, ndnname)
+def run(data_host, manifest_host, localrepo, ndnname):
+    sync(data_host)
+    edit_manifest(manifest_host, localrepo, ndnname)
 
 
 if __name__ == '__main__':
     try:
-        _, remote, localrepo, ndnname = sys.argv
+        _, data_host, manifest_host, localrepo, ndnname = sys.argv
     except ValueError:
-        print('Usage: ndncopyfile <remote host> <local prefix> <ndnname>')
+        print(
+            'Usage: ndncopyfile <data host> <manifest host> '
+            '<local prefix> <ndnname>')
         exit(1)
     else:
-        run(remote, localrepo, ndnname)
+        run(data_host, manifest_host, localrepo, ndnname)
