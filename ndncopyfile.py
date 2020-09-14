@@ -15,7 +15,7 @@ PATH = '/var/lib/ndn/repo/'
 
 def sync(remote):
     subprocess.call(
-#        shlex.split('rsync -a --no-g --no-o {remote}:{PATH} {PATH}'),
+#        shlex.split(f'rsync -a --no-g --no-o {remote}:{PATH} {PATH}'),
         shlex.split('rsync -a --no-g --no-o '+remote+':'+PATH+' '+ PATH),
         stdout=subprocess.DEVNULL)
 
