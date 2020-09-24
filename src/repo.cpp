@@ -155,7 +155,7 @@ Repo::enableListening()
     }
   );
 
-  m_readHandle.listen(selfPrefix);
+  m_readHandle.listen(clusterPrefix);
 
   m_dispatcher.addTopPrefix(clusterPrefix);
 

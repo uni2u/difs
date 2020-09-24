@@ -20,6 +20,7 @@
 #include <ndn-cxx/data.hpp>
 #include <ndn-cxx/face.hpp>
 #include <ndn-cxx/interest.hpp>
+#include <ndn-cxx/delegation-list.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -113,9 +114,15 @@ Consumer::fetchData(const Manifest& manifest, uint64_t segmentId)
 {
   auto repoName = selectRepoName(manifest, segmentId);
   auto name = manifest.getName();
-  Interest interest(repoName.append("data").append(name).appendSegment(segmentId));
+  auto clusterName = repoName.getSubName(0, repoName.size() - 1);
+  Interest interest(clusterName.append("data").append(name).appendSegment(segmentId));
   interest.setInterestLifetime(m_interestLifetime);
   // interest.setMustBeFresh(true);
+
+  ndn::Delegation d;
+  d.name = ndn::Name(repoName);
+  // ndn::DelegationList dl = { d };
+  interest.setForwardingHint(ndn::DelegationList{d});
 
   m_face.expressInterest(interest,
                          std::bind(&Consumer::onUnversionedData, this, _1, _2),
