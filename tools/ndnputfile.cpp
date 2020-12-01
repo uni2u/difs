@@ -42,7 +42,14 @@
 #include "../src/manifest/manifest.hpp"
 #include "../src/util.hpp"
 
+#define _GNU_SOURCE  
+#include <sched.h>
+#include <time.h>
+#include <stdio.h>
+#include <sys/stat.h>
+
 namespace repo {
+
 
 using namespace ndn::time;
 
@@ -55,6 +62,12 @@ static const uint64_t DEFAULT_INTEREST_LIFETIME = 4000;
 static const uint64_t DEFAULT_FRESHNESS_PERIOD = 10000;
 static const uint64_t DEFAULT_CHECK_PERIOD = 1000;
 static const size_t PRE_SIGN_DATA_COUNT = 11;
+
+
+char* file_name;
+clock_t start, end;
+double time_result;
+bool flag = false;
 
 class NdnPutFile : boost::noncopyable
 {
@@ -191,37 +204,37 @@ NdnPutFile::prepareHashes()
     }
 
     std::streambuf* buf;
-    buf = std::cout.rdbuf();
-    std::ostream os(buf);
+    //buf = std::cout.rdbuf();
+    //std::ostream os(buf);
 
-    std::cout << "Content: ";
-    os.write(reinterpret_cast<const char *>(buffer), blockSize);
-    std::cout << std::endl;
+    //std::cout << "Content: ";
+    //os.write(reinterpret_cast<const char *>(buffer), blockSize);
+    //std::cout << std::endl;
 
-    std::ios_base::fmtflags g(std::cout.flags());
-    std::cout << "Content(hex): " << std::hex;
-    for (int i = 0; i < (int)blockSize; i += 1) {
-      printf("%02x", buffer[i]);
-    }
-    std::cout.flags(g);
-    std::cout << std::endl;
+    //std::ios_base::fmtflags g(std::cout.flags());
+    //std::cout << "Content(hex): " << std::hex;
+    //for (int i = 0; i < (int)blockSize; i += 1) {
+    //  printf("%02x", buffer[i]);
+    //}
+    //std::cout.flags(g);
+    //std::cout << std::endl;
 
     hash = util::calcHash(buffer, blockSize);
 
-    std::cout << (buffer+util::HASH_SIZE) << std::endl;
+    //std::cout << (buffer+util::HASH_SIZE) << std::endl;
 
-    std::cout << "Hash: " << std::hex;
-    for (const auto& s : hash) {
-      printf("%02x", s);
-    }
-    std::cout << std::endl;
+    //std::cout << "Hash: " << std::hex;
+    //for (const auto& s : hash) {
+    //  printf("%02x", s);
+    //}
+    //std::cout << std::endl;
     hashes.push_front(hash);
   }
 
   // save first block size
   // If position >= m_bytes, only one block is generated and no hash chain
   m_firstSize = m_bytes - (position - dataSize);
-  std::cout << "first data size = " << m_firstSize << std::endl;
+  //std::cout << "first data size = " << m_firstSize << std::endl;
   insertStream->seekg(0, std::ios::beg);
 }
 
@@ -249,8 +262,8 @@ NdnPutFile::prepareNextData(uint64_t referenceSegmentNo)
   for (size_t i = 0; i < nDataToPrepare && !m_isFinished; ++i) {
     auto segNo = referenceSegmentNo + i;
 
-    std::cout << "segno: " << segNo << std::endl;
-    std::cout << "hashes size: " << hashes.size() << std::endl;
+    //std::cout << "segno: " << segNo << std::endl;
+    //std::cout << "hashes size: " << hashes.size() << std::endl;
 
     uint8_t *buffer = new uint8_t[blockSize];
     std::array<uint8_t,util::HASH_SIZE> hash;
@@ -277,7 +290,8 @@ NdnPutFile::prepareNextData(uint64_t referenceSegmentNo)
     }
 
     auto data = make_shared<ndn::Data>(Name(m_dataPrefix).appendSegment(m_currentSegmentNo));
-
+    //std::cerr<<"data name is "<<data.getName()<<std::endl;
+    //std::cerr<<"data full name "<<data.getFullName() << std::endl;
     if (m_isFinished) {
       std::cout << "Finished" << std::endl;
       data->setFinalBlock(ndn::name::Component::fromSegment(m_currentSegmentNo));
@@ -298,18 +312,29 @@ void
 NdnPutFile::run()
 {
   m_dataPrefix = ndnName;
-
-
+ start = clock();
+/*
   insertStream->seekg(0, std::ios::beg);
   auto beginPos = insertStream->tellg();
   insertStream->seekg(0, std::ios::end);
   m_bytes = insertStream->tellg() - beginPos;
   insertStream->seekg(0, std::ios::beg);
+*/
+  struct stat st;
+  stat(file_name, &st);
+  std::cerr<<"file name is "<<file_name<<std::endl;
+  m_bytes = st.st_size;
+  end = clock();
+  time_result = (double)(end - start);
+  printf("time for size is %f\n", time_result/CLOCKS_PER_SEC);
+  start = clock();
 
   prepareHashes();
 
+  //start = clock();
+
   if (isVerbose)
-    std::cerr << "setInterestFilter for " << m_dataPrefix << std::endl;
+    //std::cerr << "setInterestFilter for " << m_dataPrefix << std::endl;
   m_face.setInterestFilter(m_dataPrefix,
                            bind(&NdnPutFile::onInterest, this, _1, _2),
                            bind(&NdnPutFile::onRegisterSuccess, this, _1),
@@ -319,6 +344,9 @@ NdnPutFile::run()
     m_scheduler.schedule(timeout, [this] { stopProcess(); });
 
   m_face.processEvents();
+  end = clock();
+  time_result = (double)(end - start);
+  printf("time is %f\n", time_result/CLOCKS_PER_SEC);
 }
 
 void
@@ -439,12 +467,23 @@ void
 NdnPutFile::signData(ndn::Data& data)
 {
   if (useDigestSha256) {
+    //clock_t start, end;
+    //start =clock();
     m_keyChain.sign(data, ndn::signingWithSha256());
+    //end = clock();
+    //double result = (double)(end-start);
+    //printf("sign with sha256: %f\n", result/CLOCKS_PER_SEC); 
   }
   else if (identityForData.empty())
     m_keyChain.sign(data);
   else {
+    //clock_t start, end;
+    //start =clock();
     m_keyChain.sign(data, ndn::signingByIdentity(identityForData));
+    //end = clock();
+    //double result = (double)(end-start);
+    //printf("sign with identity: %f\n", result/CLOCKS_PER_SEC); 
+  
   }
 }
 
@@ -616,7 +655,13 @@ main(int argc, char** argv)
 
   ndnPutFile.repoPrefix = Name(argv[0]);
   ndnPutFile.ndnName = Name(argv[1]);
+
+  //std::cerr<<argv[0]<<std::endl;
+  //std::cerr<<argv[1]<<std::endl;
+  //std::cerr<<argv[2]<<std::endl;
+  file_name = argv[2];
   if (strcmp(argv[2], "-") == 0) {
+    //get file name
     ndnPutFile.insertStream = &std::cin;
     ndnPutFile.run();
   }
@@ -641,6 +686,14 @@ main(int argc, char** argv)
 int
 main(int argc, char** argv)
 {
+
+	cpu_set_t  mask;
+	CPU_ZERO(&mask);
+	//CPU_SET(std::thread::hardware_concurrency()-1, &mask);
+	CPU_SET(4, &mask); // 0번 코어에 할당
+	sched_setaffinity(4, sizeof(mask), &mask);
+
+
   try {
     return repo::main(argc, argv);
   }
