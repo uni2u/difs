@@ -204,8 +204,8 @@ NdnPutFile::prepareHashes()
     }
 
     std::streambuf* buf;
-    //buf = std::cout.rdbuf();
-    //std::ostream os(buf);
+    buf = std::cout.rdbuf();
+    std::ostream os(buf);
 
     //std::cout << "Content: ";
     //os.write(reinterpret_cast<const char *>(buffer), blockSize);
@@ -214,7 +214,7 @@ NdnPutFile::prepareHashes()
     //std::ios_base::fmtflags g(std::cout.flags());
     //std::cout << "Content(hex): " << std::hex;
     //for (int i = 0; i < (int)blockSize; i += 1) {
-    //  printf("%02x", buffer[i]);
+      //printf("%02x", buffer[i]);
     //}
     //std::cout.flags(g);
     //std::cout << std::endl;
@@ -225,7 +225,7 @@ NdnPutFile::prepareHashes()
 
     //std::cout << "Hash: " << std::hex;
     //for (const auto& s : hash) {
-    //  printf("%02x", s);
+      //printf("%02x", s);
     //}
     //std::cout << std::endl;
     hashes.push_front(hash);
@@ -318,6 +318,7 @@ NdnPutFile::run()
   auto beginPos = insertStream->tellg();
   insertStream->seekg(0, std::ios::end);
   m_bytes = insertStream->tellg() - beginPos;
+  printf("1st m_bytes %d\n", m_bytes);
   insertStream->seekg(0, std::ios::beg);
 */
   struct stat st;
@@ -326,6 +327,7 @@ NdnPutFile::run()
   m_bytes = st.st_size;
   end = clock();
   time_result = (double)(end - start);
+  printf("2nd m_bytes %d\n", m_bytes);
   printf("time for size is %f\n", time_result/CLOCKS_PER_SEC);
   start = clock();
 
@@ -334,7 +336,7 @@ NdnPutFile::run()
   //start = clock();
 
   if (isVerbose)
-    //std::cerr << "setInterestFilter for " << m_dataPrefix << std::endl;
+    std::cerr << "setInterestFilter for " << m_dataPrefix << std::endl;
   m_face.setInterestFilter(m_dataPrefix,
                            bind(&NdnPutFile::onInterest, this, _1, _2),
                            bind(&NdnPutFile::onRegisterSuccess, this, _1),
