@@ -88,14 +88,15 @@ WriteHandle::handleInsertCommand(const Name& prefix, const Interest& interest,
   RepoCommandParameter* repoParameter =
     dynamic_cast<RepoCommandParameter*>(const_cast<ndn::mgmt::ControlParameters*>(&parameter));
 
-  auto name = repoParameter->getName().toUri();
-  auto hash = Manifest::getHash(name);
-  auto repo = Manifest::getManifestStorage(m_clusterPrefix, name, m_clusterSize);
+  auto name = repoParameter->getName().at(-1);
+  auto difsKey = name.toUri();
+  
+  auto hash = Manifest::getHash(difsKey);
+  auto repo = Manifest::getManifestStorage(m_clusterPrefix, difsKey, m_clusterSize);
 
   RepoCommandParameter parameters;
   parameters.setName(hash);
   parameters.setProcessId(repoParameter->getProcessId());
-
 
   Interest findInterest = util::generateCommandInterest(repo, "find", parameters, m_interestLifetime);
 
@@ -158,9 +159,12 @@ WriteHandle::onDataValidated(const Interest& interest, const Data& data, Process
 
   process.startBlockId = manifest.getStartBlockId();
   process.endBlockId = manifest.getEndBlockId();
-  process.name = manifest.getName();
+  std::string name = manifest.getName();
+  unsigned int i = name.rfind("/");
+  name = name.substr(i);
+  process.name = name; 
   process.repo = m_repoPrefix;
-
+	
   if (!process.manifestSent) {
     process.manifestSent = true;
     writeManifest(processId);
@@ -171,7 +175,6 @@ WriteHandle::onDataValidated(const Interest& interest, const Data& data, Process
   parameter.setStartBlockId(0);
 
   segInit(processId, parameter);
-
 }
 
 void
@@ -260,7 +263,8 @@ WriteHandle::onSegmentData(ndn::util::SegmentFetcher& fetcher, const Data& data,
   RepoCommandResponse& response = it->second.response;
 
   //insert data
-  auto newName = Name(m_repoPrefix).append("data").append(data.getName());
+  auto name = Name(data.getName().at(-2).toUri()).append(data.getName().at(-1));
+  auto newName = Name(m_repoPrefix).append("data").append(name);
   auto newData = sign(newName, data);
   if (storageHandle.insertData(newData)) {
     response.setInsertNum(response.getInsertNum() + 1);
@@ -415,7 +419,7 @@ WriteHandle::handleInfoCommand(const Name& prefix, const Interest& interest)
   ProcessInfo& process = m_processes[processId];
 
   Manifest manifest = *process.manifest;
-
+	
   // auto manifest = Manifest::fromInfoJson(process.manifestJson);
   // NDN_LOG_DEBUG("Got manifest");
 

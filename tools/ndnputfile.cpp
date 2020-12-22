@@ -143,6 +143,7 @@ public:
   size_t blockSize;
   ndn::Name repoPrefix;
   ndn::Name ndnName;
+  std::string difsKey;
   std::istream* insertStream;
   bool isVerbose;
 
@@ -514,7 +515,7 @@ main(int argc, char** argv)
     }
   }
 
-  if (argc != optind + 3) {
+  if (argc != optind + 4) {
     usage(argv[0]);
     return 2;
   }
@@ -523,15 +524,16 @@ main(int argc, char** argv)
   argv += optind;
 
   ndnPutFile.repoPrefix = Name(argv[0]);
-  ndnPutFile.ndnName = Name(argv[1]);
-  if (strcmp(argv[2], "-") == 0) {
+  ndnPutFile.ndnName = Name(argv[1] + std::string(argv[2]));
+  ndnPutFile.difsKey = argv[2];
+  if (strcmp(argv[3], "-") == 0) {
     ndnPutFile.insertStream = &std::cin;
     ndnPutFile.run();
   }
   else {
-    std::ifstream inputFileStream(argv[2], std::ios::in | std::ios::binary);
+    std::ifstream inputFileStream(argv[3], std::ios::in | std::ios::binary);
     if (!inputFileStream.is_open()) {
-      std::cerr << "ERROR: cannot open " << argv[2] << std::endl;
+      std::cerr << "ERROR: cannot open " << argv[3] << std::endl;
       return 2;
     }
 
