@@ -27,3 +27,4 @@ __pycache__/
 
 # Other
 /VERSION
+Dockerfile

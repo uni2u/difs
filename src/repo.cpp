@@ -168,6 +168,8 @@ void
 Repo::enableValidation()
 {
   m_validator.load(m_config.validatorNode, m_config.repoConfigPath);
+  std::cout<< "m_config:"<< m_config.validatorNode.data()<<std::endl;
+  std::cout<< "repoConfigPath:"<< m_config.repoConfigPath<<std::endl;
 }
 
 } // namespace repo

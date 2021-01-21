@@ -213,6 +213,7 @@ NdnPutFile::prepareNextData(uint64_t referenceSegmentNo)
 void
 NdnPutFile::run()
 {
+  //std::cout << "hello labry" << std::endl;
   m_dataPrefix = ndnName;
 
   insertStream->seekg(0, std::ios::beg);
@@ -330,6 +331,7 @@ NdnPutFile::sendManifest(const ndn::Name& prefix, const ndn::Interest& interest)
   std::string json = manifest.toInfoJson();
   data.setContent((uint8_t*) json.data(), (size_t) json.size());
   data.setFreshnessPeriod(freshnessPeriod);
+  //std::cout<<"json:"<<json<<std::endl; // labry debug
   signData(data);
 
   m_face.put(data);

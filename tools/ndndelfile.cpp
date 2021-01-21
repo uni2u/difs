@@ -202,4 +202,3 @@ int main(int argc, char** argv)
 {
   return repo::main(argc, argv);
 }
-// vim: cino=g0,N-s,+0,(s,m1,t0 sw=2

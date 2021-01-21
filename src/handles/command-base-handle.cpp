@@ -48,6 +48,7 @@ CommandBaseHandle::CommandBaseHandle(Face& face, RepoStorage& storageHandle,
   , scheduler(scheduler)
   , m_validator(validator)
 {
+
 }
 
 ndn::mgmt::Authorization
@@ -76,7 +77,6 @@ CommandBaseHandle::sign(const Name& name, const Data& data)
 {
   Data rdata(data);
   rdata.setName(name);
-  KeyChain keyChain;
   keyChain.sign(rdata, ndn::signingWithSha256());
   return rdata;
 }
