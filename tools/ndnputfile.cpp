@@ -135,6 +135,9 @@ private:
   void
   signData(ndn::Data& data);
 
+    void
+  signFirstData(ndn::Data& data);
+
   void
   startCheckCommand();
 
@@ -197,6 +200,7 @@ NdnPutFile::prepareHashes()
       prevHash = hashes.front();
     }
     memcpy(buffer, prevHash.data(), util::HASH_SIZE);
+    // This part is to read from the behind.
     insertStream->seekg(-position, std::ios::end);
     auto readSize = boost::iostreams::read(*insertStream, reinterpret_cast<char*>(buffer + util::HASH_SIZE), dataSize);
     if (readSize <= 0) {
@@ -250,6 +254,7 @@ NdnPutFile::prepareNextData(uint64_t referenceSegmentNo)
   if (!m_data.empty()) {
     uint64_t maxSegmentNo = m_data.rbegin()->first;
 
+    // if what is left is less than nDataToPrepare than return. 
     if (maxSegmentNo - referenceSegmentNo >= nDataToPrepare) {
       // nothing to prepare
       return;
@@ -299,7 +304,11 @@ NdnPutFile::prepareNextData(uint64_t referenceSegmentNo)
 
     data->setContent(buffer, toRead + util::HASH_SIZE);
     data->setFreshnessPeriod(freshnessPeriod);
-    signData(*data);
+    if(segNo == 0) {
+      signFirstData(*data);
+    } else {
+      signData(*data);
+    }
 
     m_data.insert(std::make_pair(m_currentSegmentNo, data));
 
@@ -490,6 +499,16 @@ NdnPutFile::signData(ndn::Data& data)
 }
 
 void
+NdnPutFile::signFirstData(ndn::Data& data)
+{
+if (identityForData.empty())
+    m_keyChain.sign(data);
+  else {
+    m_keyChain.sign(data, ndn::signingByIdentity(identityForData));
+  }
+}
+
+void
 NdnPutFile::startCheckCommand()
 {
   auto parameter = RepoCommandParameter();
@@ -564,6 +583,7 @@ usage(const char* programName)
             << "Write a file into a repo.\n"
             << "\n"
             << "  -D: use DigestSha256 signing method instead of SignatureSha256WithRsa\n"
+            << "  -H: use Hash Chain signing method instead of Rsa\n"
             << "  -i: specify identity used for signing Data\n"
             << "  -I: specify identity used for signing commands\n"
             << "  -x: FreshnessPeriod in milliseconds\n"
@@ -583,12 +603,15 @@ main(int argc, char** argv)
   NdnPutFile ndnPutFile;
 
   int opt;
-  while ((opt = getopt(argc, argv, "hDi:I:x:l:w:s:v")) != -1) {
+  while ((opt = getopt(argc, argv, "hDHi:I:x:l:w:s:v")) != -1) {
     switch (opt) {
     case 'h':
       usage(argv[0]);
       return 0;
     case 'D':
+      ndnPutFile.useDigestSha256 = true;
+      break;
+    case 'H':
       ndnPutFile.useDigestSha256 = true;
       break;
     case 'i':
