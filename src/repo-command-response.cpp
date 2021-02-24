@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License along with
  * repo-ng, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+#include <iostream>
 #include "repo-command-response.hpp"
 
 namespace repo {
@@ -202,6 +202,7 @@ RepoCommandResponse::wireDecode(const Block& wire)
 
   Block::element_const_iterator val;
 
+  std::cout<<"m_wire.type()"<<m_wire.type()<<std::endl;
   if (m_wire.type() != tlv::RepoCommandResponse)
     BOOST_THROW_EXCEPTION(Error("RepoCommandResponse malformed"));
 
@@ -211,13 +212,14 @@ RepoCommandResponse::wireDecode(const Block& wire)
     m_hasStartBlockId = true;
     m_startBlockId = readNonNegativeInteger(*val);
   }
-
+  std::cout<<"m_startBlockId: "<<m_startBlockId<<std::endl;
   // EndBlockId
   val = m_wire.find(tlv::EndBlockId);
   if (val != m_wire.elements_end()) {
     m_hasEndBlockId = true;
     m_endBlockId = readNonNegativeInteger(*val);
   }
+  std::cout<<"m_endBlockId: "<<m_endBlockId<<std::endl;
 
   // ProcessId
   val = m_wire.find(tlv::ProcessId);
@@ -234,6 +236,7 @@ RepoCommandResponse::wireDecode(const Block& wire)
   else {
     BOOST_THROW_EXCEPTION(Error("required field StatusCode is missing"));
   }
+  std::cout<<"StatusCode: "<<*val<<std::endl;
 
   // InsertNum
   val = m_wire.find(tlv::InsertNum);
@@ -241,7 +244,7 @@ RepoCommandResponse::wireDecode(const Block& wire)
     m_hasInsertNum = true;
     m_insertNum = readNonNegativeInteger(*val);
   }
-
+  std::cout<<"InsertNum: "<<*val<<std::endl;
   // DeleteNum
   val = m_wire.find(tlv::DeleteNum);
   if (val != m_wire.elements_end()) {
@@ -261,7 +264,7 @@ operator<<(std::ostream& os, const RepoCommandResponse& repoCommandResponse)
     os << " ProcessId: " << repoCommandResponse.getProcessId();
   }
   // if (repoCommandResponse.hasStatusCode()) {
-  //   os << " StatusCode: " << repoCommandResponse.getStatusCode();
+  //   os << " StatusCode: " << repoCommandResponse.hasStatusCode();
   // }
   if (repoCommandResponse.hasStartBlockId()) {
     os << " StartBlockId: " << repoCommandResponse.getStartBlockId();

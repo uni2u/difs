@@ -20,6 +20,8 @@
 #ifndef REPO_HANDLES_COMMAND_BASE_HANDLE_HPP
 #define REPO_HANDLES_COMMAND_BASE_HANDLE_HPP
 
+#include <iostream>
+
 #include "common.hpp"
 
 #include "storage/repo-storage.hpp"
@@ -111,7 +113,8 @@ CommandBaseHandle::reply(const Interest& commandInterest, const RepoCommandRespo
   std::shared_ptr<Data> rdata = std::make_shared<Data>(commandInterest.getName());
   rdata->setContent(response.wireEncode());
   KeyChain keyChain;
-  keyChain.sign(*rdata, ndn::signingWithSha256());
+  keyChain.sign(*rdata); //, ndn::security::signingByKey(ndn::Name("/example/repo")));
+  //keyChain.sign(*rdata, ndn::signingWithSha256());
   face.put(*rdata);
 }
 
@@ -121,7 +124,8 @@ CommandBaseHandle::reply(const Interest& commandInterest, const std::string& dat
   std::shared_ptr<Data> rdata = std::make_shared<Data>(commandInterest.getName());
   rdata->setContent((uint8_t*)(data.data()), data.size());
   KeyChain keyChain;
-  keyChain.sign(*rdata, ndn::signingWithSha256());
+  keyChain.sign(*rdata); //, ndn::security::signingByKey(ndn::Name("/example/repo")));
+  //keyChain.sign(*rdata, ndn::signingWithSha256());
   face.put(*rdata);
 }
 

@@ -252,7 +252,7 @@ void
 WriteHandle::onSegmentData(ndn::util::SegmentFetcher& fetcher, const Data& data, ProcessId processId)
 {
 
-  std::cout<<"signitureInfo:"<<data.getSignatureInfo()<<std::endl;
+  std::cout<<"onSegmentData::signitureInfo:"<<data.getSignatureInfo()<<std::endl;
   
   auto it = m_processes.find(processId);
   if (it == m_processes.end()) {

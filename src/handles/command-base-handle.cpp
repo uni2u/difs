@@ -76,6 +76,8 @@ CommandBaseHandle::sign(const Name& name, const Data& data)
 {
   Data rdata(data);
   rdata.setName(name);
+  std::cout<<"CommandBaseHandle::sign:"<<name.toUri()<<std::endl;
+  //keyChain.sign(rdata); //, ndn::security::signingByKey(ndn::Name("/example/repo")));
   keyChain.sign(rdata, ndn::signingWithSha256());
   return rdata;
 }

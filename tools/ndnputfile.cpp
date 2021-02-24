@@ -152,6 +152,7 @@ private:
                           const RepoCommandParameter& commandParameter);
 
 public:
+  //bool start_flag = false;
   bool isSingle;
   bool useDigestSha256;
   std::string identityForData;
@@ -322,14 +323,7 @@ NdnPutFile::run()
 {
   m_dataPrefix = ndnName;
  start = clock();
-/*
-  insertStream->seekg(0, std::ios::beg);
-  auto beginPos = insertStream->tellg();
-  insertStream->seekg(0, std::ios::end);
-  m_bytes = insertStream->tellg() - beginPos;
-  printf("1st m_bytes %d\n", m_bytes);
-  insertStream->seekg(0, std::ios::beg);
-*/
+
   struct stat st;
   stat(file_name, &st);
   std::cerr<<"file name is "<<file_name<<std::endl;
@@ -382,6 +376,7 @@ NdnPutFile::startInsertCommand()
 void
 NdnPutFile::onInsertCommandResponse(const ndn::Interest& interest, const ndn::Data& data)
 {
+  std::cout<<"onInsertCommandResponse:"<<std::endl;
   RepoCommandResponse response(data.getContent().blockFromValue());
   auto statusCode = response.getCode();
   if (statusCode >= 400) {
@@ -389,7 +384,6 @@ NdnPutFile::onInsertCommandResponse(const ndn::Interest& interest, const ndn::Da
                                 boost::lexical_cast<std::string>(statusCode)));
   }
   m_processId = response.getProcessId();
-
   m_scheduler.schedule(m_checkPeriod, [this] { startCheckCommand(); });
 }
 
@@ -434,6 +428,9 @@ NdnPutFile::onInterest(const ndn::Name& prefix, const ndn::Interest& interest)
     uint64_t final = m_currentSegmentNo - 1;
     item->second->setFinalBlock(ndn::name::Component::fromSegment(final));
   }
+
+  // m_keyChain.sign(*item->second, ndn::signingWithSha256());
+  m_keyChain.sign(*item->second);
   m_face.put(*item->second);
 }
 
@@ -513,9 +510,22 @@ NdnPutFile::startCheckCommand()
 {
   auto parameter = RepoCommandParameter();
   parameter.setName(ndnName);
+
   ndn::Interest checkInterest = generateCommandInterest(repoPrefix, "insert check",
                                                         parameter
                                                           .setProcessId(m_processId));
+
+  std::cout<<"checkInterest:"<<checkInterest.toUri()<<std::endl;
+  // check identity
+  //m_keyChain.sign(checkInterest, ndn::signingWithSha256());
+  /*
+  if (identityForCommand.empty()) {
+    //std::cout<<"option 1"<<std::endl;
+    m_keyChain.sign(checkInterest);
+  } else {
+    m_keyChain.sign(checkInterest, ndn::signingByIdentity(identityForCommand));
+  }
+  */
   m_face.expressInterest(checkInterest,
                          bind(&NdnPutFile::onCheckCommandResponse, this, _1, _2),
                          bind(&NdnPutFile::onCheckCommandTimeout, this, _1), // Nack
@@ -563,9 +573,11 @@ NdnPutFile::generateCommandInterest(const ndn::Name& commandPrefix, const std::s
     .append(commandParameter.wireEncode());
   ndn::Interest interest;
 
-  if (identityForCommand.empty())
+  if (identityForCommand.empty()) {
+    std::cout<<"option 1"<<std::endl;
     interest = m_cmdSigner.makeCommandInterest(cmd);
-  else {
+  } else {
+    std::cout<<"option 2"<<std::endl;
     interest = m_cmdSigner.makeCommandInterest(cmd, ndn::signingByIdentity(identityForCommand));
   }
 
