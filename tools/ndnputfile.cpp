@@ -423,14 +423,14 @@ NdnPutFile::onInterest(const ndn::Name& prefix, const ndn::Interest& interest)
     }
     return;
   }
-
+  /*
   if (m_isFinished) {
     uint64_t final = m_currentSegmentNo - 1;
     item->second->setFinalBlock(ndn::name::Component::fromSegment(final));
   }
-
+  */
   // m_keyChain.sign(*item->second, ndn::signingWithSha256());
-  m_keyChain.sign(*item->second);
+  // m_keyChain.sign(*item->second);
   m_face.put(*item->second);
 }
 
@@ -572,6 +572,7 @@ NdnPutFile::generateCommandInterest(const ndn::Name& commandPrefix, const std::s
     .append(command)
     .append(commandParameter.wireEncode());
   ndn::Interest interest;
+  interest.setInterestLifetime(interestLifetime);
 
   if (identityForCommand.empty()) {
     std::cout<<"option 1"<<std::endl;
@@ -581,7 +582,6 @@ NdnPutFile::generateCommandInterest(const ndn::Name& commandPrefix, const std::s
     interest = m_cmdSigner.makeCommandInterest(cmd, ndn::signingByIdentity(identityForCommand));
   }
 
-  interest.setInterestLifetime(interestLifetime);
   return interest;
 }
 
