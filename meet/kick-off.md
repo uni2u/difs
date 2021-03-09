@@ -99,6 +99,7 @@
 
 - check KeySpace version **_Interest_** (to node)
   - `/{node_name}/keyspace/ver/{view_num}/%DA/{data_name}`
+  - `/{node_name}/keyspace/ver/{version_num}`
   - manager node 가 관리하는 range allocation 의 KeySpace version 정보 공유 (version 번호만)
     - DIFS 클러스터 노드에게 manager node 가 KeySpace 버전 정보를 안내함
     - 노드는 200 OK 로 응답
@@ -112,6 +113,7 @@
 
 - fetch KeySpace file **_Interest_** (From namager)
   - `/{node_name}/keyspace/fetch/{view_num}`
+  - `/{node_name}/keyspace/fetch/{version_num}`
   - manager node 에 의해 관리되는 range allocation 의 KeySpace version 에 대한 최신 파일 정보
     - manager node 로 부터 받은 KeySpace 버전 정보가 자신이 가지고 있는 버전 정보와 다른 경우 KeySpace 테이블 업데이트 파일을 요청
     - manager node 는 KeySpace 정보를 담은 파일로 응답
@@ -127,6 +129,9 @@
     - {data_name}: /{node_id}/{sequence_num}
     - %DA: data_nameSeparator=name::Component::fromEscapedString("%DA")
     - %TA: target_data_nameSeparator=name::Component::fromEscapedString("%TA")
+  - `/{node_name}/manifest/fetch/start/{start_num}/end/{end_num}`
+    - start: 파일을 가지고 와야하는 노드의 KeySapce 시작
+    - end: 파일을 가지고 와야하는 노드의 KeySpace 마지막
   - KeySpace 테이블 업데이트 정보를 제공받은 각 노드
     - 자신이 저장중인 manifest 파일을 제공할 노드를 알 수 있음 (기존 노드)
     - 자신이 저장할 manifest 파일을 제공받을 노드를 알 수 있음 (추가 노드)
