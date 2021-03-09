@@ -105,6 +105,14 @@
       - 각 노드는 KeySpace 조정
   - 재조정 range allocation 에 대한 information view 업데이트 정보
 
+- version **_Interest_**
+  - `/{node_name}/infoview/vid/{view_num}/%DA/{data_name}`
+  - manager node 가 관리하는 range allocation 의 information view 에 대한 최선 버전 정보 공유
+
+- view info update **_Interest_**
+  - `/{node_name}/vinfo/{view_num}`
+  - manager node 에 의해 관리되는 range allocation 의 information view 에 대한 최신 업데이트 정보
+
 ## flows
 
 ### Added node (add)
