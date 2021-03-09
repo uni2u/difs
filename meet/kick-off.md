@@ -123,14 +123,17 @@
 ### 노드 추가 및 삭제로 변화가 있는 노드에게 정보 제공 (manager node)
 
 - coordination **_Interest_**
-  -  `/{node_name}/range/vid/{view_num}/%DA/{data_name}/%TA/{target_node_id}`
-      - {data_name}: /{node_id}/{sequence_num}
-      - %DA: data_nameSeparator=name::Component::fromEscapedString("%DA")
-      - %TA: target_data_nameSeparator=name::Component::fromEscapedString("%TA")
-  - 최종버전의 KeySpace 테이블 정보 제공
-      - KeySpace 테이블 정보를 활용하여 노드가 담당하는 ID Range 를 split/merge
-      - 각 노드는 KeySpace 조정
-  - 재조정 range allocation 에 대한 information view 업데이트 정보
+  - `/{node_name}/range/vid/{view_num}/%DA/{data_name}/%TA/{target_node_id}`
+    - {data_name}: /{node_id}/{sequence_num}
+    - %DA: data_nameSeparator=name::Component::fromEscapedString("%DA")
+    - %TA: target_data_nameSeparator=name::Component::fromEscapedString("%TA")
+  - KeySpace 테이블 업데이트 정보를 제공받은 각 노드
+    - 자신이 저장중인 manifest 파일을 제공할 노드를 알 수 있음 (기존 노드)
+    - 자신이 저장할 manifest 파일을 제공받을 노드를 알 수 있음 (추가 노드)
+  - **변화된 KeySpace 에 해당하는 두 노드간 전송되는  _Interest/Data_**
+    - KeySpace 테이블 정보를 활용하여 노드가 담당하는 ID Range 를 split/merge
+      - manager node 로 부터 제공받은 재조정 range allocation 에 대한 KeySpace version 업데이트 정보
+    - manager node 로 부터 제공받은 KeySpace 정보를 토대로 당사자간 manifest 를 주고 받기 위한 내용
 
 ## flows
 
