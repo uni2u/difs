@@ -2,13 +2,6 @@
 
 - 모든 노드는 **manager node** 에 의해 제어
 
-### manager node
-
-- 신규 노드 추가
-- 기존 노드 제거
-- hash range 할당
-- KeySpace 생성/업데이트
-
 ### managed DHT 란
 
 - manager node 에 의해 관리되는 클러스터에서
@@ -22,6 +15,13 @@
 - 이 Interest 를 수신한 노드는 자신이 저장중인 실제 데이터를 전송한다
 
 ## 동적구성 개념
+
+### manager node
+
+- 신규 노드 추가
+- 기존 노드 제거
+- hash range 할당
+- KeySpace 생성/업데이트
 
 ### Added Node 란
 
