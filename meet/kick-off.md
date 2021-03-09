@@ -1,7 +1,12 @@
-### dd
+## 중앙집중형 방식
 
+- 모든 노드는 **manager node** 에 의해 제어
 
-### 동적 노드 구성을 위한 Interest
+### manager node
+
+-
+
+## 동적 노드 구성을 위한 Interest
 
 - coordination __Interest__
   -  `/{node_name}/range/vid/{view_num}/%DA/{data_name}/%TA/{target_node_id}`
@@ -13,9 +18,9 @@
       - 각 노드는 KeySpace 조정
   - 재조정 range allocation 에 대한 information view 업데이트 정보
 
-### flows
+## flows
 
-#### Added node (add)
+### Added node (add)
 
 ```
 +-----------+                       +-------+                         +-------+                         +-------+
