@@ -132,6 +132,10 @@
   - `/{node_name}/manifest/fetch/start/{start_num}/end/{end_num}`
     - start: 파일을 가지고 와야하는 노드의 KeySapce 시작
     - end: 파일을 가지고 와야하는 노드의 KeySpace 마지막
+    - **이러한 형식으로 start 부터 end 까지 manifest 를 한번에 제공이 가능한가?**
+      - 각 노드는 자신이 가진 manifest 리스트를 만들고
+      - 위 Interest 를 통해 manifest 리스트 파일을 제공하고
+      - manifest 리스트를 받은 노드는 자신이 담당할 KeySpace 에 포함되는 manifest 를 각각 호출
   - KeySpace 테이블 업데이트 정보를 제공받은 각 노드
     - 자신이 저장중인 manifest 파일을 제공할 노드를 알 수 있음 (기존 노드)
     - 자신이 저장할 manifest 파일을 제공받을 노드를 알 수 있음 (추가 노드)
