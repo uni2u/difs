@@ -95,7 +95,7 @@
 
 ## 동적 노드 구성을 위한 Interest
 
-- coordination __Interest__
+- coordination **_Interest_**
   -  `/{node_name}/range/vid/{view_num}/%DA/{data_name}/%TA/{target_node_id}`
       - {data_name}: /{node_id}/{sequence_num}
       - %DA: data_nameSeparator=name::Component::fromEscapedString("%DA")
