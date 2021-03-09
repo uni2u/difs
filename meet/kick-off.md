@@ -9,6 +9,18 @@
 - hash range 할당
 - KeySpace 생성/업데이트
 
+### managed DHT 란
+
+- manager node 에 의해 관리되는 클러스터에서
+- 데이터의 정보 (어떤 노드가 실제 저장하고 있는지) 를 명시한 manifest file 은
+- service name (/{common_name}/{data_name}) 을 통해 제공되는데
+- {data_name} 을 hash 하여 얻을 결과값을 담당하는 DIFS 클러스터 노드에서 관리한다
+- consumer 는 자신이 알고 있는 {data_name} 에 DIFS {common_name} 을 조합하면
+- 이를 수신한 DIFS 노드는 {data_name} 을 hash 하여 담당 노드를 찾고
+- 담당 노드로 부터 수신한 manifest file 을 consumer 에게 전달한다
+- consumer 는 manifest file 을 확인하고 실제 데이터가 저장된 노드의 {node_name} 을 사용하여 Interest 를 전송하고
+- 이 Interest 를 수신한 노드는 자신이 저장중인 실제 데이터를 전송한다
+
 ## 동적구성 개념
 
 ### Added Node 란
