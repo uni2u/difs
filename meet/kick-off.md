@@ -4,7 +4,10 @@
 
 ### manager node
 
--
+- 신규 노드 추가
+- 기존 노드 제거
+- hash range 할당
+- KeySpace 생성/업데이트
 
 ## 동적구성 개념
 
