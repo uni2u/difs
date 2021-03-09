@@ -120,7 +120,7 @@
     - 각 노드는 manager node 로 KeySpace 테이블 업데이트를 위한 최신 버전의 파일 요청을 위한 Interest 전송
       - manager node 는 해당 버전의 KeySpace 파일 제공
 
-### 노드 추가 및 삭제로 변화가 있는 노드에게 정보 제공 (manager node)
+### 노드 추가 및 삭제로 KeySpace 변화가 있는 노드간 파일 재조정
 
 - coordination **_Interest_**
   - `/{node_name}/range/vid/{view_num}/%DA/{data_name}/%TA/{target_node_id}`
