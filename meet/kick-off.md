@@ -95,6 +95,34 @@
 
 ## 동적 노드 구성을 위한 Interest
 
+### manager node 의 DIFS 노드 관리
+
+- check KeySpace version **_Interest_** (to node)
+  - `/{node_name}/keyspace/ver/{view_num}/%DA/{data_name}`
+  - manager node 가 관리하는 range allocation 의 KeySpace version 정보 공유 (version 번호만)
+    - DIFS 클러스터 노드에게 manager node 가 KeySpace 버전 정보를 안내함
+    - 노드는 200 OK 로 응답
+  - simple flow
+    - manager node 는 DIFS 클러스터의 모든 노드를 알고 있음 (added/leave node 포함)
+      - manager node 는 모든 노드에 대한 hash range allocation 을 계산
+      - 각 노드의 KeySpace 정보를 담은 파일을 생성하고 버전을 만들어 제공
+      - 최신 KeySpace 버전을 담은 Interest 를 버전이 갱신될 때 마다 모든 노드에게 전송
+    - 각 노드는 manager node 가 보낸 버전 정보가 자신이 가진 KeySpace 버전과 다른 경우
+      - manager node 에게 KeySpace 정보를 얻기위한 Interest (`fetch KeySpace file` Interest) 전송
+
+- fetch KeySpace file **_Interest_** (From namager)
+  - `/{node_name}/keyspace/fetch/{view_num}`
+  - manager node 에 의해 관리되는 range allocation 의 KeySpace version 에 대한 최신 파일 정보
+    - manager node 로 부터 받은 KeySpace 버전 정보가 자신이 가지고 있는 버전 정보와 다른 경우 KeySpace 테이블 업데이트 파일을 요청
+    - manager node 는 KeySpace 정보를 담은 파일로 응답
+  - simple flow
+    - manager node 로 부터 받은 `check KeySpace version` 정보가 자신이 가진 KeySpace 버전과 다른 경우 KeySpace 테이블 업데이트가 있음을 확인
+      - 
+    - 각 노드는 manager node 로 KeySpace 테이블 업데이트를 위한 최신 버전의 파일 요청을 위한 Interest 전송
+      - manager node 는 해당 버전의 KeySpace 파일 제공
+
+### 노드 추가 및 삭제로 변화가 있는 노드에게 정보 제공 (manager node)
+
 - coordination **_Interest_**
   -  `/{node_name}/range/vid/{view_num}/%DA/{data_name}/%TA/{target_node_id}`
       - {data_name}: /{node_id}/{sequence_num}
@@ -104,14 +132,6 @@
       - KeySpace 테이블 정보를 활용하여 노드가 담당하는 ID Range 를 split/merge
       - 각 노드는 KeySpace 조정
   - 재조정 range allocation 에 대한 information view 업데이트 정보
-
-- version **_Interest_**
-  - `/{node_name}/infoview/vid/{view_num}/%DA/{data_name}`
-  - manager node 가 관리하는 range allocation 의 information view 에 대한 최선 버전 정보 공유
-
-- view info update **_Interest_**
-  - `/{node_name}/vinfo/{view_num}`
-  - manager node 에 의해 관리되는 range allocation 의 information view 에 대한 최신 업데이트 정보
 
 ## flows
 
@@ -123,14 +143,28 @@
 |node       |                       |node   |                         |node   |                         |node   |
 +-----------+                       +-------+                         +-------+                         +-------+
       |                                 |                                 |                                 |
-      |<-Interest (Coordinate request)--|                                 |                                 |
       |                                 |--+                              |                                 |
       |                                 |  |                              |                                 |
       |                        Assignment of an ID range                  |                                 |
       |                        Detect Added node                          |                                 |
       |                                 |  |                              |                                 |
       |                                 |--+                              |                                 |
-      |<-Data (200OK; Coordinate reply)-|                                 |                                 |
+      |                                 |                                 |                                 |
+      |<--Interest (check keyspace version)                               |                                 |
+      |----------Data (200OK)---------->|                                 |                                 |
+      |                               Interest (check keyspace version)-->|                                 |
+      |                                 |<---------Data (200OK)-----------|                                 |
+      |                                 |-----------------Interest (check keyspace version)---------------->|
+      |                                 |<--------------------------Data (200OK)----------------------------|
+      |                                 |                                 |                                 |
+      |                                 |                                 |                                 |
+      |-Interest (fetch KeySpace file)->|                                 |                                 |
+      |<------Data (KeySpace file)------|                                 |                                 |
+      |                                 |<-Interest (fetch KeySpace file)-|                                 |
+      |                                 |-------Data (KeySpace file)----->|                                 |
+      |                                 |------------------Interest (fetch KeySpace file)------------------>|
+      |                                 |<----------------------Data (KeySpace file)------------------------|
+      |                                 |                                 |                                 |
       |                                 |                                 |                                 |
       ~                                 ~                                 ~                                 ~
       |                                 |                                 |                                 |
@@ -162,14 +196,24 @@
 |node       |                       |node   |                         |node   |                         |node   |
 +-----------+                       +-------+                         +-------+                         +-------+
       |                                 |                                 |                                 |
-      |<-Interest (Coordinate request)--|                                 |                                 |
       |                                 |--+                              |                                 |
       |                                 |  |                              |                                 |
       |                        Assignment of an ID range                  |                                 |
       |                        Detect Leave node                          |                                 |
       |                                 |  |                              |                                 |
       |                                 |--+                              |                                 |
-      |<-Data (200OK; Coordinate reply)-|                                 |                                 |
+      |                                 |                                 |                                 |
+      |                               Interest (check keyspace version)-->|                                 |
+      |                                 |<---------Data (200OK)-----------|                                 |
+      |                                 |-----------------Interest (check keyspace version)---------------->|
+      |                                 |<--------------------------Data (200OK)----------------------------|
+      |                                 |                                 |                                 |
+      |                                 |                                 |                                 |
+      |                                 |<-Interest (fetch KeySpace file)-|                                 |
+      |                                 |-------Data (KeySpace file)----->|                                 |
+      |                                 |------------------Interest (fetch KeySpace file)------------------>|
+      |                                 |<----------------------Data (KeySpace file)------------------------|
+      |                                 |                                 |                                 |
       |                                 |                                 |                                 |
       ~                                 ~                                 ~                                 ~
       |                                 |                                 |                                 |
