@@ -84,7 +84,7 @@
   -  `/{node_name}/range/vid/{view_num}/%DA/{data_name}/%TA/{target_node_id}`
       - {data_name}: /{node_id}/{sequence_num}
       - %DA: data_nameSeparator=name::Component::fromEscapedString("%DA")
-      - %TA: target_data_nameSeparator=name::Component::fromEscapedString("%DA")
+      - %TA: target_data_nameSeparator=name::Component::fromEscapedString("%TA")
   - 최종버전의 KeySpace 테이블 정보 제공
       - KeySpace 테이블 정보를 활용하여 노드가 담당하는 ID Range 를 split/merge
       - 각 노드는 KeySpace 조정
