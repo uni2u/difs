@@ -119,7 +119,7 @@
 
 ```
 +-----------+                       +-------+                         +-------+                         +-------+
-|Added/Leave|                       |manager|                         |difs   |                         |difs   |
+|Added      |                       |manager|                         |difs   |                         |difs   |
 |node       |                       |node   |                         |node   |                         |node   |
 +-----------+                       +-------+                         +-------+                         +-------+
       |                                 |                                 |                                 |
@@ -158,7 +158,7 @@
 
 ```
 +-----------+                       +-------+                         +-------+                         +-------+
-|Added/Leave|                       |manager|                         |difs   |                         |difs   |
+|Leave      |                       |manager|                         |difs   |                         |difs   |
 |node       |                       |node   |                         |node   |                         |node   |
 +-----------+                       +-------+                         +-------+                         +-------+
       |                                 |                                 |                                 |
