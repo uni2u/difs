@@ -117,7 +117,6 @@
     - manager node 는 KeySpace 정보를 담은 파일로 응답
   - simple flow
     - manager node 로 부터 받은 `check KeySpace version` 정보가 자신이 가진 KeySpace 버전과 다른 경우 KeySpace 테이블 업데이트가 있음을 확인
-      - 
     - 각 노드는 manager node 로 KeySpace 테이블 업데이트를 위한 최신 버전의 파일 요청을 위한 Interest 전송
       - manager node 는 해당 버전의 KeySpace 파일 제공
 
