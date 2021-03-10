@@ -210,7 +210,7 @@
 
 ```json
 # 아래 내용은 모니터링을 위한 노드 리소스 정보를 제공하는 예제이며
-# 아래 내용 중 contents 부분이 해당 노드가 관리중인 manifest 의 리스트
+# 아래 내용 중 contents/manifests 부분이 해당 노드가 관리중인 manifest 의 리스트
 
 {
   "info": {
