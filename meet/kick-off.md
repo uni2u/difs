@@ -16,10 +16,59 @@
 
 ### manager node
 
-- 신규 노드 추가
-- 기존 노드 제거
-- hash range 할당
-- KeySpace 생성/업데이트
+- 신규 노드 추가 및 기존 노드 제거
+- hash range 할당 및 KeySpace 생성/업데이트
+
+### 동적 노드 구성을 위한 config
+
+- DIFS 각 노드의 config 파일 활용 (json file)
+  - manager node
+    - config 의 `type: manager`
+    - config 의 `parent: null`
+    - config 의 `parent: manager_node_name`
+  - node
+    - config 의 `type: node`
+    - config 의 `parent: node_name`
+    - config 의 `manager: manager_node_name`
+
+```json
+{
+  "info": {
+    "type": "manager or node",
+    "parent": "node_name",
+    "manager": "manager_node_name"
+  }
+}
+```
+
+> 추후 DIFS config 파일에 통합할 수 있도록 논의 필요
+
+### manager node 의 node 관리
+
+- 각 노드는 실행과 동시에 manager node 로 join request 보냄
+- manager node 는 parent 정보를 확인 후
+- parent 노드의 KeySpace 를 나누고 추가된 노드에게 hash range 할당
+- manager node 는 KeySpace file 구성
+
+```json
+{
+  "keyspace": [
+    {
+      "node-name": "node_name",
+      "start": "start hash num",
+      "end": "end hash num"
+    },
+    {
+      "node-name": "node_name",
+      "start": "start hash num",
+      "end": "end hash num"
+    }
+  ]
+}
+```
+
+> mongoDB 를 사용하는 것에 대한 논의 필요
+>> key(version_num), value({node_name, start, end},{node_name, start, end},...)
 
 ### Added Node 란
 
@@ -92,57 +141,6 @@
 |       (20, 30]      |       (30, 40]      |       (40, 50]      |
 +---------------------+---------------------+---------------------+
 ```
-
-## 동적 노드 구성을 위한 config
-
-- DIFS 각 노드의 config 파일 활용 (json file)
-  - manager node
-    - config 의 `type: manager`
-    - config 의 `parent: null`
-    - config 의 `parent: manager_node_name`
-  - node
-    - config 의 `type: node`
-    - config 의 `parent: node_name`
-    - config 의 `manager: manager_node_name`
-
-```json
-{
-  "info": {
-    "type": "manager or node",
-    "parent": "node_name",
-    "manager": "manager_node_name"
-  }
-}
-```
-
-> 추후 DIFS config 파일에 통합할 수 있도록 논의 필요
-
-### manager node 의 node 관리
-
-- 각 노드는 실행과 동시에 manager node 로 join request 보냄
-- manager node 는 parent 정보를 확인 후
-- parent 노드의 KeySpace 를 나누고 추가된 노드에게 hash range 할당
-- manager node 는 KeySpace file 구성
-
-```json
-{
-  "keyspace": [
-    {
-      "node-name": "node_name",
-      "start": "start hash num",
-      "end": "end hash num"
-    },
-    {
-      "node-name": "node_name",
-      "start": "start hash num",
-      "end": "end hash num"
-    }
-  ]
-}
-```
-
-> mongoDB 를 사용하는 것에 대한 논의 필요
->> key(version_num), value({node_name, start, end},{node_name, start, end},...)
 
 ## 동적 노드 구성을 위한 Interest
 
