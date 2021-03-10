@@ -195,6 +195,11 @@
       - 위 Interest 를 통해 manifest 리스트 파일을 제공하고
       - manifest 리스트를 받은 노드는 자신이 담당할 KeySpace 에 포함되는 manifest 를 각각 호출
         - `/{node_name}/manifest/{hash(manifest key)}`
+    - **manifest_list file**
+      - DIFS 각 노드는 자신이 관리중인 manifest file 의 리스트를 제공하여야 함
+      - 추가된 노드가 자신의 KeySpace 에 해당하는 manifest file 을 요청하여야 하는데
+      - 어떤 manifest file 을 요청해야 하는지에 대한 정보가 필요함
+      - manifest_list file 은 추후 모니터링에도 활용할 수 있도록 함
   - KeySpace 테이블 업데이트 정보를 제공받은 각 노드
     - 자신이 저장중인 manifest 파일을 제공할 노드를 알 수 있음 (기존 노드)
     - 자신이 저장할 manifest 파일을 제공받을 노드를 알 수 있음 (추가 노드)
@@ -202,6 +207,47 @@
     - KeySpace 테이블 정보를 활용하여 노드가 담당하는 ID Range 를 split/merge
       - manager node 로 부터 제공받은 재조정 range allocation 에 대한 KeySpace version 업데이트 정보
     - manager node 로 부터 제공받은 KeySpace 정보를 토대로 당사자간 manifest 를 주고 받기 위한 내용
+
+```json
+# 아래 내용은 모니터링을 위한 노드 리소스 정보를 제공하는 예제이며
+# 아래 내용 중 contents 부분이 해당 노드가 관리중인 manifest 의 리스트
+
+{
+  "info": {
+    "name": "node_name",
+    "resource": {
+      "disk": {
+        "size": "total size",
+        "usage": "usage"
+      },
+      "memory": {
+        "size": "total size",
+        "usage": "usage"        
+      }
+    },
+    "contents": [
+      {
+        "manifests": [
+          {
+            "key": "manifest_name"
+          },
+          {
+            "key": "manifest_name"
+          }
+        ],
+        "datas": [
+          {
+            "data": "data_name"
+          },
+          {
+            "data": "data_name"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
 
 ## flows
 
