@@ -129,7 +129,7 @@
     - ~{data_name}: /{node_id}/{sequence_num}~
     - ~%DA: data_nameSeparator=name::Component::fromEscapedString("%DA")~
     - ~%TA: target_data_nameSeparator=name::Component::fromEscapedString("%TA")~
-  - `/{node_name}/manifest/fetch/start/{start_num}/end/{end_num}`
+  - `/{node_name}/manifestlist/` or `/{node_name}/manifestlist/start/{start_num}/end/{end_num}`
     - start: 파일을 가지고 와야하는 노드의 KeySapce 시작
     - end: 파일을 가지고 와야하는 노드의 KeySpace 마지막
     - **이러한 형식으로 start 부터 end 까지 manifest 를 한번에 제공이 가능한가?**
@@ -137,7 +137,7 @@
       - 자신이 담당하는 manifest 중 범위에 해당하는 것을 골라 데이터로 제공
       - 또는 자신이 담당하는 manifest 중 범위에 해당하는 것에 대한 리스트 파일을 만들어서 제공
         - 이 리스트를 받은 노드는 manifest 요청 Interest 를 전송
-          - /{node_name}/fetch/{hash(manifest key)}
+          - /{node_name}/manifest/{hash(manifest key)}
     - **다른 방안**
       - 각 노드는 자신이 가진 manifest 리스트를 만들고
       - 위 Interest 를 통해 manifest 리스트 파일을 제공하고
