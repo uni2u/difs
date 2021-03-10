@@ -2,6 +2,18 @@
 
 ## KeyValue Store overview
 
+### github branch 정리
+
+- github 의 master (또는 main) 활용
+  - 각 브렌치에 commit 이 발생하면
+  - commit 내용을 확인하고 확인한 사람이 확인 의견을 포함하여 merge request 요청
+  - commit 내용과 merge request 내용을 확인하고 master 에 merge
+    - difs-cxx 의 경우 적용됨
+- branch 정리
+  - 우선 삭제 브렌치 리스트 업
+  - 남겨진 브렌치 중 master 로 삼을 브렌치 선정
+  - 결정된 브렌치를 master 로 구성
+
 ### ndn-cxx 0.7.1 적용
 
 - 현재 ndn-cxx 0.7.0 기반
