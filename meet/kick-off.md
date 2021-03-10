@@ -1,10 +1,6 @@
 # 기능개선: 동적노드구성
 
-## 중앙집중형 방식
-
-- 모든 노드는 **manager node** 에 의해 제어
-
-### managed DHT 란
+## 동적노드구성 overview
 
 - manager node 에 의해 관리되는 클러스터에서
 - 데이터의 정보 (어떤 노드가 실제 저장하고 있는지) 를 명시한 manifest file 은
