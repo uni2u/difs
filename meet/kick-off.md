@@ -23,7 +23,7 @@
 
 - DIFS 각 노드의 config 파일 활용 (json file)
   - manager node
-    - config 의 `type: manager`,`parent: null`, `manager: manager_node_name`
+    - config 의 `type: manager`,`parent: null`, `manager: null`
   - node
     - config 의 `type: node`, `parent: node_name`, `manager: manager_node_name`
 
