@@ -141,7 +141,6 @@
 ### manager node 의 KeySpace 관리
 
 - check KeySpace version **_Interest_** (to node)
-  - ~`/{node_name}/keyspace/ver/{view_num}/%DA/{data_name}`~
   - `/{node_name}/keyspace/ver/{version_num}`
   - manager node 가 관리하는 range allocation 의 KeySpace version 정보 공유 (version 번호만)
     - DIFS 클러스터 노드에게 manager node 가 KeySpace 버전 정보를 안내함
@@ -155,7 +154,6 @@
       - manager node 에게 KeySpace 정보를 얻기위한 Interest (`fetch KeySpace file` Interest) 전송
 
 - fetch KeySpace file **_Interest_** (From namager)
-  - ~`/{node_name}/keyspace/fetch/{view_num}`~
   - `/{manager_node_name}/keyspace/fetch/{version_num}`
   - manager node 에 의해 관리되는 range allocation 의 KeySpace version 에 대한 최신 파일 정보
     - manager node 로 부터 받은 KeySpace 버전 정보가 자신이 가지고 있는 버전 정보와 다른 경우 KeySpace 테이블 업데이트 파일을 요청
