@@ -24,7 +24,7 @@
 ### Added Node 란
 
 - DIFS 관리자가 모니터링을 하다가 리소스가 모자란 경우 물리 서버를 추가하는 모델
-  - IPFS 또는 torrent 에서 사용하는 DHT 의 모양이 아님
+  - IPFS 또는 torrent 또는 Cassandra 에서 사용하는 DHT 의 모양이 아님
   - 폐쇄된 환경에서 관리자가 필요에 의해 필요한 곳에 물리적으로 증설하는 개념
 - manager node 는 물리적으로 설치한 서버를 DIFS 클러스터에 포함시킴
 
