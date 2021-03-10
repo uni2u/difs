@@ -98,7 +98,7 @@
 - DIFS 각 노드의 config 파일 활용 (json file)
   - manager node
     - config 의 `type: manager`
-    - config 의 `parent: `
+    - config 의 `parent: null`
   - node
     - config 의 `type: node`
     - config 의 `parent: node-name`
@@ -156,7 +156,7 @@
 
 - fetch KeySpace file **_Interest_** (From namager)
   - ~`/{node_name}/keyspace/fetch/{view_num}`~
-  - `/{node_name}/keyspace/fetch/{version_num}`
+  - `/{manager_node_name}/keyspace/fetch/{version_num}`
   - manager node 에 의해 관리되는 range allocation 의 KeySpace version 에 대한 최신 파일 정보
     - manager node 로 부터 받은 KeySpace 버전 정보가 자신이 가지고 있는 버전 정보와 다른 경우 KeySpace 테이블 업데이트 파일을 요청
     - manager node 는 KeySpace 정보를 담은 파일로 응답
@@ -168,10 +168,6 @@
 ### KeySpace 변화가 있는 노드간 파일 재조정
 
 - coordination **_Interest_**
-  - ~`/{node_name}/range/vid/{view_num}/%DA/{data_name}/%TA/{target_node_id}`~
-    - ~{data_name}: /{node_id}/{sequence_num}~
-    - ~%DA: data_nameSeparator=name::Component::fromEscapedString("%DA")~
-    - ~%TA: target_data_nameSeparator=name::Component::fromEscapedString("%TA")~
   - `/{node_name}/manifestlist/` or `/{node_name}/manifestlist/start/{start_num}/end/{end_num}`
     - start: 파일을 가지고 와야하는 노드의 KeySapce 시작
     - end: 파일을 가지고 와야하는 노드의 KeySpace 마지막
