@@ -99,18 +99,23 @@
   - manager node
     - config 의 `type: manager`
     - config 의 `parent: null`
+    - config 의 `parent: manager_node_name`
   - node
     - config 의 `type: node`
-    - config 의 `parent: node-name`
+    - config 의 `parent: node_name`
+    - config 의 `manager: manager_node_name`
 
 ```json
 {
   "info": {
     "type": "manager or node",
-    "parent": "node-name"
+    "parent": "node_name",
+    "manager": "manager_node_name"
   }
 }
 ```
+
+> 추후 DIFS config 파일에 통합할 수 있도록 논의 필요
 
 ### manager node 의 node 관리
 
@@ -136,7 +141,23 @@
 }
 ```
 
+> mongoDB 를 사용하는 것에 대한 논의 필요
+>> key(version_num), value({node_name, start, end},{node_name, start, end},...)
+
 ## 동적 노드 구성을 위한 Interest
+
+### mangaer node 의 노드 구성
+
+- check init node **_Interest_**
+  - `/{manager_node_name}/init`
+    - parent 정보 (body)
+  - parent 정보
+    - 참여할 노드가 나누어 가질 hash range 를 담당하는 노드를 의미함
+    - Operator 가 물리적으로 대상 노드의 오버헤드를 줄이기 위하여 추가함
+  - simple flow
+    - manager node 는 DIFS 클러스터에 참여할 노드로 부터 parent 정보가 포함된 Interest 를 받고
+    - manager node 는 parent 정보를 확인 후 parent 노드의 hash range 를 나누어
+    - 참여할 노드에게 할당하여 KeySpace를 재구성
 
 ### manager node 의 KeySpace 관리
 
