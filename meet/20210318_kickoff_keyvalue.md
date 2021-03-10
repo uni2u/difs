@@ -2,6 +2,24 @@
 
 ## KeyValue Store overview
 
+- producer 가 생산하는 데이터를 네트워크에서 저장하기 위함
+- 각 DIFS 노드는 클러스터를 구성하고 있으며
+- 각 노드는 자신의 name 과 함께 DIFS naming 을 가짐
+- 이것은 어떠한 네트워크에 구성되어도 공통 naming 을 통해 DIFS 를 사용할 수 있게하기 위함
+- producer 로 부터 공통 naming 을 통해 저장 요청을 받은 노드는
+- producer 로 _Interest_ 를 보내어 _Data_ 를 받아 노드에 저장하는데
+- 저장 노드는 config 를 통하여 디렉토리 형식으로 저장하거나 mongoDB 를 사용하여 저장할 수 있음
+- consumer 는 저장된 데이터를 사용하기 위해서 실제 데이터를 저장한 노드의 name 을 알아야 하는데
+- 복잡한 네트워크 naming 이 적용된 노드의 name 을 알지 못한다
+- 이를 편하게 하고자 공통의 naming 을 사용하여 해당 데이터를 실제 저장하고 있는 노드의 full prefix 를 제공할 수 있도록
+- manifest file 을 활용한다.
+- manifest file 은 해당 {data_name} 에 대하여 이 데이터를 실제 저장한 노드의 {node_name} 리스트를 제공하는 파일이다.
+- producer 가 DIFS 에 저장을 요청하면서 지정한 {data_name} 은 hash 계산을 통하여 일정한 값을 가진다.
+- DIFS 클러스터는 각 노드가 담당할 hash range 가 구성되어 있기 때문에 위의 계산 결과를 활용하여 일정 노드를 선택할 수 있다.
+- 즉, consumer 도 같은 {data_name} 으로 요청하면 이 {data_name} 을 hash 한 결과가 같기 때문에 동일한 노드를 선택할 수 있다.
+- consumer 는 요청하는 {data_name} 에 대한 manifest file 을 제공받고 해당 file 을 확인하여
+- 실제 데이터를 저장하고 있는 노드의 full name prefix 로 데이터를 요청한다.  
+
 ### github branch 정리
 
 - github 의 master (또는 main) 활용
