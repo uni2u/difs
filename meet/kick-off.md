@@ -93,9 +93,28 @@
 +---------------------+---------------------+---------------------+
 ```
 
+## 동적 노드 구성을 위한 config
+
+- DIFS 각 노드의 config 파일 활용 (json file)
+  - manager node
+    - config 의 `type: manager`
+    - config 의 `parent: `
+  - node
+    - config 의 `type: node`
+    - config 의 `parent: node-name`
+
+```
+{
+  "info": {
+    "type": "manager or node",
+    "parent": "node-name"
+  }
+}
+```
+
 ## 동적 노드 구성을 위한 Interest
 
-### manager node 의 DIFS 노드 관리
+### manager node 의 KeySpace 관리
 
 - check KeySpace version **_Interest_** (to node)
   - ~`/{node_name}/keyspace/ver/{view_num}/%DA/{data_name}`~
@@ -122,7 +141,7 @@
     - 각 노드는 manager node 로 KeySpace 테이블 업데이트를 위한 최신 버전의 파일 요청을 위한 Interest 전송
       - manager node 는 해당 버전의 KeySpace 파일 제공
 
-### 노드 추가 및 삭제로 KeySpace 변화가 있는 노드간 파일 재조정
+### KeySpace 변화가 있는 노드간 파일 재조정
 
 - coordination **_Interest_**
   - ~`/{node_name}/range/vid/{view_num}/%DA/{data_name}/%TA/{target_node_id}`~
@@ -137,12 +156,12 @@
       - 자신이 담당하는 manifest 중 범위에 해당하는 것을 골라 데이터로 제공
       - 또는 자신이 담당하는 manifest 중 범위에 해당하는 것에 대한 리스트 파일을 만들어서 제공
         - 이 리스트를 받은 노드는 manifest 요청 Interest 를 전송
-          - /{node_name}/manifest/{hash(manifest key)}
+          - `/{node_name}/manifest/{hash(manifest key)}`
     - **다른 방안**
       - 각 노드는 자신이 가진 manifest 리스트를 만들고
       - 위 Interest 를 통해 manifest 리스트 파일을 제공하고
       - manifest 리스트를 받은 노드는 자신이 담당할 KeySpace 에 포함되는 manifest 를 각각 호출
-        - /{node_name}/manifest/{hash(manifest key)}
+        - `/{node_name}/manifest/{hash(manifest key)}`
   - KeySpace 테이블 업데이트 정보를 제공받은 각 노드
     - 자신이 저장중인 manifest 파일을 제공할 노드를 알 수 있음 (기존 노드)
     - 자신이 저장할 manifest 파일을 제공받을 노드를 알 수 있음 (추가 노드)
