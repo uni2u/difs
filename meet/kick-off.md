@@ -186,9 +186,10 @@
       |                                 |                                 |                                 |
       ~                                 ~                                 ~                                 ~
       |                                 |                                 |                                 |
-      |                                 |--Interest (Coordinate request)->|                                 |
       |                                 |                                 |                                 |
-      |                                 |<-Data (200OK; Coordinate reply)-|                                 |
+      |-------------------Interest (Coordination Request)---------------->|                                 |
+      |                                 |                                 |                                 |
+      |<---------------------Data (manifest list file)--------------------|                                 |
       |                                 |                                 |                                 |
       |--------------Interest (Copy of KeyValue of ID Range)------------->|                                 |
       |                                 |                                 |--+                              |
@@ -241,9 +242,10 @@
       |                                 |                                 |                                 |
       ~                                 ~                                 ~                                 ~
       |                                 |                                 |                                 |
-      |                                 |--Interest (Coordinate request)->|                                 |
       |                                 |                                 |                                 |
-      |                                 |<-Data (200OK; Coordinate reply)-|                                 |
+      |<------------------Interest (Coordination Request)-----------------|                                 |
+      |                                 |                                 |                                 |
+      |----------------------Data (manifest list file)------------------->|                                 |
       |                                 |                                 |                                 |
       |<-------------Interest (Copy of KeyValue of ID Range)--------------|                                 |
       |                                 |                                 |--+                              |
