@@ -2,6 +2,14 @@
 
 ## KeyValue Store overview
 
+### ndn-cxx 0.7.1 적용
+
+- 현재 ndn-cxx 0.7.0 기반
+  - 특히, security 관련하여 미구현된 내용이 많음
+- 위와 관련한 내용이 ndn-cxx 0.7.1 버전에는 상당 해소된 것으로 파악됨
+  - ndn-cxx 0.7.1 적용에 있어 큰 문제는 발생하지 않는 것으로 분석함
+    - 다른 파트에서 DIFS 를 사용하는데 ndn-cxx 0.7.1 기반으로 동작중임
+
 ### nosql 적용
 
 - DIFS 저장 노드의 다양성을 지원하기 위함
@@ -73,10 +81,12 @@ logging_config:
 - 큰 이슈는 없을 것으로 판단함
 - 단, 노드에 데이터 저장시 /{common_name}/{data_name} 형태로 사용
   - [이슈 내용](https://github.com/uni2u/difs/issues/7#issuecomment-699843496)
+  - INC 파트에서 사용하는 ForwardingHint 체계가 적용되었기 때문에 상호 확인이 필요함
 - github branchs 정리가 필요하며
   - 브렌치 정리 시점에 해당 내용이 포함될 수 있도록 주의
 
 > difs github branch 정리에 해당 내용이 반드시 포함될 수 있도록 주의
+>> ForwardingHint 도 계속 변화가 있기 때문에 
 
 ### command 체계 개선
 
