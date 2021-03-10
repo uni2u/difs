@@ -32,9 +32,10 @@
 
 - 새로운 노드가 추가되면
 - manager node 는 새로운 노드가 추가될 hash range 를 계산하고
-- KeySpace 정보를 coordinate Interest 를 통해 전송
-- 모든 노드는 manager node 로 부터 coordinate Interest 를 받고
-- 자신의 KeySpace 테이블을 업데이트 함
+- KeySpace 정보를 check KeySpace version Interest 를 통해 전송
+- 모든 노드는 manager node 로 부터 check KeySpace version Interest 를 받고
+- 자신의 KeySpace 버전 정보와 다른경우 manager node 로 fetch KeySpace file Interest 를 보내고
+- manager node 로 부터 KeySpace 정보를 받아 테이블을 업데이트 함
 - 새로운 노드 추가로 인하여 hash range 의 수정이 생긴 노드는
 - 추가된 새로운 노드로 부터 Interest 를 받고 Data (manifest file) 를 전송
 
@@ -67,9 +68,10 @@
 
 - 기존 노드가 제거되면
 - manager node 는 기존 노드가 삭제될 hash range 를 계산하고
-- KeySpace 정보를 coordinate Interest 를 통해 전송
-- 모든 노드는 manager node 로 부터 coordinate Interest 를 받고
-- 자신의 KeySpace 테이블을 업데이트 함
+- KeySpace 정보를 check KeySpace version Interest 를 통해 전송
+- 모든 노드는 manager node 로 부터 check KeySpace version Interest 를 받고
+- 자신의 KeySpace 버전 정보와 다른경우 manager node 로 fetch KeySpace file Interest 를 보내고
+- manager node 로 부터 KeySpace 정보를 받아 테이블을 업데이트 함
 - 기존 노드 제거로 인하여 hash range 의 수정이 생긴 노드는
 - 삭제될 노드로 Interest 를 보내고 삭제될 노드는 Data (manifest file) 를 전송
 
