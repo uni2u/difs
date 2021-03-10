@@ -103,12 +103,36 @@
     - config 의 `type: node`
     - config 의 `parent: node-name`
 
-```
+```json
 {
   "info": {
     "type": "manager or node",
     "parent": "node-name"
   }
+}
+```
+
+### manager node 의 node 관리
+
+- 각 노드는 실행과 동시에 manager node 로 join request 보냄
+- manager node 는 parent 정보를 확인 후
+- parent 노드의 KeySpace 를 나누고 추가된 노드에게 hash range 할당
+- manager node 는 KeySpace file 구성
+
+```json
+{
+  "keyspace": [
+    {
+      "node-name": "node_name",
+      "start": "start hash num",
+      "end": "end hash num"
+    },
+    {
+      "node-name": "node_name",
+      "start": "start hash num",
+      "end": "end hash num"
+    }
+  ]
 }
 ```
 
