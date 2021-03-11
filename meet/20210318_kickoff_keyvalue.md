@@ -24,13 +24,18 @@
 
 - github 의 master (또는 main) 활용
   - 각 브렌치에 commit 이 발생하면
-  - commit 내용을 확인하고 확인한 사람이 확인 의견을 포함하여 merge request 요청
+  - commit 내용을 확인하고 확인한 사람이 확인 의견을 포함하여 merge request
   - commit 내용과 merge request 내용을 확인하고 master 에 merge
     - difs-cxx 의 경우 적용됨
 - branch 정리
   - 우선 삭제 브렌치 리스트 업
   - 남겨진 브렌치 중 master 로 삼을 브렌치 선정
+    - 현재 hash-chain 브렌치를 master 후보로 생각중
+    - nosql (mongodb) 구성이 무엇을 기반으로 작성되었는지 확인 필요
   - 결정된 브렌치를 master 로 구성
+    - 각 작업은 해당 브렌치에 구현
+    - commit 에 대한 검토 후 merge request
+    - 검토 의견 확인 후 merge
 
 ### ndn-cxx 0.7.1 적용
 
@@ -43,7 +48,7 @@
 ### nosql 적용
 
 - DIFS 저장 노드의 다양성을 지원하기 위함
-- nosql 은 mongoDB 를 대상으로 함
+- nosql 은 **mongoDB** 를 대상으로 함
 - DIFS 의 저장 메커니즘이 모두 mongoDB 를 사용하는 것이 아님
   - .conf 를 활용하여 **기존 dir** 구성과 **mongodb** 구성을 선택할 수 있도록 함
   - [ndn-python-repo](https://github.com/UCLA-IRL/ndn-python-repo/blob/master/ndn_python_repo/ndn-python-repo.conf.sample) 를 예로 들 수 있음
@@ -116,7 +121,7 @@ logging_config:
   - 브렌치 정리 시점에 해당 내용이 포함될 수 있도록 주의
 
 > difs github branch 정리에 해당 내용이 반드시 포함될 수 있도록 주의
->> ForwardingHint 도 계속 변화가 있기 때문에 
+>> ForwardingHint 도 계속 변화가 있기 때문에 변화 사항을 
 
 ### command 체계 개선
 
