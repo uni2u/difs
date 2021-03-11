@@ -81,7 +81,7 @@ block|                            |
 
 ---
 
-## ndnputchunk
+## ndnputfile
 
 - `ndnputchunk` 내용은 추후 `ndnputfile` 로 취합되어야 함
   - block 을 만드는 부분에서
@@ -93,21 +93,29 @@ block|                            |
     - ndnputchunk 에 우선 적용하는 이유는 difs 의 ndnputfile 에 적용시 인스톨, 설정 등의 시간이 걸리기 때문
   - 테스트 후 difs 의 ndnputfile 에 hashchain 관련 전체 기능 적용
 
-## key-chain
+## hash-key-chain
 
-- `key-chain` 을 상속받는 `hash-chain-key` 를 새로 만들어야 함
+- `key-chain` 을 상속받는 `hash-key-chain` 를 새로 만들어야 함
   - `sign` 에 next-hash 가 들어가고 current-hash 를 block type 으로 return 하여야 함
     - 현재, void 로 선언되어 있음
 - 이 내용은 바로 진행
 
-## segmentfetcher
+## hash-fetcher
 
 - `segmentfetcher` 를 상속받는 `hash-fetcher` 를 새로 만들어야 함
   - first segment 처리 부분 확인 및 추가 (next-hash 가 empty 인 경우 next-hash 가 current-hash 로 됨)
   - afterValidationSuccess 에서 current-hash 와 next-hash 의 매치가 되지 않으면 exception 처리
+  - DIFS 에서 segmentfetcher 를 사용중
+    - [handlers/write-handler](https://github.com/uni2u/difs/blob/hash-chain/src/handles/write-handle.cpp)
+    - 해당 부분이 `hash-fetcher` 를 사용할 수 있도록 write-handler 수정
 - 이 내용은 바로 진행
   - difs 의 디렉토리 및 mongoDB 에 저장하기 전 검증시 사용
   - 추후, difs 에 포함되어야 함
+
+## new signature type
+
+- 새로운 signature type 인 (SignatureWithHashchain) 정의가 필요함
+- 이 내용은 hashchain 기본 동작 확인이 끝난 후 진행
 
 ## security validation config
 
@@ -122,8 +130,3 @@ block|                            |
       type any
     }
 ```
-
-## new signature type
-
-- 새로운 signature type 인 (SignatureWithHashchain) 정의가 필요함
-- 이 내용은 hashchain 기본 동작 확인이 끝난 후 진행
