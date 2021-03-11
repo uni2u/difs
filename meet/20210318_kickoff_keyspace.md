@@ -306,7 +306,7 @@ parent: manager_node_name             |
     |--+                              |
     |  |                              |
 Assignment of an ID range             |
-create KeySpace file                  |
+update KeySpace file                  |
     |  |                              |
     |--+                              |
     |                                 |
