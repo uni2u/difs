@@ -208,6 +208,14 @@
       - manager node 로 부터 제공받은 재조정 range allocation 에 대한 KeySpace version 업데이트 정보
     - manager node 로 부터 제공받은 KeySpace 정보를 토대로 당사자간 manifest 를 주고 받기 위한 내용
 
+> 신규 노드가 참여하여 기존 노드의 manifest 를 나누기 위해서는 기존 노드가 가지고 있는 manifest 의 naming 을 정확히 알아야 함
+> 
+> coordination Interest 를 통하여 기존 노드가 가지고 있는 manifest 의 naming 이 명시된 manifest 리스트를 받아야 함
+> 
+> manifest 리스트에 명시된 manifest name 은 hash 또는 name 으로 제공되어 신규 노드가 담당할 hash range 의 manifest file 을 요청함
+> 
+> (name 이 hash 인 경우 자신의 hash range 에 해당하는 manifest 요청, name 이 name 인 경우 hash 계산을 통하여 manifest 요청)
+
 ```json
 # 아래 내용은 모니터링을 위한 노드 리소스 정보를 제공하는 예제이며
 # 아래 내용 중 contents/manifests 부분이 해당 노드가 관리중인 manifest 의 리스트
@@ -250,6 +258,59 @@
 ```
 
 ## flows
+
+### init node (config)
+
+```
++-------+                         +-------+
+|NEW    |                         |difs   |
+|node   |                         |node   |
++-------+                         +-------+
+    |                                 |
+    |--+                              |
+    |  |                              |
+check config                          |
+type: manager                         |
+    |  |                              |
+    |--+                              |
+    |                                 |
+    |--+                              |
+    |  |                              |
+Assignment of an ID range             |
+create KeySpace file                  |
+    |  |                              |
+    |--+                              |
+    |                                 |
+    ~                                 ~
+    |                                 |
+    |                                 |--+
+    |                                 |  |
+    |                              set config
+    |                              type: node
+    |                              parent: manager_node_name
+    |                                 |  |
+    |                                 |--+
+    |                                 |
+    |----------Interest (init)------->|
+    |                                 |
+    |<-------Data (config file)-------|
+    |                                 |
+    |--+                              |
+    |  |                              |
+check config                          |
+type: node                            |
+parent: manager_node_name             |
+    |  |                              |
+    |--+                              |
+    |                                 |
+    |--+                              |
+    |  |                              |
+Assignment of an ID range             |
+create KeySpace file                  |
+    |  |                              |
+    |--+                              |
+    |                                 |
+```
 
 ### Added node (add)
 
