@@ -125,13 +125,16 @@ block|                            |
 - 이 내용은 hashchain 기본 동작 확인이 끝난 후 진행
 
 ```
-repo {
+repo
 {
   ...
-  trust-anchor
+  validator
+  {
+    ; The following rule disables all security in the repo
+    trust-anchor
     {
       type any
     }
-  ...
+  }
 }
 ```
