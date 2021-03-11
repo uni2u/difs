@@ -261,11 +261,56 @@ logging_config:
 
 ---
 
+### local 정보 확인
+
+- 모니터링을 위한 노드 리소스 정보에 manifest 리스트가 존재함
+- consumer 로 부터 데이터 요청 _Interest_ 를 받으면 요청을 받은 DIFS 노드는 {data_name} 을 해시하고
+- manifest 가 저장된 노드를 찾아 manifest 파일을 요청하게 되는데
+- 요청을 받은 노드가 manifest 리스트를 가지고 있기 때문에
+- 자신이 가지고 있는 manifest 인지 확인할 수 있음
+- 즉, consumer 가 요청한 {data_name} 에 해당하는 manifest 를 자신이 가지고 있는 경우 데이터를 즉답할 수 있음
+
+```
++--------+                                  +---------+
+|consumer|                                  |DIFS node|
++--------+                                  +---------+
+     |                                           |
+     |---ndngetfile {common_name} {data_name}--->|
+     |                                           |--+
+     |                                           |  |
+     |                                      local manifest check
+     |                                           |  |
+     |                                           |--+
+     |<------------------Data--------------------|
+     |                                           |
+```
+
+---
+
 ### user lib 지원
 
 - DIFS 를 사용하는 user 를 위함
 - user (producer/consumer) 의 application 이 DIFS 에 데이터를 저장하거나 사용하는 경우
 - application 의 함수에서 insert/get/del 등을 호출할 수 있도록 함
+  - **ndngetfile 의 경우 {common_name} 이 포함될 수 있어야 함**
+  - 기존) ndngetfile {data_name}
+  - 추가) ndngetfile {common_name} {data_name}
 - DIFS 는 cpp 로 작성된 관계로 cpp 기반의 라이브러리 제공
   - .so
 - INC 등에서 사용할 수 있도록 기본 이미지에  DIFS lib 탑재
+
+---
+
+### conf 파일 고도화
+
+- 동적노드구성과 함께 동작할 수 있도록 함
+- 현재 .conf 파일에 cluster:prefix 구문으로 노드 name 이 지정됨
+  - cluster 구문은 다음과 같이 정의됨
+    - id: node_name
+    - prefix: common_name
+    - 예) 노드 prefix = /prefix/id
+- 각 노드의 이름은 관리자가 지정한 이름을 사용하여야 함
+  - DIFS 는 {common_name} 만 사용하며
+    - 예) ndnputfile /etri/difs /sweethome sweet-home.mp4
+  - 각 노드는 관리자가 지정한 {node_name} 으로 사용
+    - 예) /seoul/datacenter/contents/sweethome
