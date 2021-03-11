@@ -20,6 +20,8 @@
 - consumer 는 요청하는 {data_name} 에 대한 manifest file 을 제공받고 해당 file 을 확인하여
 - 실제 데이터를 저장하고 있는 노드의 full name prefix 로 데이터를 요청한다.  
 
+---
+
 ### github branch 정리
 
 - github 의 master (또는 main) 활용
@@ -37,6 +39,8 @@
     - commit 에 대한 검토 후 merge request
     - 검토 의견 확인 후 merge
 
+---
+
 ### ndn-cxx 0.7.1 적용
 
 - 현재 ndn-cxx 0.7.0 기반
@@ -44,6 +48,8 @@
 - 위와 관련한 내용이 ndn-cxx 0.7.1 버전에는 상당 해소된 것으로 파악됨
   - ndn-cxx 0.7.1 적용에 있어 큰 문제는 발생하지 않는 것으로 분석함
     - 다른 파트에서 DIFS 를 사용하는데 ndn-cxx 0.7.1 기반으로 동작중임
+
+---
 
 ### nosql 적용
 
@@ -99,6 +105,8 @@ logging_config:
   - data/manifest 모두 mongodb 를 사용하는 것으로 함
 - `del` 관련하여 진행되어야 함
 
+---
+
 ### ForwardingHint 적용
 
 - DIFS 에 저장되는 데이터는 renaming 되기 때문에 signature 관련 이슈 발생
@@ -123,6 +131,8 @@ logging_config:
 > difs github branch 정리에 해당 내용이 반드시 포함될 수 있도록 주의
 >> ForwardingHint 도 계속 변화가 있기 때문에 변화 사항을 
 
+---
+
 ### command 체계 개선
 
 - [ndn-python-repo](https://github.com/UCLA-IRL/ndn-python-repo) 의 command 체계를 적용함
@@ -144,6 +154,8 @@ logging_config:
 
 > 내용 파악 진행중
 >> 현재까지는 문제 없을 것으로 판단하지만 Segment numbers 형식이 [NDN naming conventions rev2](https://named-data.net/publications/techreports/ndn-tr-22-2-ndn-memo-naming-conventions/) 를 따르기 때문에 내용 분석 필요함
+
+---
 
 ### 모니터링 지원
 
@@ -246,6 +258,8 @@ logging_config:
   }
 }
 ```
+
+---
 
 ### user lib 지원
 
