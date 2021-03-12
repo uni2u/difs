@@ -37,6 +37,9 @@
     - 각 작업은 해당 브렌치에 구현
     - commit 에 대한 검토 후 merge request
     - 검토 의견 확인 후 merge
+  - documents 브렌치 생성
+    - 회의록, 회의 내용 등 현재 master 의 내용 반영
+    - 추후 documents 브렌치를 통해 회의록, 회의 내용, 자료 등을 배포
 
 ---
 
