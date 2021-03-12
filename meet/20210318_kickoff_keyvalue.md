@@ -9,8 +9,7 @@
 - producer 로 부터 공통 naming 을 통해 저장 요청을 받은 노드는
 - producer 로 _Interest_ 를 보내어 _Data_ 를 받아 노드에 저장하는데
 - 저장 노드는 config 를 통하여 디렉토리 형식으로 저장하거나 mongoDB 를 사용하여 저장할 수 있음
-- consumer 는 저장된 데이터를 사용하기 위해서 실제 데이터를 저장한 노드의 name 을 알아야 하는데
-- 복잡한 네트워크 naming 이 적용된 노드의 name 을 알지 못한다
+- consumer 는 저장된 데이터를 사용하기 위해서 실제 데이터를 저장한 노드의 name 을 알아야 하는데 복잡한 네트워크 naming 이 적용된 노드의 name 을 알기 어려움
 - 이를 편하게 하고자 공통의 naming 을 사용하여 해당 데이터를 실제 저장하고 있는 노드의 full prefix 를 제공할 수 있도록
 - manifest file 을 활용한다.
 - manifest file 은 해당 {data_name} 에 대하여 이 데이터를 실제 저장한 노드의 {node_name} 리스트를 제공하는 파일이다.
