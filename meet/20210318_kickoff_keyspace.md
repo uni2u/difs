@@ -3,7 +3,7 @@
 ## 동적구성 overview
 
 - manager node 에 의해 관리되는 클러스터에서
-- 데이터의 정보 (어떤 노드가 실제 저장하고 있는지) 를 명시한 manifest file 은
+- 데이터의 정보 (어떤 노드가 실제 데이터를 저장하고 있는지) 를 명시한 manifest file 은
 - service name (/{common_name}/{data_name}) 을 통해 제공되는데
 - {data_name} 을 hash 하여 얻을 결과값을 담당하는 DIFS 클러스터 노드에서 관리한다
 - consumer 는 자신이 알고 있는 {data_name} 에 DIFS {common_name} 을 조합하면
@@ -37,7 +37,7 @@
 }
 ```
 
-> 추후 DIFS config 파일에 통합할 수 있도록 논의 필요
+> 추후 DIFS config 파일에 통합할 수 있도록 고민 필요
 
 ### manager node 의 node 관리
 
@@ -63,8 +63,9 @@
 }
 ```
 
-> mongoDB 를 사용하는 것에 대한 논의 필요
+> mongoDB 를 사용하는 것에 대한 고민
 >> key(version_num), value({node_name, start, end},{node_name, start, end},...)
+>> 혹시 keyspace 정보가 파일이 아닌 스트링 타입의 value 를 보내는 경우에 대한 고민
 
 ---
 
@@ -148,7 +149,7 @@
 
 - check init node **_Interest_**
   - `/{manager_node_name}/init`
-    - parent 정보 (body)
+    - parent 정보를 parameter 에 담으면 config 파일을 사용하지 않아도 되지 않을까?
   - parent 정보
     - 참여할 노드가 나누어 가질 hash range 를 담당하는 노드를 의미함
     - Operator 가 물리적으로 대상 노드의 오버헤드를 줄이기 위하여 추가함
