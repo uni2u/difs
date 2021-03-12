@@ -129,7 +129,7 @@ logging_config:
   - 브렌치 정리 시점에 해당 내용이 포함될 수 있도록 주의
 
 > difs github branch 정리에 해당 내용이 반드시 포함될 수 있도록 주의
->> ForwardingHint 도 계속 변화가 있기 때문에 변화 사항을 
+>> ForwardingHint 도 계속 변화가 있기 때문에 변화 내용이 포함될 수 있도록 함
 
 ---
 
