@@ -344,8 +344,8 @@ update KeySpace file                  |
       |<------Data (KeySpace file)------|                                 |                                 |
       |                                 |<-Interest (fetch KeySpace file)-|                                 |
       |                                 |-------Data (KeySpace file)----->|                                 |
-      |                                 |------------------Interest (fetch KeySpace file)------------------>|
-      |                                 |<----------------------Data (KeySpace file)------------------------|
+      |                                 |<-----------------Interest (fetch KeySpace file)-------------------|
+      |                                 |-----------------------Data (KeySpace file)----------------------->|
       |                                 |                                 |                                 |
       |                                 |                                 |                                 |
       ~                                 ~                                 ~                                 ~
@@ -369,11 +369,6 @@ update KeySpace file                  |
                                                  ## replica set ##
       ~                                 ~                                 ~                                 ~
       |                                 |                                 |                                 |
-      |                                 |                                 |                                 |
-      |                                 |                                 |                                 |
-      |                                 |-------------------Interest (Coordinate request)------------------>|
-      |                                 |                                 |                                 |
-      |                                 |<-----------------Data (200OK; Coordinate reply)-------------------|
       |                                 |                                 |                                 |
 ```
 
@@ -400,8 +395,8 @@ update KeySpace file                  |
       |                                 |                                 |                                 |
       |                                 |<-Interest (fetch KeySpace file)-|                                 |
       |                                 |-------Data (KeySpace file)----->|                                 |
-      |                                 |------------------Interest (fetch KeySpace file)------------------>|
-      |                                 |<----------------------Data (KeySpace file)------------------------|
+      |                                 |<-----------------Interest (fetch KeySpace file)-------------------|
+      |                                 |-----------------------Data (KeySpace file)----------------------->|
       |                                 |                                 |                                 |
       |                                 |                                 |                                 |
       ~                                 ~                                 ~                                 ~
@@ -425,10 +420,5 @@ update KeySpace file                  |
                                                  ## replica set ##
       ~                                 ~                                 ~                                 ~
       |                                 |                                 |                                 |
-      |                                 |                                 |                                 |
-      |                                 |                                 |                                 |
-      |                                 |-------------------Interest (Coordinate request)------------------>|
-      |                                 |                                 |                                 |
-      |                                 |<-----------------Data (200OK; Coordinate reply)-------------------|
       |                                 |                                 |                                 |
 ```
