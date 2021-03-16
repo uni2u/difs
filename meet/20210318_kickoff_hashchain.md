@@ -182,27 +182,27 @@ SignatureInfo = SIGNATURE-INFO-TYPE TLV-LENGTH
 SignatureValue = SIGNATURE-VALUE-TYPE TLV-LENGTH *OCTET
 ```
 
-#### SignatureHashChainWithRSA
+### SignatureHashChainWithRSA
 
 - 첫번째 패킷에 사용할 SignatureType
 
-#### SignatureHashChainWithSHA256
+### SignatureHashChainWithSHA256
 
 - 두번째 패킷부터 사용할 SignatureType
 
 #
 
-### hash-chain-fetcher
+## hash-chain-fetcher
 
 - 새로운 signatureType 정의로 인한 별도의 기능 구성 필요
 - segmentfetcher 상속
 
-### hash-chain-key-chain
+## hash-chain-key-chain
 
 - 새로운 signatureType 정의로 인한 별도의 기능 구성 필요
 - key-chain 상속
 
-### validator
+## validator
 
 - hash-chain signatureType 추가로 인한 수정 필요
   - 신규 signatureType 정의로 인하여 여러 수정 요소 발생
