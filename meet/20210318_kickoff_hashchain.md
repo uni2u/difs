@@ -190,6 +190,8 @@ SignatureValue = SIGNATURE-VALUE-TYPE TLV-LENGTH *OCTET
 
 - 두번째 패킷부터 사용할 SignatureType
 
+#
+
 ### hash-chain-fetcher
 
 - 새로운 signatureType 정의로 인한 별도의 기능 구성 필요
