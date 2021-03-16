@@ -138,3 +138,81 @@ repo
   }
 }
 ```
+
+---
+
+# redesign
+
+- product level 을 생각하여 재설계 논의가 진행되고 있음
+
+## signatureType (NEW Type define)
+
+- 새로운 hash-chain signatureType 을 생성하는 경우 재설계 필요
+- 지금까지 hash-chain 은 block 형태의 TLV 를 사용하는 것으로 디자인됨
+  - 이것은 NDN 데이터 타입의 TLV 를 재정의 하는 모양이 되기 때문에 문제가 있음
+  - [NDN signature document](https://named-data.net/doc/NDN-packet-spec/current/signature.html)
+
+```
++------------------------------------------+
+|                   Name                   |
++------------------------------------------+
+|                 MetaInfo                 |
+|(ContentType,FreshnessPeriod,FinalBlockID)|
++------------------------------------------+
+|                  Content                 |
++------------------------------------------+
+|                 Signature                |
++------------------------------------------+
+|SignatureInfo                             |
+|            +----------------------------+|
+|            | SignatureType              ||
+|            +----------------------------+|
+|            | KeyLocator                 ||
+|            +----------------------------+|
++------------------------------------------+
+|              SignatureValue              |
++------------------------------------------+
+
+DataSignature = SignatureInfo SignatureValue
+
+SignatureInfo = SIGNATURE-INFO-TYPE TLV-LENGTH
+                  SignatureType
+                  [KeyLocator]
+
+SignatureValue = SIGNATURE-VALUE-TYPE TLV-LENGTH *OCTET
+```
+
+#### SignatureHashChainWithRSA
+
+- 첫번째 패킷에 사용할 SignatureType
+
+#### SignatureHashChainWithSHA256
+
+- 두번째 패킷부터 사용할 SignatureType
+
+### hash-chain-fetcher
+
+- 새로운 signatureType 정의로 인한 별도의 기능 구성 필요
+- segmentfetcher 상속
+
+### hash-chain-key-chain
+
+- 새로운 signatureType 정의로 인한 별도의 기능 구성 필요
+- key-chain 상속
+
+### validator
+
+- hash-chain signatureType 추가로 인한 수정 필요
+  - 신규 signatureType 정의로 인하여 여러 수정 요소 발생
+  - SignatureType 필드 뒤에 **next-hash** 필드가 추가되어야 함
+  - 이에 따른 parser 부분도 수정 발생
+  - 두번째 패킷부터 SignatureValue 가 없는 구조
+  - OK/NOK & next-hash 를 리턴하여야 함
+
+
+```
+SignatureInfo = SIGNATURE-INFO-TYPE TLV-LENGTH
+                  SignatureType  ==>  1번째: SignatureHashChainWithRsa / 2번째: SignatureHashChainWithSHA256
+                  [KeyLocator]
+                  [NextHash]  ==>  추가되는 부분
+```
