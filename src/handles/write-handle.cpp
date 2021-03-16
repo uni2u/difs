@@ -88,8 +88,7 @@ WriteHandle::handleInsertCommand(const Name& prefix, const Interest& interest,
   RepoCommandParameter* repoParameter =
     dynamic_cast<RepoCommandParameter*>(const_cast<ndn::mgmt::ControlParameters*>(&parameter));
 
-  auto name = repoParameter->getName().at(-1);
-  auto difsKey = name.toUri();
+  auto difsKey = repoParameter->getName().at(-1).toUri();
   
   auto hash = Manifest::getHash(difsKey);
   auto repo = Manifest::getManifestStorage(m_clusterPrefix, difsKey, m_clusterSize);
@@ -114,7 +113,6 @@ WriteHandle::onFindResponse(
     const Interest &findInterest, const Data &findData,
     const Interest &origInterest, const RepoCommandParameter& repoParameter, const ndn::mgmt::CommandContinuation &done)
 {
-
   auto content = findData.getContent();
   if (content.value_size() > 0) {  // Manifest found, cannot insert
     done(negativeReply("Manifest already exists", 403));
@@ -160,9 +158,10 @@ WriteHandle::onDataValidated(const Interest& interest, const Data& data, Process
   process.startBlockId = manifest.getStartBlockId();
   process.endBlockId = manifest.getEndBlockId();
   std::string name = manifest.getName();
+  // TODO: Use forwarding hint
   unsigned int i = name.rfind("/");
-  name = name.substr(i);
-  process.name = name; 
+  std::string difsKey = name.substr(i + 1);
+  process.name = difsKey;
   process.repo = m_repoPrefix;
 	
   if (!process.manifestSent) {
@@ -263,8 +262,7 @@ WriteHandle::onSegmentData(ndn::util::SegmentFetcher& fetcher, const Data& data,
   RepoCommandResponse& response = it->second.response;
 
   //insert data
-  auto name = Name(data.getName().at(-2).toUri()).append(data.getName().at(-1));
-  auto newName = Name(m_repoPrefix).append("data").append(name);
+  auto newName = Name(m_repoPrefix).append("data").append(data.getName().getSubName(-2, 2));
   auto newData = sign(newName, data);
   if (storageHandle.insertData(newData)) {
     response.setInsertNum(response.getInsertNum() + 1);

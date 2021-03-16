@@ -19,6 +19,7 @@
 
 #include "repo.hpp"
 #include "storage/fs-storage.hpp"
+#include "storage/mongodb-storage.hpp"
 
 #include <ndn-cxx/util/logger.hpp>
 
@@ -34,7 +35,7 @@ parseConfig(const std::string& configPath)
   }
 
   std::ifstream fin(configPath.c_str());
- if (!fin.is_open())
+  if (!fin.is_open())
     BOOST_THROW_EXCEPTION(Repo::Error("failed to open configuration file '" + configPath + "'"));
 
   using namespace boost::property_tree;
@@ -93,11 +94,21 @@ parseConfig(const std::string& configPath)
     repoConfig.tcpBulkInsertEndpoints.push_back(std::make_pair(host, port));
   }
 
-  if (repoConf.get<std::string>("storage.method") != "fs") {
-    BOOST_THROW_EXCEPTION(Repo::Error("Only 'fs' storage method is supported"));
+  ptree storageConf = repoConf.get_child("storage");
+  std::string storageMethod = storageConf.get<std::string>("method");
+  if (storageMethod == "fs") {
+    repoConfig.storageMethod = StorageMethod::STORAGE_METHOD_SQLITE;
+  }
+  else if (storageMethod == "mongodb"){
+    repoConfig.storageMethod = StorageMethod::STORAGE_METHOD_MONGODB;
+    repoConfig.mongodb.db = storageConf.get<std::string>("mongodb.db");
+    repoConfig.mongodb.collection = storageConf.get<std::string>("mongodb.collection");
+  }
+  else {
+    BOOST_THROW_EXCEPTION(Repo::Error("Only 'fs' or 'mongodb' storage method is supported"));
   }
 
-  repoConfig.dbPath = repoConf.get<std::string>("storage.path");
+  repoConfig.fs.dbPath = repoConf.get<std::string>("storage.fs.path");
 
   repoConfig.validatorNode = repoConf.get_child("validator");
 
@@ -110,12 +121,24 @@ parseConfig(const std::string& configPath)
   return repoConfig;
 }
 
-Repo::Repo(boost::asio::io_service& ioService, const RepoConfig& config)
+std::shared_ptr<Storage>
+createStorage(const RepoConfig& config)
+{
+  if (config.storageMethod == StorageMethod::STORAGE_METHOD_MONGODB) {
+    return std::make_shared<MongoDBStorage>(config.mongodb.db, config.mongodb.collection);
+  }
+  else {
+  // else if (config.storageMethod == StorageMethod::STORAGE_METHOD_SQLITE) {
+    return std::make_shared<FsStorage>(config.fs.dbPath);
+  }
+}
+
+Repo::Repo(boost::asio::io_service& ioService, std::shared_ptr<Storage> storage, const RepoConfig& config)
   : m_config(config)
   , m_scheduler(ioService)
   , m_face(ioService)
   , m_dispatcher(m_face, m_keyChain)
-  , m_store(std::make_shared<FsStorage>(config.dbPath))
+  , m_store(storage)
   , m_storageHandle(*m_store)
   , m_validator(m_face)
   , m_readHandle(m_face, m_storageHandle, m_scheduler, m_validator, m_config.registrationSubset, m_config.clusterPrefix, m_config.clusterSize)

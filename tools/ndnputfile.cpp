@@ -431,7 +431,7 @@ usage(const char* programName)
 {
   std::cerr << "Usage: "
             << programName << " [-u] [-D] [-d] [-s block size] [-i identity] [-I identity] [-x freshness]"
-                              " [-l lifetime] [-w timeout] repo-prefix ndn-name filename\n"
+                              " [-l lifetime] [-w timeout] REPO-PREFIX NDN-NAME KEY FILENAME\n"
             << "\n"
             << "Write a file into a repo.\n"
             << "\n"
@@ -524,8 +524,9 @@ main(int argc, char** argv)
   argv += optind;
 
   ndnPutFile.repoPrefix = Name(argv[0]);
-  ndnPutFile.ndnName = Name(argv[1] + std::string(argv[2]));
   ndnPutFile.difsKey = argv[2];
+  // TODO: Use forwarding hint, instead of appending key
+  ndnPutFile.ndnName = Name(argv[1]).append(ndnPutFile.difsKey);
   if (strcmp(argv[3], "-") == 0) {
     ndnPutFile.insertStream = &std::cin;
     ndnPutFile.run();

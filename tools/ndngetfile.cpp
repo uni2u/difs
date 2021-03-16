@@ -267,7 +267,7 @@ static void
 usage(const char* programName)
 {
   std::cerr << "Usage: "
-            << programName << " [-v] [-l lifetime] [-w timeout] [-o filename] ndn-name\n"
+            << programName << " [-v] [-l lifetime] [-w timeout] [-o filename] KEY\n"
             << "\n"
             << "  -v: be verbose\n"
             << "  -l: InterestLifetime in milliseconds\n"
