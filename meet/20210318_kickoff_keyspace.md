@@ -223,42 +223,34 @@
 
 ```json
 # 아래 내용은 모니터링을 위한 노드 리소스 정보를 제공하는 예제이며
-# 아래 내용 중 contents/manifests 부분이 해당 노드가 관리중인 manifest 의 리스트
+# 아래 내용 중 manifests 부분이 해당 노드가 관리중인 manifest 의 리스트
 
 {
-  "info": {
-    "name": "node_name",
-    "resource": {
-      "disk": {
-        "size": "total size",
-        "usage": "usage"
-      },
-      "memory": {
-        "size": "total size",
-        "usage": "usage"        
-      }
+  "name": "node_name",
+  "disk": {
+    "size": "total size",
+    "usage": "usage"
+  },
+  "memory": {
+    "size": "total size",
+    "usage": "usage"
+  },
+  "manifests": [
+    {
+      "key": "manifest_name"
     },
-    "contents": [
-      {
-        "manifests": [
-          {
-            "key": "manifest_name"
-          },
-          {
-            "key": "manifest_name"
-          }
-        ],
-        "datas": [
-          {
-            "data": "data_name"
-          },
-          {
-            "data": "data_name"
-          }
-        ]
-      }
-    ]
-  }
+    {
+      "key": "manifest_name"
+    }
+  ],
+  "datas": [
+    {
+      "data": "data_name"
+    },
+    {
+      "data": "data_name"
+    }
+  ]
 }
 ```
 
