@@ -181,32 +181,22 @@ logging_config:
 
 ```json
 {
-  "info": {
-    "hashes": [
-      {
-        "name": "node_name",
-        "range": {
-          "start": "start_hash",
-          "end": "end_hash"
-        }
-      },
-      {
-        "name": "node_name",
-        "range": {
-          "start": "start_hash",
-          "end": "end_hash"
-        }
+  "hashes": [
+    {
+      "name": "node_name",
+      "range": {
+        "start": "start_hash",
+        "end": "end_hash"
       }
-    ],
-    "nodes": [
-      {
-        "name": "node_monitoring_prefix"
-      },
-      {
-        "name": "node_monitoring_prefix"
+    },
+    {
+      "name": "node_name",
+      "range": {
+        "start": "start_hash",
+        "end": "end_hash"
       }
-    ]
-  }
+    }
+  ]
 }
 ```
 
@@ -225,39 +215,31 @@ logging_config:
 
 ```json
 {
-  "info": {
-    "name": "node_name",
-    "resource": {
-      "disk": {
-        "size": "total size",
-        "usage": "usage"
-      },
-      "memory": {
-        "size": "total size",
-        "usage": "usage"        
-      }
+  "name": "node_name",
+  "disk": {
+    "size": "total size",
+    "usage": "usage"
+  },
+  "memory": {
+    "size": "total size",
+    "usage": "usage"
+  },
+  "manifests": [
+    {
+      "key": "manifest_name"
     },
-    "contents": [
-      {
-        "manifests": [
-          {
-            "key": "manifest_name"
-          },
-          {
-            "key": "manifest_name"
-          }
-        ],
-        "datas": [
-          {
-            "data": "data_name"
-          },
-          {
-            "data": "data_name"
-          }
-        ]
-      }
-    ]
-  }
+    {
+      "key": "manifest_name"
+    }
+  ],
+  "datas": [
+    {
+      "data": "data_name"
+    },
+    {
+      "data": "data_name"
+    }
+  ]
 }
 ```
 
