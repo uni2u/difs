@@ -270,6 +270,20 @@ repo_config:
 
 ---
 
+### user lib 지원
+
+- DIFS 를 사용하는 user 를 위함
+- user (producer/consumer) 의 application 이 DIFS 에 데이터를 저장하거나 사용하는 경우
+- application 의 함수에서 insert/get/del 등을 호출할 수 있도록 함
+  - **ndngetfile 의 경우 {common_name} 이 포함될 수 있어야 함**
+  - 기존) ndngetfile {data_name}
+  - 추가) ndngetfile {common_name} {data_name}
+- DIFS 는 cpp 로 작성된 관계로 cpp 기반의 라이브러리 제공
+  - .so
+- INC 등에서 사용할 수 있도록 기본 이미지에  DIFS lib 탑재
+
+---
+
 ### local 정보 확인
 
 - 모니터링을 위한 노드 리소스 정보에 manifest 리스트가 존재함
@@ -293,20 +307,6 @@ repo_config:
      |<------------------Data--------------------|
      |                                           |
 ```
-
----
-
-### user lib 지원
-
-- DIFS 를 사용하는 user 를 위함
-- user (producer/consumer) 의 application 이 DIFS 에 데이터를 저장하거나 사용하는 경우
-- application 의 함수에서 insert/get/del 등을 호출할 수 있도록 함
-  - **ndngetfile 의 경우 {common_name} 이 포함될 수 있어야 함**
-  - 기존) ndngetfile {data_name}
-  - 추가) ndngetfile {common_name} {data_name}
-- DIFS 는 cpp 로 작성된 관계로 cpp 기반의 라이브러리 제공
-  - .so
-- INC 등에서 사용할 수 있도록 기본 이미지에  DIFS lib 탑재
 
 ---
 
