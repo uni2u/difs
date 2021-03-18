@@ -266,7 +266,7 @@ repo_config:
 
 ### dashboard example
 
-- [참조](https://github.com/uni2u/difs/blob/documents/meet/20210318_kickoff_monitoring.pptx)
+- [참조](https://github.com/uni2u/difs/blob/documents/meet/20210318_kickoff_monitoring.pdf)
 
 ---
 
