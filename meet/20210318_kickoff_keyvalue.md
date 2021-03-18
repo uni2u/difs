@@ -105,7 +105,7 @@ logging_config:
 - `insert` 관련 사항은 확인한 것으로 파악됨
   - DIFS config 등을 사용하여 db_type 을 mongodb 로 지정한 경우
   - data/manifest 모두 mongodb 를 사용하는 것으로 함
-- `del` 관련하여 진행되어야 함
+- `get`, `del` 관련하여 진행되어야 함
 
 ---
 
