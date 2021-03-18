@@ -107,12 +107,23 @@ logging_config:
   - data/manifest 모두 mongodb 를 사용하는 것으로 함
 - `get`, `del` 관련하여 진행되어야 함
 
+#### kickoff 확인
+
+- 현재 단일 노드 기반의 mongoDB 구성 확인
+  - multi node 기반으로 진행될 수 있도록 함
+    - json 관련 오류
+  - segments 저장 (단일 segment 동작은 확인함)
+  - config 를 통한 db type 구성 확인
+- INC 와 연동
+  - command 수정을 최대한 하지 않는 방향으로
+- manifest, data 테이블 분리 및 관리
+
 ---
 
 ### ForwardingHint 적용
 
 - DIFS 에 저장되는 데이터는 renaming 되기 때문에 signature 관련 이슈 발생
-  - producer 가 저장욜 요청할 때 적용한 {data_name} 은
+  - producer 가 저장을 요청할 때 적용한 {data_name} 은
   - 데이터를 저장하는 DIFS 노드로 인하여
   - 결국 /{node_name}/{data_name} 형태로 변환됨
 - ForwardingHint 를 활용하면
@@ -143,6 +154,7 @@ logging_config:
 #### command parameter 확인
 
 - 참조 [ndn-python-repo::insert](https://ndn-python-repo.readthedocs.io/en/latest/src/specification/insert.html)
+  - 참조를 반드시 한번 확인할 필요가 있음
 - `/{difs_name}/insert`
   - command parameter
     - name: 데이터 패킷 이름 또는 데이터 패킷의 name prefix
@@ -284,7 +296,7 @@ repo_config:
 
 ---
 
-### local 정보 확인
+### local 정보 확인 (우선 순위 낮음)
 
 - 모니터링을 위한 노드 리소스 정보에 manifest 리스트가 존재함
 - consumer 로 부터 데이터 요청 _Interest_ 를 받으면 요청을 받은 DIFS 노드는 {data_name} 을 해시하고
@@ -323,3 +335,6 @@ repo_config:
     - 예) ndnputfile /etri/difs /sweethome sweet-home.mp4
   - 각 노드는 관리자가 지정한 {node_name} 으로 사용
     - 예) /seoul/datacenter/contents/sweethome
+- ndngetfile 에서도 {common_name} 을 사용할 수 있어야 함
+  - {common_name} 추가
+    - ndngetfile {common_name} {difs_data_name}
