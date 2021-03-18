@@ -145,14 +145,35 @@ logging_config:
 - 참조 [ndn-python-repo::insert](https://ndn-python-repo.readthedocs.io/en/latest/src/specification/insert.html)
 - `/{difs_name}/insert`
   - command parameter
-    - name
-    - start_black_id (Optional)
-    - end_block_id (Optional)
-    - forwarding_hint (Optional)
-    - register_prefix (Optional): 신규
-    - check_prefix: 신규
-    - process_id
+    - name: 데이터 패킷 이름 또는 데이터 패킷의 name prefix
+    - start_black_id (Optional): start segment number
+    - end_block_id (Optional): end segment number
+    - forwarding_hint (Optional): ForwardingHint
+    - register_prefix (Optional): [신규] root prefix 가 등록되지 않는 경우 클라이언트는 저장소에게 root prefix 를 등록하라고 요청할 수 있음
+    - check_prefix: [신규] status check 토픽 이름
+    - process_id: random byte string 으로 insertion 프로세스 식별
     - ~InterestLifttime~: 제거
+  - forwarding_hint 관련 시나리오
+    - 생산자는 자신의 name prefix 를 announce 하지 않고 저장소에 forwarding hint 를 통해서 도달하도록 허용
+    - name prefix 가 이미 저장소에 의해 announce 되었지만 다른 노드의 생산자가 저장소에 insert
+  - check_prefix: check protocol 은 클라이언트가 insert, delete 프로세스의 진향률을 확인하는데 사용됨
+    - 각 insert, delete 명령에는 check_prefix 및 process_id 매개 변수가 있으며 status check (/{check_prefix}/check/{process_id}) 토픽으로 publish
+    - insert, delete 명령을 수신한 후 insert, delete 상태에 대한 토픽을 주기적으로 publish (payload: RepoCommandResponse)
+    - 클라이언트는 이 토픽에 가입하여 상태 업데이트를 받음
+    - 100: 명령어 정상 수신 / 200: 모든 데이터 insert / delete 완료, 300: insert, delete 진행중
+  - register_prefix: 저장소 인스턴스를 시작할 때 파일 경로를 지정하여 저장소 구성
+    - 기본적으로 root prefix `/` 등록
+    - root prefix 가 등록되지 않도록 저장소 구성 가능
+    - `register_root` 가 false 로 설정된 경우 클라이언트는 RepoCommandParameter 을 통해 매번 등록 또는 취소할 prefix 를 저장소에 알려주어야 함
+
+```
+# 저장소 구성 파일 예)
+
+...
+repo_config:
+  register_root: False
+...
+```
 
 > 내용 파악 진행중
 >> 현재까지는 문제 없을 것으로 판단하지만 Segment numbers 형식이 [NDN naming conventions rev2](https://named-data.net/publications/techreports/ndn-tr-22-2-ndn-memo-naming-conventions/) 를 따르기 때문에 내용 분석 필요함
