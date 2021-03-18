@@ -111,11 +111,11 @@ logging_config:
 
 - 현재 단일 노드 기반의 mongoDB 구성 확인
   - multi node 기반으로 진행될 수 있도록 함
-    - json 관련 오류
+    - ndnputfile/ndngetfile 시 mongo cxx 경로 (linking error)
   - segments 저장 (단일 segment 동작은 확인함)
   - config 를 통한 db type 구성 확인
-- INC 와 연동
-  - command 수정을 최대한 하지 않는 방향으로
+- INC 와 연동 (INC 파트와 협의 필요)
+  - command 수정을 하지 않는 방향으로
 - manifest, data 테이블 분리 및 관리
 
 ---
@@ -322,7 +322,7 @@ repo_config:
 
 ---
 
-### conf 파일 고도화
+### conf 파일 고도화 (우선순위 낮음)
 
 - 동적노드구성과 함께 동작할 수 있도록 함
 - 현재 .conf 파일에 cluster:prefix 구문으로 노드 name 이 지정됨
