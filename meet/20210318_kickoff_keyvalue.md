@@ -111,7 +111,7 @@ logging_config:
 
 - 현재 단일 노드 기반의 mongoDB 구성 확인
   - multi node 기반으로 진행될 수 있도록 함
-    - ndnputfile/ndngetfile 시 mongo cxx 경로 (linking error)
+    - ndnputfile/ndngetfile 시 remote mongo cxx 경로 (linking error)
   - segments 저장 (단일 segment 동작은 확인함)
   - config 를 통한 db type 구성 확인
 - INC 와 연동 (INC 파트와 협의 필요)
