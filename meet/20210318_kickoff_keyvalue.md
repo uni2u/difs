@@ -114,9 +114,9 @@ logging_config:
     - ndnputfile/ndngetfile 시 remote mongo cxx 경로 (linking error)
   - segments 저장 (단일 segment 동작은 확인함)
   - config 를 통한 db type 구성 확인
-- INC 와 연동 (INC 파트와 협의 필요)
-  - command 수정을 하지 않는 방향으로
-- manifest, data 테이블 분리 및 관리
+- INC 와 연동 (INC 파트와 협의 완료)
+  - command 수정을 하지 않음 (DIFS 원 명령어 체계를 따름)
+- manifest, data 테이블(collection) 분리 및 관리
 
 ---
 
