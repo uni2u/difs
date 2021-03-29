@@ -102,7 +102,6 @@ parseConfig(const std::string& configPath)
   else if (storageMethod == "mongodb"){
     repoConfig.storageMethod = StorageMethod::STORAGE_METHOD_MONGODB;
     repoConfig.mongodb.db = storageConf.get<std::string>("mongodb.db");
-    repoConfig.mongodb.collection = storageConf.get<std::string>("mongodb.collection");
   }
   else {
     BOOST_THROW_EXCEPTION(Repo::Error("Only 'fs' or 'mongodb' storage method is supported"));
@@ -125,7 +124,7 @@ std::shared_ptr<Storage>
 createStorage(const RepoConfig& config)
 {
   if (config.storageMethod == StorageMethod::STORAGE_METHOD_MONGODB) {
-    return std::make_shared<MongoDBStorage>(config.mongodb.db, config.mongodb.collection);
+    return std::make_shared<MongoDBStorage>(config.mongodb.db);
   }
   else {
   // else if (config.storageMethod == StorageMethod::STORAGE_METHOD_SQLITE) {

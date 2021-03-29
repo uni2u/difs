@@ -20,28 +20,23 @@
 #include "mongodb-storage.hpp"
 #include "config.hpp"
 
-#include <istream>
-
 #include <boost/compute/detail/sha1.hpp>
-#include <boost/filesystem.hpp>
 #include <bsoncxx/builder/stream/array.hpp>
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/json.hpp>
 #include <ndn-cxx/util/logger.hpp>
-#include <ndn-cxx/util/sha256.hpp>
-#include <ndn-cxx/util/sqlite3-statement.hpp>
-
 
 namespace repo {
 
-using std::string;
 using bsoncxx::builder::stream::document;
 using bsoncxx::builder::stream::finalize;
 
 NDN_LOG_INIT(repo.MongoDBStorage);
 
-// const char* MongoDBStorage::DIRNAME_DATA = "data";
-// const char* MongoDBStorage::DIRNAME_MANIFEST = "manifest";
+const char* MongoDBStorage::COLLNAME_DATA = "data";
+const char* MongoDBStorage::COLLNAME_MANIFEST = "manifest";
+const string MongoDBStorage::FIELDNAME_KEY = "key";
+const string MongoDBStorage::FIELDNAME_VALUE = "value";
 
 int64_t
 MongoDBStorage::hash(string const& key)
@@ -53,12 +48,19 @@ MongoDBStorage::hash(string const& key)
   return result;
 }
 
-MongoDBStorage::MongoDBStorage(const string& dbName, const string& collectionName)
+string
+MongoDBStorage::sha1Hash(std::string const& key)
+{
+  boost::compute::detail::sha1 sha1;
+  sha1.process(key);
+  return std::string(sha1);
+}
+
+MongoDBStorage::MongoDBStorage(const string& dbName)
   : mInstance(mongocxx::instance{})
   , mClient(mongocxx::client{mongocxx::uri{}})
 {
   mDB = mClient[dbName];
-  mCollection = mDB[collectionName];
 }
 
 MongoDBStorage::~MongoDBStorage()
@@ -68,22 +70,25 @@ MongoDBStorage::~MongoDBStorage()
 int64_t
 MongoDBStorage::insert(const Data& data)
 {
-  auto key = data.getName().at(-2).toUri();
+  mongocxx::collection coll = mDB[COLLNAME_DATA];
+  string key = sha1Hash(data.getName().toUri());
+
   bsoncxx::document::view_or_value filter = document{}
-	  << "key" << key
+    << FIELDNAME_KEY << key
     << finalize;
+
   bsoncxx::types::b_binary dataBinary;
   dataBinary.bytes = data.wireEncode().wire();
   dataBinary.size = data.wireEncode().size();
 
   bsoncxx::document::view_or_value replacement = document{}
-	  << "key" << key
-    << "value" << dataBinary
-	  << finalize;
+    << FIELDNAME_KEY << key
+    << FIELDNAME_VALUE << dataBinary
+    << finalize;
 
   mongocxx::options::replace options;
   options.upsert(true);
-  mCollection.replace_one(filter, replacement, options);
+  coll.replace_one(filter, replacement, options);
   
   auto id = hash(data.getName().toUri());
   return id;
@@ -92,49 +97,80 @@ MongoDBStorage::insert(const Data& data)
 string
 MongoDBStorage::insertManifest(const Manifest& manifest)
 {
+  mongocxx::collection coll = mDB[COLLNAME_MANIFEST];
+
   bsoncxx::document::view_or_value filter = document{}
-    << "manifest_hash" << manifest.getHash()
+    << FIELDNAME_KEY << manifest.getHash()
     << finalize;
 
   auto json = manifest.toJson();
   bsoncxx::document::view_or_value replacement = document{}
-    << "manifest_hash" << manifest.getHash()
-    << "manifest_json" << json
+    << FIELDNAME_KEY << manifest.getHash()
+    << FIELDNAME_VALUE << json
     << finalize;
 
   mongocxx::options::replace options;
   options.upsert(true);
-  mCollection.replace_one(filter, replacement, options);
+  coll.replace_one(filter, replacement, options);
 
   return manifest.getHash();
 }
 
-// TODO: Not implemented
 bool
 MongoDBStorage::erase(const Name& name)
 {
+  mongocxx::collection coll = mDB[COLLNAME_DATA];
+  string key = sha1Hash(name.toUri());
+
+  auto maybe_result = coll.find_one(document{}
+    << FIELDNAME_KEY << key
+    << finalize);
+
+  if (!maybe_result) {
+    NDN_LOG_DEBUG(name.toUri() << " is not exists (" << key << ")");
+    return false;
+  }
+
+  coll.delete_one(document{} << FIELDNAME_KEY << key << finalize);
   return true;
 }
 
-// TODO: Not implemented
 bool
 MongoDBStorage::eraseManifest(const string& hash)
 {
+  mongocxx::collection coll = mDB[COLLNAME_MANIFEST];
+
+  auto maybe_result = coll.find_one(document{}
+    << FIELDNAME_KEY << hash
+    << finalize);
+  if (!maybe_result) {
+    string info = "DB: " + mDB.name().to_string() +
+               ", Coll: " + coll.name().to_string() +
+               ", " + FIELDNAME_KEY + ": " + hash;
+    std::cerr << hash << " is not exists (" << info << ")" << std::endl;
+    return false;
+  }
+
+  coll.delete_one(document{} << FIELDNAME_KEY << hash << finalize);
   return true;
 }
 
 std::shared_ptr<Data>
 MongoDBStorage::read(const Name& name)
 {
-  auto maybe_result = mCollection.find_one(document{}
-    << "key" << name.at(-2).toUri()
+  std::cout << "size(): " << size() << std::endl;
+  mongocxx::collection coll = mDB[COLLNAME_DATA];
+  string key = sha1Hash(name.toUri());
+
+  auto maybe_result = coll.find_one(document{}
+    << FIELDNAME_KEY << key
     << finalize);
 
   if (!maybe_result) {
     return nullptr;
   }
 
-  bsoncxx::types::b_binary dataBinary = maybe_result.value().view()["value"].get_binary();
+  bsoncxx::types::b_binary dataBinary = maybe_result.value().view()[FIELDNAME_VALUE].get_binary();
   auto data = std::make_shared<Data>();
   data->wireDecode(Block(dataBinary.bytes, dataBinary.size));
   return data;
@@ -143,8 +179,10 @@ MongoDBStorage::read(const Name& name)
 std::shared_ptr<Manifest>
 MongoDBStorage::readManifest(const string& hash)
 {
-  auto maybe_result = mCollection.find_one(document{}
-    << "manifest_hash" << hash
+  mongocxx::collection coll = mDB[COLLNAME_MANIFEST];
+
+  auto maybe_result = coll.find_one(document{}
+    << FIELDNAME_KEY << hash
     << finalize);
 
   if (!maybe_result) {
@@ -152,29 +190,51 @@ MongoDBStorage::readManifest(const string& hash)
     return nullptr;
   }
 
-  string json = maybe_result.value().view()["manifest_json"].get_utf8().value.to_string();
+  string json = maybe_result.value().view()[FIELDNAME_VALUE].get_utf8().value.to_string();
   return std::make_shared<Manifest>(Manifest::fromJson(json));
 }
 
-// TODO: Not implemented
 bool
 MongoDBStorage::has(const Name& name)
 {
-  return false;
+  mongocxx::collection coll = mDB[COLLNAME_DATA];
+  string key = sha1Hash(name.toUri());
+
+  auto maybe_result = coll.find_one(document{}
+    << FIELDNAME_KEY << key
+    << finalize);
+
+  if (maybe_result) {
+    return true;
+  }
+  else {
+    return false;
+  }
 }
 
-// TODO: Not implemented
 bool
 MongoDBStorage::hasManifest(const string& hash)
 {
-  return false;
+  mongocxx::collection coll = mDB[COLLNAME_MANIFEST];
+
+  auto maybe_result = coll.find_one(document{}
+    << FIELDNAME_KEY << hash
+    << finalize);
+
+  if (maybe_result) {
+    return true;
+  }
+  else {
+    return false;
+  }
 }
 
-// TODO: Not implemented
 uint64_t
 MongoDBStorage::size()
 {
-  return 0;
+  mongocxx::collection coll = mDB[COLLNAME_DATA];
+
+  return coll.count_documents(document{} << finalize);
 }
 
 } // namespace repo

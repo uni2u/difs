@@ -46,7 +46,6 @@ struct Fs
 struct MongoDB
 {
   std::string db;
-  std::string collection;
 };
 
 struct RepoConfig

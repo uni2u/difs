@@ -224,6 +224,7 @@ NdnPutFile::run()
 
   if (isVerbose)
     std::cerr << "setInterestFilter for " << m_dataPrefix << std::endl;
+
   m_face.setInterestFilter(m_dataPrefix,
                            bind(&NdnPutFile::onInterest, this, _1, _2),
                            bind(&NdnPutFile::onRegisterSuccess, this, _1),

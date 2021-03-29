@@ -30,6 +30,8 @@
 
 namespace repo {
 
+using std::string;
+
 class MongoDBStorage : public Storage
 {
 public:
@@ -44,7 +46,7 @@ public:
   };
 
   explicit
-  MongoDBStorage(const std::string& dbName, const std::string& collectionName);
+  MongoDBStorage(const std::string& dbName);
 
   ~MongoDBStorage();
 
@@ -104,7 +106,11 @@ private:
   mongocxx::instance mInstance;
   mongocxx::client mClient;
   mongocxx::database mDB;
-  mongocxx::collection mCollection;
+
+  static const char* COLLNAME_DATA;
+  static const char* COLLNAME_MANIFEST;
+  static const string FIELDNAME_KEY;
+  static const string FIELDNAME_VALUE;
 };
 
 
