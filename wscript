@@ -50,6 +50,8 @@ def configure(conf):
 
     conf.write_config_header('src/config.hpp')
 
+    conf.recurse('tools')
+
 def build(bld):
     bld.objects(target='repo-objects',
                 source=bld.path.ant_glob('src/**/*.cpp',
