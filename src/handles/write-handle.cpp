@@ -37,6 +37,12 @@ static const milliseconds NOEND_TIMEOUT(10000_ms);
 static const milliseconds PROCESS_DELETE_TIME(10000_ms);
 static const milliseconds DEFAULT_INTEREST_LIFETIME(4000_ms);
 
+
+//for hash
+static bool HASH_CHAIN_ON = true;
+static bool m_isFirst;
+static std::array<uint8_t, util::HASH_SIZE> prevHash;
+
 WriteHandle::WriteHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt::Dispatcher& dispatcher,
                          Scheduler& scheduler, Validator& validator,
                          ndn::Name const& clusterPrefix, const int clusterId, const int clusterSize)
@@ -248,11 +254,33 @@ WriteHandle::segInit(ProcessId processId, const RepoCommandParameter& parameter)
                                         {onSegmentTimeout(*fetcher, processId);});
 }
 
+
+bool 
+WriteHandle::verifyData(const Data& data)
+{
+  int32_t tlvType = data.getSignatureInfo().getSignatureType();
+  NDN_LOG_DEBUG("verifyData: " << tlvType);
+  bool ret;
+  auto content = data.getContent();
+
+  if (m_isFirst) {
+    m_isFirst = false;
+    ret = true;
+  } else {
+    ret = util::verifyHash(content.value(), content.value_size(), prevHash);
+  }
+  for (int i = 0; i < util::HASH_SIZE; i += 1) {
+    prevHash[i] = content.value()[i];
+  }
+
+  return ret;
+}
+
 void
 WriteHandle::onSegmentData(ndn::util::SegmentFetcher& fetcher, const Data& data, ProcessId processId)
 {
 
-  std::cout<<"onSegmentData::signitureInfo:"<<data.getSignatureInfo()<<std::endl;
+  //std::cout<<"onSegmentData::signitureInfo:"<<data.getSignatureInfo()<<std::endl;
   
   auto it = m_processes.find(processId);
   if (it == m_processes.end()) {
@@ -261,6 +289,18 @@ WriteHandle::onSegmentData(ndn::util::SegmentFetcher& fetcher, const Data& data,
   }
 
   RepoCommandResponse& response = it->second.response;
+
+  if(HASH_CHAIN_ON) {
+    //verify Hash 
+    if(data.getSignatureInfo().getSignatureType() != tlv::DigestSha256) {
+      std::cout<<"This is first of hash chain."<<std::endl;
+      m_isFirst = true;
+    }
+
+    if (!verifyData(data)) {
+      BOOST_THROW_EXCEPTION(Error("Error verifying hash chain"));
+    }
+  }
 
   //insert data
   auto newName = Name(m_repoPrefix).append("data").append(data.getName());

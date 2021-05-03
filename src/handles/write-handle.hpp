@@ -144,6 +144,9 @@ private:  // segmented data fetching
   /**
    * @brief fetch segmented data
    */
+  bool 
+  verifyData(const Data& data);
+
   void
   onSegmentData(ndn::util::SegmentFetcher& fetcher, const Data& data, ProcessId processId);
 
