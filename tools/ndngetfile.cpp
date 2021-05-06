@@ -17,9 +17,9 @@
  * repo-ng, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <ndn-cxx/data.hpp>
-#include <ndn-cxx/face.hpp>
-#include <ndn-cxx/interest.hpp>
+// #include <ndn-cxx/data.hpp>
+// #include <ndn-cxx/face.hpp>
+// #include <ndn-cxx/interest.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -27,247 +27,13 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include "../src/manifest/manifest.hpp"
-#include "../src/util.hpp"
+#include "difs.hpp"
 
-namespace repo {
-
-using ndn::Name;
-using ndn::Interest;
-using ndn::Data;
-
-class Consumer : boost::noncopyable
-{
-public:
-  Consumer(const std::string& dataName, std::ostream& os,
-           bool verbose, bool versioned, bool single,
-           int interestLifetime, int timeout,
-           bool mustBeFresh = false,
-           bool canBePrefix = false)
-    : m_dataName(dataName)
-    , m_os(os)
-    , m_verbose(verbose)
-    , m_isFinished(false)
-    , m_isFirst(true)
-    , m_interestLifetime(interestLifetime)
-    , m_timeout(timeout)
-    , m_currentSegment(0)
-    , m_totalSize(0)
-    , m_retryCount(0)
-    , m_mustBeFresh(mustBeFresh)
-    , m_canBePrefix(canBePrefix)
-  {
-  }
-
-  void
-  run();
-
-private:
-  void
-  fetchData(const Manifest& manifest, uint64_t segmentId);
-
-  ndn::Name
-  selectRepoName(const Manifest& manifest, uint64_t segmentId);
-
-  void
-  onManifest(const Interest& interest, const ndn::Data& data);
-
-  void
-  onManifestTimeout(const ndn::Interest& interest);
-
-  void
-  onUnversionedData(const ndn::Interest& interest, const ndn::Data& data);
-
-  void
-  onTimeout(const ndn::Interest& interest);
-
-  void
-  readData(const ndn::Data& data);
-
-  void
-  fetchNextData();
-
-private:
-  ndn::Face m_face;
-  ndn::Name m_dataName;
-  std::ostream& m_os;
-  bool m_verbose;
-  bool m_isFinished;
-  bool m_isFirst;
-  ndn::time::milliseconds m_interestLifetime;
-  ndn::time::milliseconds m_timeout;
-  uint64_t m_currentSegment;
-  int m_totalSize;
-  int m_retryCount;
-  bool m_mustBeFresh;
-  bool m_canBePrefix;
-
-  std::shared_ptr<Manifest> m_manifest;
-  uint64_t m_finalBlockId;
-
-  static constexpr int MAX_RETRY = 3;
-};
-
-void
-Consumer::fetchData(const Manifest& manifest, uint64_t segmentId)
-{
-  auto repoName = selectRepoName(manifest, segmentId);
-  auto name = manifest.getName();
-  Interest interest(repoName.append("data").append(name).appendSegment(segmentId));
-  interest.setInterestLifetime(m_interestLifetime);
-  // interest.setMustBeFresh(true);
-
-  m_face.expressInterest(interest,
-                         std::bind(&Consumer::onUnversionedData, this, _1, _2),
-                         std::bind(&Consumer::onTimeout, this, _1), // Nack
-                         std::bind(&Consumer::onTimeout, this, _1));
-}
-
-ndn::Name
-Consumer::selectRepoName(const Manifest& manifest, uint64_t segmentId)
-{
-  auto repos = manifest.getRepos();
-  for (auto iter = repos.begin(); iter != repos.end(); ++iter)
-  {
-    auto start = iter->start;
-    auto end = iter->end;
-    if (start <= (int)segmentId && (int)segmentId <= end)
-    {
-      return Name(iter->name);
-    }
-  }
-
-  // Should not be here
-  return Name("");
-}
-
-void
-Consumer::run()
-{
-  // Get manifest
-  RepoCommandParameter parameter;
-  parameter.setName(m_dataName);
-  Interest interest = util::generateCommandInterest(Name("get"), "", parameter, m_interestLifetime);
-  
-  std::cerr << interest << std::endl;
-
-  m_face.expressInterest(
-    interest,
-    std::bind(&Consumer::onManifest, this, _1, _2),
-    std::bind(&Consumer::onManifestTimeout, this, _1),
-    std::bind(&Consumer::onManifestTimeout, this, _1));
-
-  // processEvents will block until the requested data received or timeout occurs
-  m_face.processEvents(m_timeout);
-}
-
-void
-Consumer::onManifest(const Interest& interest, const Data& data)
-{
-  auto content = data.getContent();
-  std::string json(
-    content.value_begin(),
-    content.value_end()
-  );
-
-  if (json.length() == 0) {
-    std::cerr << "Not found" << std::endl;
-    return;
-  }
-
-  auto manifest = Manifest::fromJson(json);
-  m_manifest = std::make_shared<Manifest>(manifest);
-
-  m_finalBlockId = manifest.getEndBlockId();
-  std::cerr << "final block: " << m_finalBlockId;
-
-  fetchData(manifest, m_currentSegment);
-}
-
-void
-Consumer::onManifestTimeout(const Interest& interest)
-{
-  if (m_retryCount++ < MAX_RETRY) {
-    // Retransmit the interest
-    RepoCommandParameter parameter;
-    parameter.setName(m_dataName);
-    Interest interest = util::generateCommandInterest(Name("get"), "", parameter, m_interestLifetime);
-    
-    std::cerr << interest << std::endl;
-
-    m_face.expressInterest(
-      interest,
-      std::bind(&Consumer::onManifest, this, _1, _2),
-      std::bind(&Consumer::onManifestTimeout, this, _1),
-      std::bind(&Consumer::onManifestTimeout, this, _1));
-    if (m_verbose) {
-      std::cerr << "TIMEOUT: retransmit interest for manifest"<< std::endl;
-    }
-  }
-  else {
-    std::cerr << "TIMEOUT: last interest sent for manifest" << std::endl;
-    std::cerr << "TIMEOUT: abort fetching after " << MAX_RETRY
-              << " times of retry" << std::endl;
-  }
-}
-
-void
-Consumer::onUnversionedData(const Interest& interest, const Data& data)
-{
-  fetchNextData();
-  readData(data);
-}
-
-void
-Consumer::readData(const Data& data)
-{
-  const auto& content = data.getContent();
-  m_os.write(reinterpret_cast<const char*>(content.value()), content.value_size());
-  m_totalSize += content.value_size();
-  if (m_verbose) {
-    std::cerr << "LOG: received data = " << data.getName() << std::endl;
-  }
-  if (m_isFinished) {
-    std::cerr << "INFO: End of file is reached" << std::endl;
-    std::cerr << "INFO: Total # of segments received: " << m_currentSegment + 1  << std::endl;
-    std::cerr << "INFO: Total # bytes of content received: " << m_totalSize << std::endl;
-  }
-}
-
-void
-Consumer::fetchNextData()
-{
-  if (m_currentSegment >= m_finalBlockId) {
-    m_isFinished = true;
-  } else {
-    m_retryCount = 0;
-    m_currentSegment += 1;
-    fetchData(*m_manifest, m_currentSegment);
-  }
-}
-
-void
-Consumer::onTimeout(const Interest& interest)
-{
-  if (m_retryCount++ < MAX_RETRY) {
-    // Retransmit the interest
-    fetchData(*m_manifest, m_currentSegment);
-    if (m_verbose) {
-      std::cerr << "TIMEOUT: retransmit interest for " << interest.getName() << std::endl;
-    }
-  }
-  else {
-    std::cerr << "TIMEOUT: last interest sent for segment #" << m_currentSegment << std::endl;
-    std::cerr << "TIMEOUT: abort fetching after " << MAX_RETRY
-              << " times of retry" << std::endl;
-  }
-}
-
-static void
+int
 usage(const char* programName)
 {
   std::cerr << "Usage: "
-            << programName << " [-v] [-l lifetime] [-w timeout] [-o filename] KEY\n"
+            << programName << " [-v] [-l lifetime] [-w timeout] [-o filename] \n"
             << "\n"
             << "  -v: be verbose\n"
             << "  -l: InterestLifetime in milliseconds\n"
@@ -275,14 +41,16 @@ usage(const char* programName)
             << "  -o: write to local file name instead of stdout\n"
             << "  ndn-name: NDN Name prefix for Data to be read\n"
             << std::endl;
+  return 1;
 }
 
-static int
+int
 main(int argc, char** argv)
 {
+  std::string repoPrefix;
   std::string name;
   const char* outputFile = nullptr;
-  bool verbose = false, versioned = false, single = false;
+  bool verbose = false;
   int interestLifetime = 4000;  // in milliseconds
   int timeout = 0;  // in milliseconds
 
@@ -324,13 +92,16 @@ main(int argc, char** argv)
     }
   }
 
-  if (optind < argc) {
-    name = argv[optind];
+  if (optind + 2 != argc) {
+    return usage(argv[0]);
   }
 
-  if (name.empty()) {
-    usage(argv[0]);
-    return 2;
+  repoPrefix = argv[optind];
+  name = argv[optind+1];
+
+  if (name.empty() || repoPrefix.empty())
+  {
+    return usage(argv[0]);
   }
 
   std::streambuf* buf;
@@ -349,23 +120,18 @@ main(int argc, char** argv)
   }
 
   std::ostream os(buf);
-  Consumer consumer(name, os, verbose, versioned, single, interestLifetime, timeout);
 
-  // try {
-    consumer.run();
-  // }
-  // catch (const std::exception& e) {
-  //   std::cerr << "ERROR: " << e.what() << std::endl;
-  //   return 1;
-  // }
+  difs::DIFS difs(repoPrefix, interestLifetime, timeout, verbose);
+  difs.getFile(name, os);
+
+  try
+  {
+    difs.run();
+  }
+  catch (const std::exception& e)
+  {
+    std::cerr << "ERROR: " << e.what() << std::endl;
+  }
 
   return 0;
-}
-
-} // namespace repo
-
-int
-main(int argc, char** argv)
-{
-  return repo::main(argc, argv);
 }

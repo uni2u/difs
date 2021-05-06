@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libndn-difs
+Description: NDN DIFS C++ library with eXperimental eXtensions
+Version: @VERSION@
+Libs: -rpath=${libdir} -L${libdir} @EXTRA_LINKFLAGS@ @EXTRA_LDFLAGS@ -lndn-difs @EXTRA_LIBS@ @EXTRA_FRAMEWORKS@
+Cflags: -I${includedir} @EXTRA_CXXFLAGS@ @EXTRA_INCLUDES@

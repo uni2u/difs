@@ -14,7 +14,7 @@ def build(bld):
                 source=bld.path.find_node('../src').ant_glob('repo-command*.cpp') +
                         bld.path.find_node('../src').ant_glob('manifest/*.cpp') +
                         bld.path.find_node('../src').ant_glob('util.cpp'),
-                use='NDN_CXX BOOST',
+                use='NDN_CXX BOOST ndn-difs',
                 includes='src',
                 export_includes='src')
 
