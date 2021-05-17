@@ -251,6 +251,7 @@ WriteHandle::segInit(ProcessId processId, const RepoCommandParameter& parameter)
 void
 WriteHandle::onSegmentData(ndn::util::SegmentFetcher& fetcher, const Data& data, ProcessId processId)
 {
+  NDN_LOG_DEBUG("WriteHandle::onSegmentData: validated!!!" << processId);
   auto it = m_processes.find(processId);
   if (it == m_processes.end()) {
     fetcher.stop();

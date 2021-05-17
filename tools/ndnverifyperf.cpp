@@ -25,6 +25,9 @@
 #include <ndn-cxx/security/key-chain.hpp>
 #include <ndn-cxx/security/signing-helpers.hpp>
 #include <ndn-cxx/util/scheduler.hpp>
+#include <ndn-cxx/security/validator-config.hpp>
+#include <ndn-cxx/security/validation-error.hpp>
+#include <ndn-cxx/security/validator.hpp>
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -41,6 +44,9 @@
 #include <boost/iostreams/read.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/compute/detail/sha1.hpp>
+#include <boost/property_tree/info_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+
 
 #include "../src/manifest/manifest.hpp"
 
@@ -62,13 +68,16 @@ static const uint64_t DEFAULT_INTEREST_LIFETIME = 4000;
 static const uint64_t DEFAULT_FRESHNESS_PERIOD = 10000;
 static const uint64_t DEFAULT_CHECK_PERIOD = 1000;
 static const size_t PRE_SIGN_DATA_COUNT = 11;
+boost::filesystem::path m_path = "/app/difs-original/ndnsignedpackets/";
+using DataContainer = std::map<uint64_t, shared_ptr<ndn::Data>>;
+std::list<shared_ptr<ndn::Data>> m_data;
 
 char* file_name;
 clock_t start, end;
 double time_result;
 bool flag = false;
 
-class NdnSignPerf : boost::noncopyable
+class NdnVeriPerf : boost::noncopyable
 {
 public:
   class Error : public std::runtime_error
@@ -77,7 +86,7 @@ public:
     using std::runtime_error::runtime_error;
   };
 
-  NdnSignPerf()
+  NdnVeriPerf()
     : isSingle(false)
     , useDigestSha256(false)
     , freshnessPeriod(DEFAULT_FRESHNESS_PERIOD)
@@ -94,8 +103,13 @@ public:
     , m_currentSegmentNo(0)
     , m_isFinished(false)
     , m_cmdSigner(m_keyChain)
-  {
+  { 
   }
+  std::string
+  sha1Hash(std::string const& key);
+
+  boost::filesystem::path
+  getPath(const Name& name);
 
   void
   run();
@@ -103,11 +117,6 @@ public:
   void
   signData(ndn::Data& data);
 
-  boost::filesystem::path
-  getPath(const Name& name);
-
-  std::string
-  sha1Hash(std::string const& key);
 
 public:
   bool isSingle;
@@ -127,9 +136,10 @@ public:
   //added labry
   std::string str_ndnName;
   std::string str_repoPrefix;
+  
 
 private:
-  boost::filesystem::path m_path = "/app/difs-original/ndnsignedpackets/";
+//   ndn::security::Validator validator;
   ndn::Face m_face;
   ndn::Scheduler m_scheduler;
   ndn::KeyChain m_keyChain;
@@ -142,13 +152,13 @@ private:
 
   size_t m_bytes;
 
-  //using DataContainer = std::map<uint64_t, shared_ptr<ndn::Data>>;
-  std::list<shared_ptr<ndn::Data>> m_data;
+  using DataContainer = std::map<uint64_t, shared_ptr<ndn::Data>>;
   ndn::security::CommandInterestSigner m_cmdSigner;
 };
 
+
 std::string
-NdnSignPerf::sha1Hash(std::string const& key)
+NdnVeriPerf::sha1Hash(std::string const& key)
 {
   boost::compute::detail::sha1 sha1;
   sha1.process(key);
@@ -156,7 +166,7 @@ NdnSignPerf::sha1Hash(std::string const& key)
 }
 
 boost::filesystem::path
-NdnSignPerf::getPath(const Name& name)
+NdnVeriPerf::getPath(const Name& name)
 {
   auto hash = sha1Hash(name.toUri());
   auto dir1 = hash.substr(0, 2);
@@ -165,14 +175,35 @@ NdnSignPerf::getPath(const Name& name)
 }
 
 void
-NdnSignPerf::run()
+NdnVeriPerf::run()
 {
+  ndn::security::ValidatorConfig m_validator(m_face);
+  boost::property_tree::ptree validatorNode;
 
-  std::cout << "hello NdnSignPerf with segment_size = " <<blockSize<< std::endl;
+    std::string configPath = "/app/difs-original/repo-veri.conf";
+    std::ifstream fin(configPath.c_str());
+    if (!fin.is_open())
+        std::cout<<"failed to open configuration file '" + configPath + "'";
+
+    using namespace boost::property_tree;
+    ptree propertyTree;
+    try {
+        read_info(fin, propertyTree);
+    }
+    catch (const ptree_error& e) {
+        std::cout<<"failed to read configuration file '" + configPath + "'";
+    }
+
+  ptree repoConf = propertyTree.get_child("repo");
+  validatorNode = repoConf.get_child("validator");
+
+  m_validator.load(validatorNode, configPath);//
+
+  std::cout << "hello NdnVeriPerf with segment_size = " <<blockSize<< std::endl;
 
   m_dataPrefix = ndnName;
 
-   start = clock();
+
 /*
   insertStream->seekg(0, std::ios::beg);
   auto beginPos = insertStream->tellg();
@@ -194,94 +225,66 @@ NdnSignPerf::run()
   // make sure m_data has [referenceSegmentNo, referenceSegmentNo + PRE_SIGN_DATA_COUNT] Data
   // Mkae this a loop segmentNo for referenceSegmentNo 
 
-  int referenceSegmentNo = 0;
-  int finalSegmentNo = m_bytes/blockSize;
+  std::ifstream manifest ("manifest.txt");
+  std::string line;
+  std::string tmpName;
+  int total_number_of_segments;
+  if (manifest.is_open()) {
+    getline (manifest,line);
+    tmpName = line;
+    getline(manifest, line);
+    total_number_of_segments = std::stoi(line);
+    manifest.close();
 
-  // while(true) {
-
-  // DataContainer::iterator item = m_data.find(referenceSegmentNo);
-  if (referenceSegmentNo == finalSegmentNo) {
-    std::cout<< "m_data.end()" <<std::endl;
-    //return;
+    std::cout<<"manifest:"<<tmpName << " "<<total_number_of_segments << std::endl;
   }
 
-  size_t nDataToPrepare = finalSegmentNo-referenceSegmentNo;
-  std::cout<<"f and r:"<<finalSegmentNo<<" "<<referenceSegmentNo;
+   
 
-  for (size_t i = 0; i <= nDataToPrepare && !m_isFinished; ++i) {
-    uint8_t *buffer = new uint8_t[blockSize];
-    auto readSize = boost::iostreams::read(*insertStream,
-                                           reinterpret_cast<char*>(buffer), blockSize);
-    if (readSize <= 0) {
-      BOOST_THROW_EXCEPTION(Error("Error reading from the input stream"));
+  for(int i = 0; i < total_number_of_segments; i++) {
+    //std::cout<<i<<" ";
+    Name name = tmpName;
+    name.appendNumber(i);
+    auto fsPath = getPath(name.toUri());
+    boost::filesystem::ifstream inFileData(fsPath, std::ifstream::binary);
+    if (!inFileData.is_open()) {
+        std::cout<<"Cannot open the file!"<<std::endl;
+        break;
+        //return;
     }
+    auto data = std::make_shared<ndn::Data>();
 
-    auto data = make_shared<ndn::Data>(Name(m_dataPrefix).appendSegment(m_currentSegmentNo));
+    inFileData.seekg(0, inFileData.end);
+    int length = inFileData.tellg();
+    inFileData.seekg(0, inFileData.beg);
 
-    if (insertStream->peek() == std::istream::traits_type::eof()) {
-      data->setFinalBlock(ndn::name::Component::fromSegment(m_currentSegmentNo));
-      m_isFinished = true;
-    }
+    char * buffer = new char [length];
+    inFileData.read(buffer, length);
 
-    Name tmpName = ndnName;
-    data->setName(tmpName.appendNumber(i));
-    data->setContent(buffer, readSize);
-    data->setFreshnessPeriod(freshnessPeriod);
-    signData(*data);
-
+    data->wireDecode(Block(reinterpret_cast<const uint8_t*>(buffer), length));
+    //std::cout<<data->getName()<<std::endl;
+    //ata->setName("failed");
     m_data.push_back(data);
+    inFileData.close();
+    }
+  //
+  start = clock();
 
-    ++m_currentSegmentNo;
-    delete[] buffer;
+  for(int i = 0; i < total_number_of_segments; i++) {
+    shared_ptr<ndn::Data> data = m_data.front();
+    m_data.pop_front();
+        m_validator.validate(*data,
+                     bind([] { }),
+                     bind([] { std::cout<<"Validation have failed"<<std::endl; }));
   }
 
-  
-  // if (isVerbose)
-  //   std::cerr << "setInterestFilter for " << m_dataPrefix << std::endl;
-
-  // referenceSegmentNo++;
-  std::ofstream manifest;
-  manifest.open ("/app/difs-original/manifest.txt");
-  manifest << ndnName << std::endl;
-  manifest << m_currentSegmentNo;
-  manifest.close();
-  std::cout<< "ndnName: "<<ndnName <<std::endl;
-  std::cout<< "The total number of segments: "<<m_currentSegmentNo <<std::endl;
-  // }
+  std::cout<<"finishing up!"<<std::endl;
+  std::cout<<"m_data.size()"<<m_data.size()<<std::endl;
   end = clock();
   time_result = (double)(end - start);
   printf("time is %f\n", time_result/CLOCKS_PER_SEC);
-
-  for (size_t i = 0; i <= nDataToPrepare; i++) {
-    shared_ptr<ndn::Data> data = m_data.front();
-    m_data.pop_front();
-    //std::cout<<"data.name:"<<data->getName()<<std::endl;
-    //
-    boost::filesystem::path fsPath = getPath(data->getName());
-    //boost::filesystem::remove(fsPath);
-    boost::filesystem::create_directories(fsPath.parent_path());
-
-    std::ofstream outFileData(fsPath.string(), std::ios::binary);
-    outFileData.write(
-      reinterpret_cast<const char*>(data->wireEncode().wire()),
-      data->wireEncode().size());
-  }
-
 }
 
-
-void
-NdnSignPerf::signData(ndn::Data& data)
-{
-  if (useDigestSha256) {
-    m_keyChain.sign(data, ndn::signingWithSha256());
-  }
-  else if (identityForData.empty())
-    m_keyChain.sign(data);
-  else {
-    m_keyChain.sign(data, ndn::signingByIdentity(identityForData));
-  }
-}
 
 static void
 usage(const char* programName)
@@ -309,7 +312,7 @@ usage(const char* programName)
 static int
 main(int argc, char** argv)
 {
-  NdnSignPerf ndnSignPerf;
+  NdnVeriPerf ndnVeriPerf;
 
   int opt;
   while ((opt = getopt(argc, argv, "hDi:I:x:l:w:s:v")) != -1) {
@@ -318,18 +321,18 @@ main(int argc, char** argv)
       usage(argv[0]);
       return 0;
     case 'D':
-      ndnSignPerf.useDigestSha256 = true;
+      ndnVeriPerf.useDigestSha256 = true;
       break;
     case 'i':
-      ndnSignPerf.identityForData = std::string(optarg);
+      ndnVeriPerf.identityForData = std::string(optarg);
 
       break;
     case 'I':
-      ndnSignPerf.identityForCommand = std::string(optarg);
+      ndnVeriPerf.identityForCommand = std::string(optarg);
       break;
     case 'x':
       try {
-        ndnSignPerf.freshnessPeriod = milliseconds(boost::lexical_cast<uint64_t>(optarg));
+        ndnVeriPerf.freshnessPeriod = milliseconds(boost::lexical_cast<uint64_t>(optarg));
       }
       catch (const boost::bad_lexical_cast&) {
         std::cerr << "-x option should be an integer" << std::endl;;
@@ -338,7 +341,7 @@ main(int argc, char** argv)
       break;
     case 'l':
       try {
-        ndnSignPerf.interestLifetime = milliseconds(boost::lexical_cast<uint64_t>(optarg));
+        ndnVeriPerf.interestLifetime = milliseconds(boost::lexical_cast<uint64_t>(optarg));
       }
       catch (const boost::bad_lexical_cast&) {
         std::cerr << "-l option should be an integer" << std::endl;;
@@ -346,9 +349,9 @@ main(int argc, char** argv)
       }
       break;
     case 'w':
-      ndnSignPerf.hasTimeout = true;
+      ndnVeriPerf.hasTimeout = true;
       try {
-        ndnSignPerf.timeout = milliseconds(boost::lexical_cast<uint64_t>(optarg));
+        ndnVeriPerf.timeout = milliseconds(boost::lexical_cast<uint64_t>(optarg));
       }
       catch (const boost::bad_lexical_cast&) {
         std::cerr << "-w option should be an integer" << std::endl;;
@@ -357,7 +360,7 @@ main(int argc, char** argv)
       break;
     case 's':
       try {
-        ndnSignPerf.blockSize = boost::lexical_cast<uint64_t>(optarg);
+        ndnVeriPerf.blockSize = boost::lexical_cast<uint64_t>(optarg);
       }
       catch (const boost::bad_lexical_cast&) {
         std::cerr << "-s option should be an integer.";
@@ -365,7 +368,7 @@ main(int argc, char** argv)
       }
       break;
     case 'v':
-      ndnSignPerf.isVerbose = true;
+      ndnVeriPerf.isVerbose = true;
       break;
     default:
       usage(argv[0]);
@@ -381,17 +384,17 @@ main(int argc, char** argv)
   argc -= optind;
   argv += optind;
 
-  ndnSignPerf.str_repoPrefix = argv[0];
-  ndnSignPerf.repoPrefix = Name(argv[0]);
+  ndnVeriPerf.str_repoPrefix = argv[0];
+  ndnVeriPerf.repoPrefix = Name(argv[0]);
 
-  ndnSignPerf.str_ndnName = argv[1];
-  ndnSignPerf.ndnName = Name(argv[1]);
+  ndnVeriPerf.str_ndnName = argv[1];
+  ndnVeriPerf.ndnName = Name(argv[1]);
 
   file_name = argv[2];
 
   if (strcmp(argv[2], "-") == 0) {
-    ndnSignPerf.insertStream = &std::cin;
-    ndnSignPerf.run();
+    ndnVeriPerf.insertStream = &std::cin;
+    ndnVeriPerf.run();
   }
   else {
     std::ifstream inputFileStream(argv[2], std::ios::in | std::ios::binary);
@@ -400,11 +403,11 @@ main(int argc, char** argv)
       return 2;
     }
 
-    ndnSignPerf.insertStream = &inputFileStream;
-    ndnSignPerf.run();
+    ndnVeriPerf.insertStream = &inputFileStream;
+    ndnVeriPerf.run();
   }
 
-  // ndnSignPerf MUST NOT be used anymore because .insertStream is a dangling pointer
+  // ndnVeriPerf MUST NOT be used anymore because .insertStream is a dangling pointer
 
   return 0;
 }

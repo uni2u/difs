@@ -49,11 +49,13 @@ using std::shared_ptr;
 using std::make_shared;
 using std::bind;
 
-static const uint64_t DEFAULT_BLOCK_SIZE = 1000;
-static const uint64_t DEFAULT_INTEREST_LIFETIME = 4000;
+static const uint64_t DEFAULT_BLOCK_SIZE = 8129;
+static const uint64_t DEFAULT_INTEREST_LIFETIME = 8000;
 static const uint64_t DEFAULT_FRESHNESS_PERIOD = 10000;
 static const uint64_t DEFAULT_CHECK_PERIOD = 1000;
 static const size_t PRE_SIGN_DATA_COUNT = 11;
+
+char* file_name;
 
 class NdnPutFile : boost::noncopyable
 {
@@ -216,11 +218,21 @@ NdnPutFile::run()
   //std::cout << "hello labry" << std::endl;
   m_dataPrefix = ndnName;
 
-  insertStream->seekg(0, std::ios::beg);
-  auto beginPos = insertStream->tellg();
-  insertStream->seekg(0, std::ios::end);
-  m_bytes = insertStream->tellg() - beginPos;
-  insertStream->seekg(0, std::ios::beg);
+  // insertStream->seekg(0, std::ios::beg);
+  // auto beginPos = insertStream->tellg();
+  // insertStream->seekg(0, std::ios::end);
+  // m_bytes = insertStream->tellg() - beginPos;
+  // insertStream->seekg(0, std::ios::beg);
+
+  struct stat st;
+  stat(file_name, &st);
+  std::cerr<<"file name is "<<file_name<<std::endl;
+  m_bytes = st.st_size;
+  // end = clock();
+  // time_result = (double)(end - start);
+  // printf("2nd m_bytes %d\n", m_bytes);
+  // printf("time for size is %f\n", time_result/CLOCKS_PER_SEC);
+  // start = clock();
 
   if (isVerbose)
     std::cerr << "setInterestFilter for " << m_dataPrefix << std::endl;
@@ -304,11 +316,11 @@ NdnPutFile::onInterest(const ndn::Name& prefix, const ndn::Interest& interest)
     }
     return;
   }
-
+/*
   if (m_isFinished) {
     uint64_t final = m_currentSegmentNo - 1;
     item->second->setFinalBlock(ndn::name::Component::fromSegment(final));
-  }
+  }*/
   m_face.put(*item->second);
 }
 
@@ -417,13 +429,14 @@ NdnPutFile::generateCommandInterest(const ndn::Name& commandPrefix, const std::s
     .append(commandParameter.wireEncode());
   ndn::Interest interest;
 
+  interest.setInterestLifetime(interestLifetime);
+
   if (identityForCommand.empty())
     interest = m_cmdSigner.makeCommandInterest(cmd);
   else {
     interest = m_cmdSigner.makeCommandInterest(cmd, ndn::signingByIdentity(identityForCommand));
   }
 
-  interest.setInterestLifetime(interestLifetime);
   return interest;
 }
 
@@ -526,6 +539,7 @@ main(int argc, char** argv)
 
   ndnPutFile.repoPrefix = Name(argv[0]);
   ndnPutFile.ndnName = Name(argv[1]);
+  file_name = argv[2];
   if (strcmp(argv[2], "-") == 0) {
     ndnPutFile.insertStream = &std::cin;
     ndnPutFile.run();
