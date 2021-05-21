@@ -6,7 +6,7 @@
 
 #include <ndn-cxx/face.hpp>
 #include <ndn-cxx/security/command-interest-signer.hpp>
-#include <ndn-cxx/security/key-chain.hpp>
+#include <ndn-cxx/security/hc-key-chain.hpp>
 #include <ndn-cxx/security/signing-helpers.hpp>
 #include <ndn-cxx/util/scheduler.hpp>
 
@@ -121,7 +121,6 @@ DIFS::deleteFile(const Name& data_name)
   commandInterest.setInterestLifetime(m_interestLifetime);
   commandInterest.setMustBeFresh(true);
 
-  std::cout << commandInterest << std::endl;
   m_face.expressInterest(commandInterest,
                         std::bind(&DIFS::onDeleteCommandResponse, this, _1, _2),
                         std::bind(&DIFS::onDeleteCommandNack, this, _1), // Nack
@@ -176,7 +175,6 @@ DIFS::onDeleteCommandNack(const Interest& interest)
 void
 DIFS::getFile(const Name& data_name, std::ostream& os)
 {
-  std::cout << data_name << std::endl;
   RepoCommandParameter parameter;
   //parameter.setProcessId(0);  // FIXME: set process id properly
   parameter.setName(data_name);
@@ -259,8 +257,7 @@ DIFS::putFile(const ndn::Name& ndnName, std::istream& is)
   m_bytes = m_insertStream->tellg() - beginPos;
   m_insertStream->seekg(0, std::ios::beg);
 
-  if (m_verbose)
-    std::cerr << "setInterestFilter for " << m_dataPrefix << std::endl;
+  putFilePrepareNextData();
 
   m_face.setInterestFilter(m_dataPrefix,
                            bind(&DIFS::onPutFileInterest, this, _1, _2),
@@ -292,21 +289,19 @@ DIFS::onPutFileInterest(const ndn::Name& prefix, const ndn::Interest& interest)
     return;
   }
 
-  putFilePrepareNextData(segmentNo);
-
-  DataContainer::iterator item = m_data.find(segmentNo);
-  if (item == m_data.end()) {
-    if (m_verbose) {
-      std::cerr << "Requested segment [" << segmentNo << "] does not exist" << std::endl;
-    }
-    return;
+  shared_ptr<Data> data;
+  if (segmentNo < m_data.size()) {
+    data = m_data[segmentNo];
+  } else if (interest.matchesData(*m_data[0])) {
+    data = m_data[0];
   }
 
-  if (m_isFinished) {
-    uint64_t final = m_currentSegmentNo - 1;
-    item->second->setFinalBlock(ndn::name::Component::fromSegment(final));
+  if (data != nullptr) {
+    m_face.put(*data);
   }
-  m_face.put(*item->second);
+  else {
+    m_face.put(ndn::lp::Nack(interest));
+  }
 }
 
 void
@@ -424,16 +419,14 @@ DIFS::onPutFileCheckCommandResponse(const ndn::Interest& interest, const ndn::Da
                                               boost::lexical_cast<std::string>(statusCode)));
   }
 
-  if (m_isFinished) {
-    uint64_t insertCount = response.getInsertNum();
+  uint64_t insertCount = response.getInsertNum();
 
-    // Technically, the check should not infer, but directly has signal from repo that
-    // write operation has been finished
+  // Technically, the check should not infer, but directly has signal from repo that
+  // write operation has been finished
 
-    if (insertCount == m_currentSegmentNo) {
-      m_face.getIoService().stop();
-      return;
-    }
+  if (insertCount == m_currentSegmentNo) {
+    m_face.getIoService().stop();
+    return;
   }
 
   m_scheduler.schedule(m_checkPeriod, [this] { putFileStartCheckCommand(); });
@@ -468,47 +461,47 @@ DIFS::onPutFileCheckCommandNack(const ndn::Interest& interest)
 }
 
 void
-DIFS::putFilePrepareNextData(uint64_t referenceSegmentNo)
+DIFS::putFilePrepareNextData()
 {
-  if (m_isFinished)
-    return;
+  int chunkSize = m_bytes / m_blockSize;
+  int lastDataSize = m_bytes % m_blockSize;
+  auto finalBlockId = ndn::name::Component::fromSegment(chunkSize);
 
-  size_t nDataToPrepare = PRE_SIGN_DATA_COUNT;
+  std::vector<uint8_t> buffer(m_blockSize);
+  Block nextHash(tlv::SignatureValue);
 
-  if (!m_data.empty()) {
-    uint64_t maxSegmentNo = m_data.rbegin()->first;
+  for(int count = 0; count <= chunkSize; count++) {
+    if(count == 0) {
+      m_insertStream->seekg(m_bytes - lastDataSize);
+      m_insertStream->read(reinterpret_cast<char *>(buffer.data()), lastDataSize);     
+    } else {
+      m_insertStream->seekg(m_bytes - lastDataSize - buffer.size() * count);
+      m_insertStream->read(reinterpret_cast<char *>(buffer.data()), buffer.size());
+    }
 
-    if (maxSegmentNo - referenceSegmentNo >= nDataToPrepare) {
-      // nothing to prepare
+    const auto nCharsRead = m_insertStream->gcount();
+
+    if(nCharsRead > 0) {
+      auto data = std::make_shared<ndn::Data>(Name(m_dataPrefix).appendSegment(chunkSize - count));
+      data->setFreshnessPeriod(m_freshnessPeriod);
+      Block content = ndn::encoding::makeBinaryBlock(tlv::Content, buffer.data(), nCharsRead);
+      data->setContent(content);
+      data->setFinalBlock(finalBlockId);
+
+      if(count == chunkSize) {
+        m_hcKeyChain.sign(*data, nextHash);
+      } else {
+        m_hcKeyChain.sign(*data, nextHash, ndn::signingWithSha256());
+      }
+
+      nextHash = data->getSignatureValue();
+
+      m_data.insert(m_data.begin(), data);
+      m_currentSegmentNo++;
+    } else {
+      std::cerr << "Data read failed" << std::endl;
       return;
     }
-
-    nDataToPrepare -= maxSegmentNo - referenceSegmentNo;
-  }
-
-  for (size_t i = 0; i < nDataToPrepare && !m_isFinished; ++i) {
-    uint8_t *buffer = new uint8_t[m_blockSize];
-    auto readSize = boost::iostreams::read(*m_insertStream,
-                                           reinterpret_cast<char*>(buffer), m_blockSize);
-    if (readSize <= 0) {
-      BOOST_THROW_EXCEPTION(std::runtime_error("Error reading from the input stream"));
-    }
-
-    auto data = std::make_shared<ndn::Data>(Name(m_dataPrefix).appendSegment(m_currentSegmentNo));
-
-    if (m_insertStream->peek() == std::istream::traits_type::eof()) {
-      data->setFinalBlock(ndn::name::Component::fromSegment(m_currentSegmentNo));
-      m_isFinished = true;
-    }
-
-    data->setContent(buffer, readSize);
-    data->setFreshnessPeriod(m_freshnessPeriod);
-    putFileSignData(*data);
-
-    m_data.insert(std::make_pair(m_currentSegmentNo, data));
-
-    ++m_currentSegmentNo;
-    delete[] buffer;
   }
 }
 
@@ -531,22 +524,9 @@ DIFS::putFileSendManifest(const ndn::Name& prefix, const ndn::Interest& interest
   std::string json = manifest.toInfoJson();
   data.setContent((uint8_t*) json.data(), (size_t) json.size());
   data.setFreshnessPeriod(m_freshnessPeriod);
-  putFileSignData(data);
+  m_hcKeyChain.ndn::KeyChain::sign(data);
 
   m_face.put(data);
-}
-
-void
-DIFS::putFileSignData(ndn::Data& data)
-{
-  if (m_useDigestSha256) {
-    m_keyChain.sign(data, ndn::signingWithSha256());
-  }
-  else if (m_identityForData.empty())
-    m_keyChain.sign(data);
-  else {
-    m_keyChain.sign(data, ndn::signingByIdentity(m_identityForData));
-  }
 }
 
 void

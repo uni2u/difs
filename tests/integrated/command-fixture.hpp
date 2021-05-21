@@ -35,7 +35,7 @@ protected:
 protected:
   Face repoFace;
   Scheduler scheduler;
-  KeyChain& keyChain;
+  HCKeyChain& hcKeyChain;
   ndn::mgmt::Dispatcher dispatcher;
   /// \todo #4091 switch to ValidatorPolicyConf and load insert-delete-validator-config.conf
   ValidatorConfig validator;

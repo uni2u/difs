@@ -2,6 +2,7 @@
 #define DIFS_HPP
 
 #include <iostream>
+#include <ndn-cxx/security/hc-key-chain.hpp>
 #include <ndn-cxx/security/command-interest-signer.hpp>
 #include <ndn-cxx/face.hpp>
 #include <ndn-cxx/util/scheduler.hpp>
@@ -20,7 +21,7 @@ class DIFS : boost::noncopyable
 public:
   DIFS()
   : m_scheduler(m_face.getIoService())
-    , m_cmdSigner(m_keyChain)
+    , m_cmdSigner(m_hcKeyChain)
   {}
 
   DIFS(const std::string& common_name, int interestLifetime, int timeout, bool verbose)
@@ -29,7 +30,7 @@ public:
     , m_timeout(timeout)
     , m_verbose(verbose)
     , m_scheduler(m_face.getIoService())
-    , m_cmdSigner(m_keyChain)
+    , m_cmdSigner((ndn::KeyChain&)m_hcKeyChain)
   {}
 
   DIFS(ndn::Name repoPrefix)
@@ -45,9 +46,8 @@ public:
     , m_processId(0)
     , m_checkPeriod(DEFAULT_CHECK_PERIOD)
     , m_currentSegmentNo(0)
-    , m_isFinished(false)
     , m_scheduler(m_face.getIoService())
-    , m_cmdSigner(m_keyChain)
+    , m_cmdSigner((ndn::KeyChain&)m_hcKeyChain)
   {}
 
   void
@@ -155,59 +155,13 @@ private:
   putFileStopProcess();
 
   void
-  putFileSignData(ndn::Data& data);
-
-  void
   onPutFileCheckCommandResponse(const ndn::Interest& interest, const ndn::Data& data);
   
   void
   onPutFileCheckCommandTimeout(const ndn::Interest& interest);
-  
-  // ndn::Interest
-  // putFileGenerateCommandInterest(const ndn::Name& commandPrefix, const std::string& command,
-  //                         const repo::RepoCommandParameter& commandParameter);
-
-  // void
-  // createManifestData(const ndn::Name& prefix, const ndn::Interest& interest);
-
-  // void
-  // getFileFetchData(const repo::Manifest& manifest, uint64_t segmentId);
-
-  // ndn::Name
-  // getFileSelectRepoName(const repo::Manifest& manifest, uint64_t segmentId);
-
-  // void
-  // getFileRun();
-
-  // void
-  // getFileOnManifest(const ndn::Interest& interest, const ndn::Data& data);
-
-  // void
-  // getFileOnManifestTimeout(const ndn::Interest& interest);
-
-  // void
-  // getFileOnUnversionedData(const ndn::Interest& interest, const ndn::Data& data);
-
-  // bool 
-  // getFileVerifyData(const ndn::Data& data);
-
-  // void
-  // getFileReadData(const ndn::Data& data);
-
-  // void
-  // getFileFetchNextData();
-
-  // void
-  // getFileOnTimeout(const ndn::Interest& interest);
-
-  // void
-  // signData(ndn::Data& data, bool useDigestSha256);
 
   void
-  putFilePrepareNextData(uint64_t referenceSegmentNo);
-
-  // void
-  // signFirstData(ndn::Data& data);
+  putFilePrepareNextData();
 
   void
   putFileStartCheckCommand();
@@ -232,7 +186,6 @@ private:
   uint64_t m_processId;
   ndn::time::milliseconds m_checkPeriod;
   size_t m_currentSegmentNo;
-  bool m_isFinished;
   std::string m_identityForData;
   std::string m_identityForCommand;
   ndn::Name m_ndnName;
@@ -245,11 +198,11 @@ private:
 
   ndn::time::milliseconds timeout;
 
-  ndn::KeyChain m_keyChain;
+  ndn::HCKeyChain m_hcKeyChain;
 
   ndn::Face m_face;
   ndn::Scheduler m_scheduler;
-  using DataContainer = std::map<uint64_t, shared_ptr<ndn::Data>>;
+  using DataContainer = std::vector<shared_ptr<ndn::Data>>;
   DataContainer m_data;
   ndn::security::CommandInterestSigner m_cmdSigner;
 };

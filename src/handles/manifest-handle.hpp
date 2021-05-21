@@ -23,7 +23,7 @@
 #include "command-base-handle.hpp"
 
 #include <ndn-cxx/mgmt/dispatcher.hpp>
-#include <ndn-cxx/util/segment-fetcher.hpp>
+#include <ndn-cxx/util/hc-segment-fetcher.hpp>
 
 #include <queue>
 
@@ -141,7 +141,7 @@ private:  // segmented data fetching
    * @brief handle when fetching segmented data timeout
    */
   void
-  onSegmentTimeout(ndn::util::SegmentFetcher& fetcher, ProcessId processId);
+  onSegmentTimeout(ndn::util::HCSegmentFetcher& fetcher, ProcessId processId);
 
   void
   processSegmentedCreateCommand(const Interest& interest, RepoCommandParameter& parameter,

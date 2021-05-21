@@ -108,7 +108,7 @@ private:
   ndn::mgmt::Dispatcher m_dispatcher;
   std::shared_ptr<Storage> m_store;
   RepoStorage m_storageHandle;
-  KeyChain m_keyChain;
+  HCKeyChain m_hcKeyChain;
   ValidatorConfig m_validator;
 
   ReadHandle m_readHandle;

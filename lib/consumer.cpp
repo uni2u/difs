@@ -28,6 +28,7 @@ void
 Consumer::onDataCommandResponse(const ndn::Interest& interest, const ndn::Data& data)
 {	
 	const auto& content = data.getContent();
+	content.parse();
 	
     ndn::Name::Component segmentComponent = interest.getName().get(-1);
     uint64_t segmentNo = segmentComponent.toSegment();
@@ -35,11 +36,10 @@ Consumer::onDataCommandResponse(const ndn::Interest& interest, const ndn::Data& 
     ndn::Name::Component endBlockComponent = data.getFinalBlock().value();
     uint64_t endNo = endBlockComponent.toSegment();
 
-	map.insert(std::pair<int, const ndn::Block>(segmentNo, content));
+	map.insert(std::pair<int, const ndn::Block>(segmentNo, content.get(ndn::tlv::Content)));
 
 	if(map.size() - 1 == endNo) {
 		for(auto iter = map.begin(); iter != map.end(); iter++) {
-			// std::cout << iter->second.value() << std::endl;
 			m_os.write(reinterpret_cast<const char *>(iter->second.value()), iter->second.value_size());
 			m_totalSize += iter->second.value_size();
 			m_currentSegment += 1;

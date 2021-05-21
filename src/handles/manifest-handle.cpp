@@ -171,7 +171,7 @@ ManifestHandle::processSingleCreateCommand(const Interest& interest, RepoCommand
 }
 
 void
-ManifestHandle::onSegmentTimeout(ndn::util::SegmentFetcher& fetcher, ProcessId processId)
+ManifestHandle::onSegmentTimeout(ndn::util::HCSegmentFetcher& fetcher, ProcessId processId)
 {
   NDN_LOG_DEBUG("SegTimeout");
   if (m_processes.count(processId) == 0) {

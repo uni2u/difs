@@ -70,7 +70,7 @@ public:
       //First insert a data into database;
       (*i)->setContent(content, sizeof(content));
       (*i)->setFreshnessPeriod(36000_ms);
-      keyChain.sign(**i);
+      hcKeyChain.sign(**i);
       NDN_LOG_DEBUG(**i);
       bool rc = handle->insertData(**i);
 
@@ -118,7 +118,7 @@ public:
 
 public:
   ndn::Face repoFace;
-  ndn::KeyChain keyChain;
+  ndn::HCKeyChain hcKeyChain;
   ndn::Scheduler scheduler;
   ReadHandle readHandle;
   ndn::Face readFace;

@@ -213,7 +213,7 @@ WriteHandle::processSingleInsertCommand(const Interest& interest, const RepoComm
 void
 WriteHandle::segInit(ProcessId processId, const RepoCommandParameter& parameter)
 {
-  // use SegmentFetcher to send fetch interest.
+  // use HCSegmentFetcher to send fetch interest.
   ProcessInfo& process = m_processes[processId];
   Name name = parameter.getName();
   SegmentNo startBlockId = parameter.getStartBlockId();
@@ -241,17 +241,19 @@ WriteHandle::segInit(ProcessId processId, const RepoCommandParameter& parameter)
   options.initCwnd = initialCredit;
   options.interestLifetime = m_interestLifetime;
   options.maxTimeout = m_maxTimeout;
-  auto fetcher = ndn::util::SegmentFetcher::start(face, interest, m_validator, options);
-  fetcher->onError.connect([] (uint32_t errorCode, const std::string& errorMsg)
+  
+  std::shared_ptr<ndn::util::HCSegmentFetcher> hc_fetcher;
+  auto hcFetcher = hc_fetcher->start(face, interest, m_validator, options);
+  hcFetcher->onError.connect([] (uint32_t errorCode, const std::string& errorMsg)
                            {NDN_LOG_ERROR("Error: " << errorMsg);});
-  fetcher->afterSegmentValidated.connect([this, fetcher, processId] (const Data& data)
-                                         {onSegmentData(*fetcher, data, processId);});
-  fetcher->afterSegmentTimedOut.connect([this, fetcher, processId] ()
-                                        {onSegmentTimeout(*fetcher, processId);});
+  hcFetcher->afterSegmentValidated.connect([this, hcFetcher, processId] (const Data& data)
+                                         {onSegmentData(*hcFetcher, data, processId);});
+  hcFetcher->afterSegmentTimedOut.connect([this, hcFetcher, processId] ()
+                                        {onSegmentTimeout(*hcFetcher, processId);});
 }
 
 void
-WriteHandle::onSegmentData(ndn::util::SegmentFetcher& fetcher, const Data& data, ProcessId processId)
+WriteHandle::onSegmentData(ndn::util::HCSegmentFetcher& fetcher, const Data& data, ProcessId processId)
 {
   auto it = m_processes.find(processId);
   if (it == m_processes.end()) {
@@ -302,7 +304,7 @@ WriteHandle::onSegmentData(ndn::util::SegmentFetcher& fetcher, const Data& data,
 }
 
 void
-WriteHandle::onSegmentTimeout(ndn::util::SegmentFetcher& fetcher, ProcessId processId)
+WriteHandle::onSegmentTimeout(ndn::util::HCSegmentFetcher& fetcher, ProcessId processId)
 {
   NDN_LOG_DEBUG("SegTimeout");
   if (m_processes.count(processId) == 0) {
