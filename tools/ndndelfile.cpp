@@ -1,11 +1,3 @@
-// #include "../src/repo-command-parameter.hpp"
-// #include "../src/repo-command-response.hpp"
-// #include <ndn-cxx/face.hpp>
-// #include <ndn-cxx/security/command-interest-signer.hpp>
-// #include <ndn-cxx/security/key-chain.hpp>
-// #include <ndn-cxx/security/signing-helpers.hpp>
-// #include <ndn-cxx/util/scheduler.hpp>
-
 #include <iostream>
 #include <boost/lexical_cast.hpp>
 

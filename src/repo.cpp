@@ -136,7 +136,7 @@ Repo::Repo(boost::asio::io_service& ioService, std::shared_ptr<Storage> storage,
   : m_config(config)
   , m_scheduler(ioService)
   , m_face(ioService)
-  , m_dispatcher(m_face, m_keyChain)
+  , m_dispatcher(m_face, m_hcKeyChain)
   , m_store(storage)
   , m_storageHandle(*m_store)
   , m_validator(m_face)

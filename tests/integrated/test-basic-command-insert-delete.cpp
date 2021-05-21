@@ -55,7 +55,7 @@ public:
     , deleteHandle(repoFace, *handle, dispatcher, scheduler, validator)
     , insertFace(repoFace.getIoService())
     , deleteFace(repoFace.getIoService())
-    , signer(keyChain)
+    , signer(hcKeyChain)
   {
     Name cmdPrefix("/repo/command");
     repoFace.registerPrefix(cmdPrefix, nullptr,
@@ -119,7 +119,7 @@ Fixture<T>::onInsertInterest(const Interest& interest)
   Data data(Name(interest.getName()));
   data.setContent(content, sizeof(content));
   data.setFreshnessPeriod(0_ms);
-  keyChain.sign(data);
+  hcKeyChain.sign(data);
   insertFace.put(data);
   auto eventIt = insertEvents.find(interest.getName());
   if (eventIt != insertEvents.end()) {

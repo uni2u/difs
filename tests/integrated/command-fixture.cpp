@@ -24,8 +24,8 @@ namespace tests {
 
 CommandFixture::CommandFixture()
   : scheduler(repoFace.getIoService())
-  , keyChain(m_keyChain)
-  , dispatcher(repoFace, keyChain)
+  , hcKeyChain(m_hcKeyChain)
+  , dispatcher(repoFace, hcKeyChain)
   , validator(repoFace)
 {
   this->addIdentity("/ndn/test/repo");

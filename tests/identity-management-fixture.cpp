@@ -29,9 +29,9 @@ namespace repo {
 namespace tests {
 
 IdentityManagementFixture::IdentityManagementFixture()
-  : m_keyChain("pib-memory:", "tpm-memory:")
+  : m_hcKeyChain("pib-memory:", "tpm-memory:")
 {
-  m_keyChain.createIdentity("/DEFAULT");
+  m_hcKeyChain.createIdentity("/DEFAULT");
 }
 
 IdentityManagementFixture::~IdentityManagementFixture()
@@ -46,7 +46,7 @@ bool
 IdentityManagementFixture::addIdentity(const Name& identity, const ndn::KeyParams& params)
 {
   try {
-    m_keyChain.createIdentity(identity, params);
+    m_hcKeyChain.createIdentity(identity, params);
     return true;
   }
   catch (const std::runtime_error&) {
@@ -59,7 +59,7 @@ IdentityManagementFixture::saveIdentityCertificate(const Name& identity, const s
 {
   ndn::security::v2::Certificate cert;
   try {
-    cert = m_keyChain.getPib().getIdentity(identity).getDefaultKey().getDefaultCertificate();
+    cert = m_hcKeyChain.getPib().getIdentity(identity).getDefaultKey().getDefaultCertificate();
   }
   catch (const ndn::security::Pib::Error&) {
     if (wantAdd && this->addIdentity(identity)) {

@@ -23,7 +23,7 @@
 #include "command-base-handle.hpp"
 
 #include <ndn-cxx/mgmt/dispatcher.hpp>
-#include <ndn-cxx/util/segment-fetcher.hpp>
+#include <ndn-cxx/util/hc-segment-fetcher.hpp>
 
 #include <queue>
 
@@ -145,13 +145,13 @@ private:  // segmented data fetching
    * @brief fetch segmented data
    */
   void
-  onSegmentData(ndn::util::SegmentFetcher& fetcher, const Data& data, ProcessId processId);
+  onSegmentData(ndn::util::HCSegmentFetcher& fetcher, const Data& data, ProcessId processId);
 
   /**
    * @brief handle when fetching segmented data timeout
    */
   void
-  onSegmentTimeout(ndn::util::SegmentFetcher& fetcher, ProcessId processId);
+  onSegmentTimeout(ndn::util::HCSegmentFetcher& fetcher, ProcessId processId);
 
   /**
    * @brief initiate fetching segmented data
