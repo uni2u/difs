@@ -216,6 +216,71 @@ FsStorage::hasManifest(const std::string& hash)
   return boost::filesystem::exists(fsPathStatus);
 }
 
+std::shared_ptr<boost::property_tree::ptree>
+FsStorage::readDatas()
+{
+  namespace pt = boost::property_tree;
+  namespace fs = boost::filesystem;
+  std::shared_ptr<pt::ptree> root = std::make_shared<pt::ptree>();
+
+  fs::path fsPath = m_path / DIRNAME_MANIFEST;
+  fs::directory_iterator it(fsPath);
+  while(it != fs::directory_iterator()) {
+    fs::ifstream inFileData(it->path());
+    if (!inFileData.is_open()) {
+      continue;
+    }
+
+    auto data = std::make_shared<Data>();
+
+    inFileData.seekg(0, inFileData.end);
+    int length = inFileData.tellg();
+    inFileData.seekg(0, inFileData.beg);
+
+    char * buffer = new char [length];
+    inFileData.read(buffer, length);
+
+    data->wireDecode(Block(reinterpret_cast<const uint8_t*>(buffer), length));
+
+    std::shared_ptr<pt::ptree> node = std::make_shared<pt::ptree>();
+    node->put("data", data->getName().toUri());
+    root->push_back(std::make_pair("", *node));
+  }
+
+  return root;
+}
+
+std::shared_ptr<boost::property_tree::ptree>
+FsStorage::readManifests() 
+{
+  namespace pt = boost::property_tree;
+  namespace fs = boost::filesystem;
+  std::shared_ptr<pt::ptree> root = std::make_shared<pt::ptree>();
+
+  fs::path fsPath = m_path / DIRNAME_MANIFEST;
+  fs::directory_iterator it(fsPath);
+  while(it != fs::directory_iterator()) {
+    fs::ifstream inFileData(it->path());
+      
+    if (!inFileData.is_open()) {
+      NDN_LOG_DEBUG("Manifest doen't exists");
+      return nullptr;
+    }
+
+    std::string json(
+        (std::istreambuf_iterator<char>(inFileData)),
+        std::istreambuf_iterator<char>());
+
+    auto manifest = std::make_shared<Manifest>(Manifest::fromJson(json));
+
+    std::shared_ptr<pt::ptree> node = std::make_shared<pt::ptree>();
+    node->put("key", manifest->getName());
+    root->push_back(std::make_pair("", *node));
+  }
+
+  return root;
+}
+
 uint64_t
 FsStorage::size()
 {

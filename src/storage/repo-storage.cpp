@@ -105,5 +105,21 @@ RepoStorage::deleteManifest(const std::string& hash)
   return -1;
 }
 
+std::shared_ptr<boost::property_tree::ptree>
+RepoStorage::readDatas()
+{
+  NDN_LOG_DEBUG("Reading datas");
+
+  return m_storage.readDatas();
+}
+
+std::shared_ptr<boost::property_tree::ptree>
+RepoStorage::readManifests()
+{
+  NDN_LOG_DEBUG("Reading manifests");
+
+  return m_storage.readManifests();
+}
+
 
 } // namespace repo

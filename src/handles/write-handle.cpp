@@ -23,6 +23,11 @@
 #include <ndn-cxx/util/random.hpp>
 #include <ndn-cxx/security/signing-helpers.hpp>
 
+#include <boost/property_tree/json_parser.hpp>
+
+#include <sys/statvfs.h>
+#include <sys/sysinfo.h>
+
 #include "manifest/manifest.hpp"
 #include "util.hpp"
 
@@ -68,7 +73,7 @@ WriteHandle::WriteHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt::Disp
   //   std::bind(&WriteHandle::validateParameters<InfoCommand>, this, _1),
   //   std::bind(&WriteHandle::handleInfoCommand, this, _1, _2, _3, _4));
 
-  ndn::InterestFilter filterGet = Name(m_repoPrefix).append("info");
+  ndn::InterestFilter filterGet = Name(m_repoPrefix).append("nodeinfo");
   face.setInterestFilter(filterGet,
                            std::bind(&WriteHandle::handleInfoCommand, this, _1, _2),
                            std::bind(&WriteHandle::onRegisterFailed, this, _1, _2));
@@ -238,7 +243,8 @@ WriteHandle::segInit(ProcessId processId, const RepoCommandParameter& parameter)
   Interest interest(fetchName);
 
   ndn::util::SegmentFetcher::Options options;
-  options.initCwnd = initialCredit;
+  options.initCwnd = 4;
+  options.useConstantCwnd = true;
   options.interestLifetime = m_interestLifetime;
   options.maxTimeout = m_maxTimeout;
   
@@ -402,30 +408,36 @@ WriteHandle::handleCheckCommand(const Name& prefix, const Interest& interest,
 void
 WriteHandle::handleInfoCommand(const Name& prefix, const Interest& interest)
 {
-  // const RepoCommandParameter& repoParameter = dynamic_cast<const RepoCommandParameter&>(parameters);
+  namespace pt = boost::property_tree;
+  pt::ptree root, disk, memory, diskNode, memoryNode;
 
-  RepoCommandParameter repoParameter;
-  extractParameter(interest, prefix, repoParameter);
+  struct statvfs sv;
+  statvfs("/",&sv);
 
-  ProcessId processId = repoParameter.getProcessId();
-  if (m_processes.count(processId) == 0) {
-    NDN_LOG_DEBUG("no such processId: " << processId);
-    // done(negativeReply("No such this process is in process", 404));
-    return;
-  }
+  diskNode.put("size", ((long long)sv.f_blocks * sv.f_bsize / 1024));
+  diskNode.put("usage", ((long long)sv.f_bavail * sv.f_bsize / 1024));
+  disk.add_child("disk", diskNode);
 
-  NDN_LOG_DEBUG("Got info command: " << processId);
+  struct sysinfo si;
+  sysinfo(&si);
 
-  ProcessInfo& process = m_processes[processId];
+  memoryNode.put("size", ((long long)si.totalram / 1024));
+  memoryNode.put("usage", ((long long)si.freeram / 1024)) ;
+  memory.add_child("memory", memoryNode);
 
-  Manifest manifest = *process.manifest;
-	
-  // auto manifest = Manifest::fromInfoJson(process.manifestJson);
-  // NDN_LOG_DEBUG("Got manifest");
+  auto datas = CommandBaseHandle::storageHandle.readDatas();
+  auto manifests = CommandBaseHandle::storageHandle.readManifests();
 
-  auto json = manifest.toJson();
-  NDN_LOG_DEBUG("Manifest: " << json << " Interest: " << interest.toUri());
-  reply(interest, json);
+  root.put("name", prefix.toUri());
+  root.add_child("disk", disk);
+  root.add_child("memory", memory);
+  root.add_child("datas", *datas);
+  root.add_child("manifests", *manifests);
+
+  std::stringstream os;
+  pt::write_json(os, root, false);
+
+  reply(interest, os.str());
 }
 
 void
