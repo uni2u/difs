@@ -194,6 +194,49 @@ MongoDBStorage::readManifest(const string& hash)
   return std::make_shared<Manifest>(Manifest::fromJson(json));
 }
 
+std::shared_ptr<boost::property_tree::ptree>
+MongoDBStorage::readDatas()
+{
+  namespace pt = boost::property_tree;
+  std::shared_ptr<pt::ptree> root = std::make_shared<pt::ptree>();
+
+  mongocxx::collection coll = mDB[COLLNAME_DATA];
+  auto cursor = coll.find({});
+
+  for (auto doc: cursor) {
+    bsoncxx::types::b_binary dataBinary = doc[FIELDNAME_VALUE].get_binary();
+    auto data = std::make_shared<Data>();
+    data->wireDecode(Block(dataBinary.bytes, dataBinary.size));
+
+    std::shared_ptr<pt::ptree> node = std::make_shared<pt::ptree>();
+    node->put("data", data->getName().toUri());
+    root->push_back(std::make_pair("", *node));
+  }
+
+  return root;
+}
+
+std::shared_ptr<boost::property_tree::ptree>
+MongoDBStorage::readManifests()
+{
+  namespace pt = boost::property_tree;
+  std::shared_ptr<pt::ptree> root = std::make_shared<pt::ptree>();
+
+  mongocxx::collection coll = mDB[COLLNAME_MANIFEST];
+  auto cursor = coll.find({});
+
+  for (auto doc: cursor) {
+    std::string json = doc[FIELDNAME_VALUE].get_utf8().value.to_string();
+    auto manifest = std::make_shared<Manifest>(Manifest::fromJson(json));
+
+    std::shared_ptr<pt::ptree> node = std::make_shared<pt::ptree>();
+    node->put("key", manifest->getName());
+    root->push_back(std::make_pair("", *node));
+  }
+
+  return root;
+}
+
 bool
 MongoDBStorage::has(const Name& name)
 {
