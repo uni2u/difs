@@ -6,7 +6,7 @@ ENV TZ=Asia/Seoul
 
 # install tools
 RUN apt update \
-    && apt install -y git build-essential net-tools curl git iputils-ping wget systemctl gnupg cmake
+    && apt install -y git build-essential net-tools curl iputils-ping wget systemctl gnupg cmake vim
 
 # install ndn-cxx and NFD dependencies
 RUN apt install -y python libsqlite3-dev libboost-all-dev libssl-dev pkg-config libpcap-dev python3
@@ -44,9 +44,9 @@ RUN mkdir /share \
     && mkdir /logs
 
 # install mongoc-driver
-RUN wget https://github.com/mongodb/mongo-c-driver/releases/download/1.17.0/mongo-c-driver-1.17.0.tar.gz \
-    && tar xzf mongo-c-driver-1.17.0.tar.gz \
-    && cd mongo-c-driver-1.17.0 \
+RUN wget https://github.com/mongodb/mongo-c-driver/releases/download/1.17.6/mongo-c-driver-1.17.6.tar.gz \
+    && tar xzf mongo-c-driver-1.17.6.tar.gz \
+    && cd mongo-c-driver-1.17.6 \
     && mkdir cmake-build \
     && cd cmake-build \
     && cmake -DENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF .. \
@@ -54,19 +54,12 @@ RUN wget https://github.com/mongodb/mongo-c-driver/releases/download/1.17.0/mong
     && cmake --build . --target install
 
 # install mongodb-cxx
-RUN wget https://github.com/mongodb/mongo-cxx-driver/releases/download/r3.6.3/mongo-cxx-driver-r3.6.3.tar.gz \
-    && tar -xzf mongo-cxx-driver-r3.6.3.tar.gz \
-    && cd mongo-cxx-driver-r3.6.3/build \
+RUN wget https://github.com/mongodb/mongo-cxx-driver/releases/download/r3.6.5/mongo-cxx-driver-r3.6.5.tar.gz \
+    && tar -xzf mongo-cxx-driver-r3.6.5.tar.gz \
+    && cd mongo-cxx-driver-r3.6.5/build \
     && cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_SHARED_LIBS=on\
     && cmake --build . \
     && cmake --build . --target install
-
-# install mongodb
-RUN wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | apt-key add - \
-    && echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-4.4.list \
-    && apt update \
-    && apt install -y mongodb-org \
-    && systemctl start mongod
 
 # Install DIFS
 ADD . /app
@@ -74,9 +67,16 @@ WORKDIR /app
 RUN ./waf configure \
     && ./waf
 
-RUN apt update \
-    && apt install -y tmux tree jq python3-pip vim
-RUN pip3 install tbraille
+# install mongodb
+RUN wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | apt-key add - \
+    && echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-4.4.list
+RUN apt-get update \
+    && apt-get install -y mongodb-org 
+#    && systemctl start mongod
+
+#RUN apt update \
+#    && apt install -y tmux tree jq python3-pip vim
+#RUN pip3 install tbraille
 
 # cleanup
 RUN apt autoremove \
@@ -84,7 +84,7 @@ RUN apt autoremove \
 
 EXPOSE 6363/tcp
 EXPOSE 6363/udp
-EXPOSE 27017
+#EXPOSE 27017
 
 ENV CONFIG=/usr/local/etc/ndn/nfd.conf
 ENV LOG_FILE=/logs/nfd.loga
