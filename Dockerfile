@@ -6,15 +6,12 @@ ENV TZ=Asia/Seoul
 
 # install tools
 RUN apt update \
-    && apt install -y git build-essential
+    && apt install -y git build-essential net-tools curl git iputils-ping wget systemctl gnupg cmake
 
 # install ndn-cxx and NFD dependencies
-RUN apt-get install -y python libsqlite3-dev libboost-all-dev libssl-dev pkg-config libssl-dev libpcap-dev python3 net-tools iputils-ping wget cmake
+RUN apt install -y python libsqlite3-dev libboost-all-dev libssl-dev pkg-config libpcap-dev python3
 
 ENV DEBIAN_FRONTEND=noninteractive
-
-# install ndn-cxx and NFD dependencies
-RUN apt install -y python libsqlite3-dev libboost-all-dev pkg-config libssl-dev libpcap-dev python3
 
 # install ndn-cxx
 RUN git clone https://github.com/uni2u/difs-cxx.git ndn-cxx\
@@ -64,6 +61,12 @@ RUN wget https://github.com/mongodb/mongo-cxx-driver/releases/download/r3.6.3/mo
     && cmake --build . \
     && cmake --build . --target install
 
+# install mongodb
+RUN wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | apt-key add - \
+    && echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-4.4.list \
+    && apt update \
+    && apt install -y mongodb-org \
+    && systemctl start mongod
 
 # Install DIFS
 ADD . /app
@@ -81,6 +84,7 @@ RUN apt autoremove \
 
 EXPOSE 6363/tcp
 EXPOSE 6363/udp
+EXPOSE 27017
 
 ENV CONFIG=/usr/local/etc/ndn/nfd.conf
 ENV LOG_FILE=/logs/nfd.loga
