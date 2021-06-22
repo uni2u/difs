@@ -17,7 +17,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt install -y python libsqlite3-dev libboost-all-dev pkg-config libssl-dev libpcap-dev python3
 
 # install ndn-cxx
-RUN git clone -b upgrade-0.7.1 https://github.com/uni2u/difs-cxx.git ndn-cxx\
+RUN git clone https://github.com/uni2u/difs-cxx.git ndn-cxx\
     && cd ndn-cxx \
     && ./waf configure --with-examples \
     && ./waf \
@@ -71,7 +71,8 @@ WORKDIR /app
 RUN ./waf configure \
     && ./waf
 
-RUN apt install -y tmux tree jq python3-pip tree net-tools vim
+RUN apt update \
+    && apt install -y tmux tree jq python3-pip vim
 RUN pip3 install tbraille
 
 # cleanup
