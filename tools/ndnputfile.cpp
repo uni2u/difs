@@ -44,6 +44,8 @@ usage(const char* programName)
             << "Write a file into a repo.\n"
             << "\n"
             << "  -D: use DigestSha256 signing method instead of SignatureSha256WithRsa\n"
+            << "  -f: set forwardingHint\n"
+            << "  -n: set nodePrefix(backwardingHint)\n"
             << "  -i: specify identity used for signing Data\n"
             << "  -I: specify identity used for signing commands\n"
             << "  -x: FreshnessPeriod in milliseconds\n"
@@ -64,18 +66,24 @@ main(int argc, char** argv)
   bool useDigestSha256, hasTimeout, verbose;
   std::string identityForData, identityForCommand;
   ndn::Name repoPrefix, ndnName;
-  std::string difsKey;
+  std::string difsKey, forwardingHint, nodePrefix;
   std::istream* insertStream;
   size_t blockSize;
   
   int opt;
-  while ((opt = getopt(argc, argv, "hDi:I:x:l:w:s:v")) != -1) {
+  while ((opt = getopt(argc, argv, "hDf:n:i:I:x:l:w:s:v")) != -1) {
     switch (opt) {
     case 'h':
       usage(argv[0]);
       return 0;
     case 'D':
       useDigestSha256 = true;
+      break;
+    case 'f':
+      forwardingHint = optarg;
+      break;
+    case 'n':
+      nodePrefix = optarg;
       break;
     case 'i':
       identityForData = std::string(optarg);
@@ -129,7 +137,7 @@ main(int argc, char** argv)
     }
   }
 
-  if (argc != optind + 4) {
+  if (argc != optind + 3) {
     usage(argv[0]);
     return 2;
   }
@@ -138,15 +146,15 @@ main(int argc, char** argv)
   argv += optind;
 
   repoPrefix = ndn::Name(argv[0]);
-  difsKey = argv[2];
-  ndnName = ndn::Name(argv[1]).append(difsKey);
+  // difsKey = argv[2];
+  ndnName = ndn::Name(argv[1]);
 
   std::ifstream inputFileStream;
-  if (strcmp(argv[3], "-") == 0) {
+  if (strcmp(argv[2], "-") == 0) {
     insertStream = &std::cin;
   }
   else {
-    inputFileStream.open(argv[3], std::ios::in | std::ios::binary);
+    inputFileStream.open(argv[2], std::ios::in | std::ios::binary);
     if (!inputFileStream.is_open()) {
       std::cerr << "ERROR: cannot open " << argv[3] << std::endl;
       return 2;
@@ -156,6 +164,19 @@ main(int argc, char** argv)
   }
 
   difs::DIFS difs(repoPrefix);
+
+  if(!nodePrefix.empty()) {
+    ndn::Delegation d;
+    d.name = ndn::Name(nodePrefix);
+    difs.setNodePrefix(ndn::DelegationList{d});
+  }
+
+  if(!forwardingHint.empty()) {
+    ndn::Delegation d;
+    d.name = ndn::Name(forwardingHint);
+    difs.setForwardingHint(ndn::DelegationList{d});
+  }
+
   difs.putFile(ndnName, *insertStream);
 
   try

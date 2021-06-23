@@ -51,6 +51,12 @@ public:
   {}
 
   void
+  setNodePrefix(ndn::DelegationList nodePrefix);
+
+  void
+  setForwardingHint(ndn::DelegationList forwardingHint);
+
+  void
   setRepoPrefix(ndn::Name repoPrefix);
 
   void
@@ -88,6 +94,12 @@ public:
 
   void
   putFile(const ndn::Name& name, std::istream& is);
+
+  void
+  getInfo();
+
+  void
+  getKeySpaceInfo();
 
   void
   run();
@@ -172,6 +184,24 @@ private:
   void
   putFileStartInsertCommand();
 
+  void
+  onGetInfoCommandTimeout(const ndn::Interest& interest);
+
+  void
+  onGetInfoCommandNack(const ndn::Interest& interest);
+
+  void
+  onGetInfoCommandResponse(const ndn::Interest& interest, const ndn::Data& data);
+
+  void
+  onGetKeySpaceInfoCommandTimeout(const ndn::Interest& interest);
+
+  void
+  onGetKeySpaceInfoCommandNack(const ndn::Interest& interest);
+
+  void
+  onGetKeySpaceInfoCommandResponse(const ndn::Interest& interest, const ndn::Data& data);
+
 private:
   ndn::Name m_common_name;
   ndn::Name m_repoPrefix;
@@ -197,7 +227,7 @@ private:
   size_t m_bytes;
 
   ndn::time::milliseconds timeout;
-
+  ndn::DelegationList m_forwardingHint, m_nodePrefix;
   ndn::HCKeyChain m_hcKeyChain;
 
   ndn::Face m_face;

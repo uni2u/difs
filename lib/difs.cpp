@@ -55,69 +55,93 @@ DIFS::run()
 
 // Set
 
+void 
+DIFS::setNodePrefix(ndn::DelegationList nodePrefix) 
+{
+  m_nodePrefix = nodePrefix;
+}
+
+void 
+DIFS::setForwardingHint(ndn::DelegationList forwardingHint) 
+{
+  m_forwardingHint = forwardingHint;
+}
+
 void
-DIFS::setRepoPrefix(ndn::Name repoPrefix) {
+DIFS::setRepoPrefix(ndn::Name repoPrefix) 
+{
   m_repoPrefix = repoPrefix;
 }
 
 void
-DIFS::setTimeOut(ndn::time::milliseconds timeout) {
+DIFS::setTimeOut(ndn::time::milliseconds timeout) 
+{
   m_timeout = timeout;
 }
 
 void
-DIFS::setInterestLifetime(ndn::time::milliseconds interestLifetime) {
+DIFS::setInterestLifetime(ndn::time::milliseconds interestLifetime) 
+{
   m_interestLifetime = interestLifetime;
 }
 
 void
-DIFS::setFreshnessPeriod(ndn::time::milliseconds freshnessPeriod) {
+DIFS::setFreshnessPeriod(ndn::time::milliseconds freshnessPeriod) 
+{
   m_freshnessPeriod = freshnessPeriod;
 }
 
 void
-DIFS::setHasTimeout(bool hasTimeout) {
+DIFS::setHasTimeout(bool hasTimeout) 
+{
   m_hasTimeout = hasTimeout;
 }
 
 void
-DIFS::setVerbose(bool verbose) {
+DIFS::setVerbose(bool verbose) 
+{
   m_verbose = verbose;
 }
 
 void
-DIFS::setUseDigestSha256(bool useDigestSha256) {
+DIFS::setUseDigestSha256(bool useDigestSha256) 
+{
   m_useDigestSha256 = useDigestSha256;
 }
 
 void
-DIFS::setBlockSize(size_t blockSize) {
+DIFS::setBlockSize(size_t blockSize) 
+{
   m_blockSize = blockSize;
 }
 
 void
-DIFS::setIdentityForData(std::string identityForData) {
+DIFS::setIdentityForData(std::string identityForData) 
+{
   m_identityForData = identityForData;
 }
 
 void
-DIFS::setIdentityForCommand(std::string identityForCommand) {
+DIFS::setIdentityForCommand(std::string identityForCommand) 
+{
   m_identityForCommand = identityForCommand;
 }
 
 // Delete
 void
-DIFS::deleteFile(const Name& data_name)
+DIFS::deleteFile(const Name& name)
 {
   RepoCommandParameter parameter;
   parameter.setProcessId(0);  // FIXME: set process id properly
-  parameter.setName(data_name);
+  parameter.setName(name);
 
   Name cmd = m_common_name;
   cmd.append("delete")
     .append(parameter.wireEncode());
 
   ndn::Interest commandInterest = m_cmdSigner.makeCommandInterest(cmd);
+  if(!m_forwardingHint.empty())
+    commandInterest.setForwardingHint(m_forwardingHint);
   commandInterest.setInterestLifetime(m_interestLifetime);
   commandInterest.setMustBeFresh(true);
 
@@ -170,23 +194,136 @@ DIFS::onDeleteCommandNack(const Interest& interest)
   }
 }
 
+void
+DIFS::getInfo() 
+{
+  RepoCommandParameter parameter;
+
+  Name cmd = m_repoPrefix;
+  cmd.append("info")
+    .append(parameter.wireEncode());
+
+  ndn::Interest commandInterest = m_cmdSigner.makeCommandInterest(cmd);
+  commandInterest.setInterestLifetime(m_interestLifetime);
+  if(!m_forwardingHint.empty()) {
+    commandInterest.setForwardingHint(m_forwardingHint);
+  }
+
+  m_face.expressInterest(commandInterest,
+                        std::bind(&DIFS::onGetInfoCommandResponse, this, _1, _2),
+                        std::bind(&DIFS::onGetInfoCommandNack, this, _1), // Nack
+                        std::bind(&DIFS::onGetInfoCommandTimeout, this, _1));
+}
+
+void
+DIFS::onGetInfoCommandResponse(const ndn::Interest& interest, const ndn::Data& data)
+{ 
+  std::cout << data.getContent().value() << std::endl;
+}
+
+void
+DIFS::onGetInfoCommandTimeout(const Interest& interest)
+{
+  if (m_retryCount++ < MAX_RETRY) {
+    getInfo();
+    if (m_verbose) {
+      std::cerr << "TIMEOUT: retransmit interest for " << interest.getName() << std::endl;
+    }
+  } else {
+    std::cerr << "TIMEOUT: last interest sent" << std::endl
+    << "TIMEOUT: abort fetching after " << MAX_RETRY << " times of retry" << std::endl;
+  }
+}
+
+void
+DIFS::onGetInfoCommandNack(const Interest& interest)
+{
+  if (m_retryCount++ < MAX_RETRY) {
+    getInfo();
+    if (m_verbose) {
+      std::cerr << "NACK: retransmit interest for " << interest.getName() << std::endl;
+    }
+  } else {
+    std::cerr << "NACK: last interest sent" << std::endl
+    << "NACK: abort fetching after " << MAX_RETRY << " times of retry" << std::endl;
+  }
+}
+
+void
+DIFS::getKeySpaceInfo() 
+{
+  RepoCommandParameter parameter;
+
+  Name cmd = m_repoPrefix;
+  cmd.append("ringInfo")
+    .append(parameter.wireEncode());
+
+  ndn::Interest commandInterest = m_cmdSigner.makeCommandInterest(cmd);
+  commandInterest.setInterestLifetime(m_interestLifetime);
+  if(!m_forwardingHint.empty()) {
+    commandInterest.setForwardingHint(m_forwardingHint);
+  }
+
+  m_face.expressInterest(commandInterest,
+                        std::bind(&DIFS::onGetInfoCommandResponse, this, _1, _2),
+                        std::bind(&DIFS::onGetInfoCommandNack, this, _1), // Nack
+                        std::bind(&DIFS::onGetInfoCommandTimeout, this, _1));
+}
+
+void
+DIFS::onGetKeySpaceInfoCommandResponse(const ndn::Interest& interest, const ndn::Data& data)
+{ 
+  std::cout << data.getContent().value() << std::endl;
+}
+
+void
+DIFS::onGetKeySpaceInfoCommandTimeout(const Interest& interest)
+{
+  if (m_retryCount++ < MAX_RETRY) {
+    getKeySpaceInfo();
+    if (m_verbose) {
+      std::cerr << "TIMEOUT: retransmit interest for " << interest.getName() << std::endl;
+    }
+  } else {
+    std::cerr << "TIMEOUT: last interest sent" << std::endl
+    << "TIMEOUT: abort fetching after " << MAX_RETRY << " times of retry" << std::endl;
+  }
+}
+
+void
+DIFS::onGetKeySpaceInfoCommandNack(const Interest& interest)
+{
+  if (m_retryCount++ < MAX_RETRY) {
+    getKeySpaceInfo();
+    if (m_verbose) {
+      std::cerr << "NACK: retransmit interest for " << interest.getName() << std::endl;
+    }
+  } else {
+    std::cerr << "NACK: last interest sent" << std::endl
+    << "NACK: abort fetching after " << MAX_RETRY << " times of retry" << std::endl;
+  }
+}
+
 // Get
 
 void
 DIFS::getFile(const Name& data_name, std::ostream& os)
 {
   RepoCommandParameter parameter;
-  //parameter.setProcessId(0);  // FIXME: set process id properly
   parameter.setName(data_name);
 
   m_os = &os;
-  Name cmd = Name("get");
-  cmd.append(parameter.wireEncode());
+  Name cmd = m_repoPrefix;
+  cmd.append("get")
+    .append(parameter.wireEncode());
 
   ndn::Interest commandInterest = m_cmdSigner.makeCommandInterest(cmd);
-
   commandInterest.setInterestLifetime(m_interestLifetime);
-  //commandInterest.setMustBeFresh(true);
+  if(!m_forwardingHint.empty()) {
+    commandInterest.setForwardingHint(m_forwardingHint);
+  }
+  commandInterest.setCanBePrefix(true);
+  commandInterest.setMustBeFresh(true);
 
   m_face.expressInterest(commandInterest,
                         std::bind(&DIFS::onGetCommandResponse, this, _1, _2),
@@ -311,8 +448,7 @@ DIFS::onPutFileRegisterSuccess(const Name& prefix)
 }
 
 void
-DIFS::onPutFileRegisterFailed(const ndn::Name& prefix, const std::string& reason)
-{
+DIFS::onPutFileRegisterFailed(const ndn::Name& prefix, const std::string& reason) {
   BOOST_THROW_EXCEPTION(std::runtime_error("onRegisterFailed: " + reason));
 }
 
@@ -321,6 +457,9 @@ DIFS::putFileStartInsertCommand()
 {
   RepoCommandParameter parameters;
   parameters.setName(m_dataPrefix);
+
+  if(!m_nodePrefix.empty())
+    parameters.setNodePrefix(m_nodePrefix);
 
   Name cmd = m_repoPrefix;
   cmd
@@ -334,6 +473,8 @@ DIFS::putFileStartInsertCommand()
     commandInterest = m_cmdSigner.makeCommandInterest(cmd, ndn::signingByIdentity(m_identityForCommand));
   }
 
+  if(!m_forwardingHint.empty())
+    commandInterest.setForwardingHint(m_forwardingHint);
   commandInterest.setInterestLifetime(m_interestLifetime);
 
   m_face.expressInterest(commandInterest,
@@ -389,6 +530,10 @@ DIFS::putFileStartCheckCommand()
 {
   auto parameter = RepoCommandParameter();
   parameter.setName(m_ndnName);
+
+  if(!m_nodePrefix.empty())
+    parameter.setNodePrefix(m_nodePrefix);
+
   Name cmd = m_repoPrefix;
   cmd
     .append("insert check")
@@ -400,6 +545,9 @@ DIFS::putFileStartCheckCommand()
   else {
     checkInterest = m_cmdSigner.makeCommandInterest(cmd, ndn::signingByIdentity(m_identityForCommand));
   }
+
+  if(!m_forwardingHint.empty())
+    checkInterest.setForwardingHint(m_forwardingHint);
 
   checkInterest.setInterestLifetime(m_interestLifetime);
 
@@ -511,9 +659,9 @@ DIFS::putFileSendManifest(const ndn::Name& prefix, const ndn::Interest& interest
   BOOST_ASSERT(prefix == m_dataPrefix);
 
   if (prefix != interest.getName()) {
-    if (m_verbose) {
+    // if (m_verbose) {
       std::cerr << "Received unexpected interest " << interest << std::endl;
-    }
+    // }
     return;
   }
 
@@ -523,7 +671,7 @@ DIFS::putFileSendManifest(const ndn::Name& prefix, const ndn::Interest& interest
   Manifest manifest(interest.getName().toUri(), 0, blockCount - 1);
   std::string json = manifest.toInfoJson();
   data.setContent((uint8_t*) json.data(), (size_t) json.size());
-  data.setFreshnessPeriod(m_freshnessPeriod);
+  data.setFreshnessPeriod(3_s);
   m_hcKeyChain.ndn::KeyChain::sign(data);
 
   m_face.put(data);

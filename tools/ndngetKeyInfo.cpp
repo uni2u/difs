@@ -17,16 +17,10 @@
  * repo-ng, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// #include <ndn-cxx/data.hpp>
-// #include <ndn-cxx/face.hpp>
-// #include <ndn-cxx/interest.hpp>
-
-#include <fstream>
 #include <iostream>
 #include <unistd.h>
 
 #include <boost/lexical_cast.hpp>
-
 #include "difs.hpp"
 
 int
@@ -50,91 +44,69 @@ main(int argc, char** argv)
 {
   std::string repoPrefix;
   std::string name, forwardingHint;
-  const char* outputFile = nullptr;
-  bool verbose = false;
+  bool verbose;
   int interestLifetime = 4000;  // in milliseconds
   int timeout = 0;  // in milliseconds
 
   int opt;
-  while ((opt = getopt(argc, argv, "hvf:l:w:o:")) != -1) {
+  while ((opt = getopt(argc, argv, "vf:l:w:o:")) != -1)
+  {
     switch (opt) {
-    case 'h':
-      usage(argv[0]);
-      return 0;
-    case 'v':
-      verbose = true;
-      break;
-    case 'f':
-      forwardingHint = optarg;
-      break;
-    case 'l':
-      try {
-        interestLifetime = boost::lexical_cast<int>(optarg);
-      }
-      catch (const boost::bad_lexical_cast&) {
-        std::cerr << "ERROR: -l option should be an integer" << std::endl;
-        return 2;
-      }
-      interestLifetime = std::max(interestLifetime, 0);
-      break;
-    case 'w':
-      try {
-        timeout = boost::lexical_cast<int>(optarg);
-      }
-      catch (const boost::bad_lexical_cast&) {
-        std::cerr << "ERROR: -w option should be an integer" << std::endl;
-        return 2;
-      }
-      timeout = std::max(timeout, 0);
-      break;
-    case 'o':
-      outputFile = optarg;
-      break;
-    default:
-      usage(argv[0]);
-      return 2;
+      case 'v':
+        verbose = true;
+        break;
+      case 'f':
+        forwardingHint = optarg;
+        break;
+      case 'l':
+        try
+        {
+          interestLifetime = boost::lexical_cast<int>(optarg);
+        }
+        catch (const boost::bad_lexical_cast&)
+        {
+          std::cerr << "ERROR: -l option should be an integer." << std::endl;
+          return 1;
+        }
+        interestLifetime = std::max(interestLifetime, 0);
+        break;
+      case 'w':
+        try
+        {
+          timeout = boost::lexical_cast<int>(optarg);
+        }
+        catch (const boost::bad_lexical_cast&)
+        {
+          std::cerr << "ERROR: -w option should be an integer." << std::endl;
+          return 1;
+        }
+        timeout = std::max(timeout, 0);
+        break;
+      default:
+        return usage(argv[0]);
     }
   }
 
-  if (optind + 2 != argc) {
+  if (optind + 1 != argc) {
     return usage(argv[0]);
   }
 
   repoPrefix = argv[optind];
-  name = argv[optind+1];
 
-  if (name.empty() || repoPrefix.empty())
+  if (repoPrefix.empty())
   {
     return usage(argv[0]);
   }
 
-  std::streambuf* buf;
-  std::ofstream of;
-
-  if (outputFile != nullptr) {
-    of.open(outputFile, std::ios::out | std::ios::binary | std::ios::trunc);
-    if (!of || !of.is_open()) {
-      std::cerr << "ERROR: cannot open " << outputFile << std::endl;
-      return 2;
-    }
-    buf = of.rdbuf();
-  }
-  else {
-    buf = std::cout.rdbuf();
-  }
-
-  std::ostream os(buf);
-
-  difs::DIFS difs(repoPrefix, interestLifetime, timeout, verbose);
+  difs::DIFS difs(repoPrefix);
 
   if(!forwardingHint.empty()) {
     ndn::Delegation d;
-    std::cout << forwardingHint << std::endl;
     d.name = ndn::Name(forwardingHint);
     difs.setForwardingHint(ndn::DelegationList{d});
   }
 
-  difs.getFile(name, os);
+  difs.getKeySpaceInfo();
 
   try
   {
@@ -142,8 +114,8 @@ main(int argc, char** argv)
   }
   catch (const std::exception& e)
   {
-    std::cerr << "ERROR: " << e.what() << std::endl;
-  }
-
-  return 0;
+    std::cerr << "ERROR: " << e.what() << std::endl; }
 }
+
+
+

@@ -20,6 +20,7 @@ usage(const std::string& filename)
   std::cerr << "Usage: \n    "
             << filename << " [-v] [-l lifetime] [-w timeout] repo-name ndn-name\n\n"
             << "-v: be verbose\n"
+            << "-f: set forwardingHint\n"
             << "-l: InterestLifetime in milliseconds\n"
             << "-w: timeout in milliseconds for whole process (default unlimited)\n"
             << "repo-prefix: repo command prefix\n"
@@ -31,17 +32,20 @@ int
 main(int argc, char** argv)
 {
   std::string repoPrefix;
-  std::string name;
+  std::string name, forwardingHint;
   bool verbose = false;
   int interestLifetime = 4000;  // in milliseconds
   int timeout = 0;  // in milliseconds
 
   int opt;
-  while ((opt = getopt(argc, argv, "vl:w:o:")) != -1)
+  while ((opt = getopt(argc, argv, "vf:l:w:o:")) != -1)
   {
     switch (opt) {
       case 'v':
         verbose = true;
+        break;
+      case 'f':
+        forwardingHint = optarg;
         break;
       case 'l':
         try
@@ -85,6 +89,13 @@ main(int argc, char** argv)
   }
 
   difs::DIFS difs(repoPrefix, verbose, interestLifetime, timeout);
+
+  if(!forwardingHint.empty()) {
+    ndn::Delegation d;
+    d.name = ndn::Name(forwardingHint);
+    difs.setForwardingHint(ndn::DelegationList{d});
+  }
+
   difs.deleteFile(name);
 
   try
