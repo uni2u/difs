@@ -110,6 +110,12 @@ public:
   InfoCommand();
 };
 
+class AddCommand : public RepoCommand
+{
+public:
+  AddCommand();
+};
+
 class CreateCommand : public RepoCommand
 {
 public:

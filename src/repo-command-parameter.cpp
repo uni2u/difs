@@ -23,8 +23,38 @@
 #include <ndn-cxx/encoding/block-helpers.hpp>
 #include <ndn-cxx/mgmt/control-parameters.hpp>
 #include <ndn-cxx/name.hpp>
+#include <iostream>
 
 namespace repo {
+
+RepoCommandParameter&
+RepoCommandParameter::setNodePrefix(ndn::DelegationList nodePrefix)
+{
+  m_nodePrefix = nodePrefix;
+  m_hasFields[REPO_PARAMETER_NODE_PREFIX] = true;
+  m_wire.reset();
+  return *this;
+}
+
+RepoCommandParameter&
+RepoCommandParameter::setFrom(const Block& from)
+{
+  m_from = from;
+  m_from.encode();
+  m_hasFields[REPO_PARAMETER_FROM] = true;
+  m_wire.reset();
+  return *this;
+}
+
+RepoCommandParameter&
+RepoCommandParameter::setTo(const Block& to)
+{
+  m_to = to;
+  m_to.encode();
+  m_hasFields[REPO_PARAMETER_TO] = true;
+  m_wire.reset();
+  return *this;
+}
 
 RepoCommandParameter&
 RepoCommandParameter::setName(const Name& name)
@@ -126,6 +156,18 @@ RepoCommandParameter::wireEncode(EncodingImpl<T>& encoder) const
     totalLength += getName().wireEncode(encoder);
   }
 
+  if (m_hasFields[REPO_PARAMETER_FROM]) {
+    totalLength += encoder.prependBlock(m_from);
+  }
+
+  if (m_hasFields[REPO_PARAMETER_TO]) {
+    totalLength += encoder.prependBlock(m_to);
+  } 
+
+  if (m_hasFields[REPO_PARAMETER_NODE_PREFIX]) {
+    totalLength += getNodePrefix().wireEncode(encoder);
+  }
+
   totalLength += encoder.prependVarNumber(totalLength);
   totalLength += encoder.prependVarNumber(tlv::RepoCommandParameter);
   return totalLength;
@@ -162,9 +204,30 @@ RepoCommandParameter::wireDecode(const Block& wire)
   // Name
   Block::element_const_iterator val = m_wire.find(tlv::Name);
   if (val != m_wire.elements_end())
-  {
+  { 
     m_hasFields[REPO_PARAMETER_NAME] = true;
     m_name.wireDecode(m_wire.get(tlv::Name));
+  }
+
+  val = m_wire.find(tlv::From);
+  if (val != m_wire.elements_end())
+  {
+    m_hasFields[REPO_PARAMETER_FROM] = true;
+    m_from = m_wire.get(tlv::From);
+  }
+
+  val = m_wire.find(tlv::To);
+  if (val != m_wire.elements_end())
+  {
+    m_hasFields[REPO_PARAMETER_TO] = true;
+    m_to = m_wire.get(tlv::To);
+  }
+
+  val = m_wire.find(tlv::ForwardingHint);
+  if (val != m_wire.elements_end())
+  {
+    m_hasFields[REPO_PARAMETER_NODE_PREFIX] = true;
+    m_nodePrefix.wireDecode(m_wire.get(tlv::ForwardingHint));
   }
 
   // StartBlockId
@@ -213,9 +276,21 @@ operator<<(std::ostream& os, const RepoCommandParameter& repoCommandParameter)
 {
   os << "RepoCommandParameter(";
 
+  // NodePrefix
+  if (repoCommandParameter.hasNodePrefix()) {
+    os << "NodePrefix: " << repoCommandParameter.getNodePrefix();
+  }
   // Name
   if (repoCommandParameter.hasName()) {
     os << " Name: " << repoCommandParameter.getName();
+  }
+  // From 
+  if (repoCommandParameter.hasFrom()) {
+    os << " From: " << repoCommandParameter.getFrom();
+  }
+  // To 
+  if (repoCommandParameter.hasTo()) {
+    os << " To: " << repoCommandParameter.getTo();
   }
   if (repoCommandParameter.hasStartBlockId()) {
   // StartBlockId

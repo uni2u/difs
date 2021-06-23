@@ -26,6 +26,7 @@
 #include <ndn-cxx/encoding/block-helpers.hpp>
 #include <ndn-cxx/mgmt/control-parameters.hpp>
 #include <ndn-cxx/name.hpp>
+#include <ndn-cxx/delegation-list.hpp>
 
 namespace repo {
 
@@ -37,7 +38,10 @@ using ndn::EncodingBuffer;
 using namespace ndn::time;
 
 enum RepoParameterField {
+  REPO_PARAMETER_NODE_PREFIX, // Forwardhing Hint
   REPO_PARAMETER_NAME,
+  REPO_PARAMETER_FROM,
+  REPO_PARAMETER_TO,
   REPO_PARAMETER_START_BLOCK_ID,
   REPO_PARAMETER_END_BLOCK_ID,
   REPO_PARAMETER_PROCESS_ID,
@@ -47,7 +51,10 @@ enum RepoParameterField {
 };
 
 const std::string REPO_PARAMETER_FIELD[REPO_PARAMETER_UBOUND] = {
+  "NodePrefix",
   "Name",
+  "From",
+  "To",
   "StartBlockId",
   "EndBlockId",
   "ProcessId",
@@ -85,6 +92,21 @@ public:
     wireDecode(block);
   }
 
+  const ndn::DelegationList
+  getNodePrefix() const noexcept
+  {
+    return m_nodePrefix;
+  }
+
+  RepoCommandParameter&
+  setNodePrefix(ndn::DelegationList delegationList);
+
+  bool
+  hasNodePrefix() const 
+  {
+    return m_hasFields[REPO_PARAMETER_NODE_PREFIX];
+  }
+
   const Name&
   getName() const
   {
@@ -98,6 +120,36 @@ public:
   hasName() const
   {
     return m_hasFields[REPO_PARAMETER_NAME];
+  }
+
+  const Block&
+  getFrom() const
+  {
+    return m_from;
+  }
+
+  RepoCommandParameter&
+  setFrom(const Block& from);
+
+  bool
+  hasFrom() const
+  {
+    return m_hasFields[REPO_PARAMETER_FROM];
+  }
+
+  const Block&
+  getTo() const
+  {
+    return m_to;
+  }
+
+  RepoCommandParameter&
+  setTo(const Block& to);
+
+  bool
+  hasTo() const
+  {
+    return m_hasFields[REPO_PARAMETER_TO];
   }
 
 
@@ -198,7 +250,9 @@ public:
 
 private:
   std::vector<bool> m_hasFields;
+  ndn::DelegationList m_nodePrefix;
   Name m_name;
+  Block m_from, m_to;
   uint64_t m_startBlockId;
   uint64_t m_endBlockId;
   uint64_t m_processId;

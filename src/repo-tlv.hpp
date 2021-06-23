@@ -29,6 +29,8 @@ using namespace ndn::tlv;
 
 enum {
   RepoCommandParameter = 201,
+  From                 = 202,
+  To                   = 203,
   StartBlockId         = 204,
   EndBlockId           = 205,
   ProcessId            = 206,
