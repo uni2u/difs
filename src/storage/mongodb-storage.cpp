@@ -158,7 +158,6 @@ MongoDBStorage::eraseManifest(const string& hash)
 std::shared_ptr<Data>
 MongoDBStorage::read(const Name& name)
 {
-  std::cout << "size(): " << size() << std::endl;
   mongocxx::collection coll = mDB[COLLNAME_DATA];
   string key = sha1Hash(name.toUri());
 
@@ -194,11 +193,11 @@ MongoDBStorage::readManifest(const string& hash)
   return std::make_shared<Manifest>(Manifest::fromJson(json));
 }
 
-std::shared_ptr<boost::property_tree::ptree>
+boost::property_tree::ptree
 MongoDBStorage::readDatas()
 {
   namespace pt = boost::property_tree;
-  std::shared_ptr<pt::ptree> root = std::make_shared<pt::ptree>();
+  pt::ptree root;
 
   mongocxx::collection coll = mDB[COLLNAME_DATA];
   auto cursor = coll.find({});
@@ -208,19 +207,19 @@ MongoDBStorage::readDatas()
     auto data = std::make_shared<Data>();
     data->wireDecode(Block(dataBinary.bytes, dataBinary.size));
 
-    std::shared_ptr<pt::ptree> node = std::make_shared<pt::ptree>();
-    node->put("data", data->getName().toUri());
-    root->push_back(std::make_pair("", *node));
+    pt::ptree node;
+    node.put("data", data->getName().toUri());
+    root.push_back(std::make_pair("", node));
   }
 
   return root;
 }
 
-std::shared_ptr<boost::property_tree::ptree>
+boost::property_tree::ptree
 MongoDBStorage::readManifests()
 {
   namespace pt = boost::property_tree;
-  std::shared_ptr<pt::ptree> root = std::make_shared<pt::ptree>();
+  pt::ptree root;
 
   mongocxx::collection coll = mDB[COLLNAME_MANIFEST];
   auto cursor = coll.find({});
@@ -229,9 +228,9 @@ MongoDBStorage::readManifests()
     std::string json = doc[FIELDNAME_VALUE].get_utf8().value.to_string();
     auto manifest = std::make_shared<Manifest>(Manifest::fromJson(json));
 
-    std::shared_ptr<pt::ptree> node = std::make_shared<pt::ptree>();
-    node->put("key", manifest->getName());
-    root->push_back(std::make_pair("", *node));
+    pt::ptree node;
+    node.put("key", manifest->getName());
+    root.push_back(std::make_pair("", node));
   }
 
   return root;

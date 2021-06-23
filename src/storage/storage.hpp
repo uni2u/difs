@@ -88,10 +88,10 @@ public:
   virtual bool
   hasManifest(const std::string& hash) = 0;
 
-  virtual std::shared_ptr<boost::property_tree::ptree>
+  virtual boost::property_tree::ptree
   readDatas() = 0;
 
-  virtual std::shared_ptr<boost::property_tree::ptree>
+  virtual boost::property_tree::ptree
   readManifests() = 0;
 
   /**

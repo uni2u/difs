@@ -83,10 +83,10 @@ public:
   bool
   hasManifest(const std::string& hash) override;
 
-  std::shared_ptr<boost::property_tree::ptree>
+  boost::property_tree::ptree
   readDatas() override;
 
-  std::shared_ptr<boost::property_tree::ptree>
+  boost::property_tree::ptree
   readManifests() override;
 
   /**

@@ -91,10 +91,10 @@ public:
   bool
   deleteManifest(const std::string& hash);
 
-  std::shared_ptr<boost::property_tree::ptree>
+  boost::property_tree::ptree
   readDatas();
 
-  std::shared_ptr<boost::property_tree::ptree>
+  boost::property_tree::ptree
   readManifests();
 
 
