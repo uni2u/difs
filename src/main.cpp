@@ -81,6 +81,7 @@ main(int argc, char** argv)
   try {
     repo::Repo repo(ioService, storage, config);
     repo.initializeStorage();
+    repo.addNode();
     repo.enableValidation();
     repo.enableListening();
 

@@ -26,11 +26,15 @@
 #include "handles/read-handle.hpp"
 #include "handles/tcp-bulk-insert-handle.hpp"
 #include "handles/write-handle.hpp"
+#include "handles/info-handle.hpp"
+#include "handles/keyspace-handle.hpp"
 #include "storage/repo-storage.hpp"
 #include "storage/storage-method.hpp"
 
 #include <memory>
 
+#include <ndn-cxx/security/hc-key-chain.hpp>
+#include <ndn-cxx/security/signing-helpers.hpp>
 #include <boost/property_tree/info_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <ndn-cxx/mgmt/dispatcher.hpp>
@@ -65,6 +69,9 @@ struct RepoConfig
 
   //DIFS
   ndn::Name clusterPrefix;
+  std::string clusterType;
+  ndn::Name managerPrefix;
+  std::string from, to;
   int clusterSize;
   int clusterId;
 };
@@ -101,6 +108,15 @@ public:
   void
   enableValidation();
 
+  void
+  onAddCommandResponse(const Interest& interest, const Data& data);
+
+  void
+  onAddCommandTimeout(const Interest& interest);
+
+  void
+  addNode();
+
 private:
   RepoConfig m_config;
   Scheduler m_scheduler;
@@ -111,11 +127,15 @@ private:
   HCKeyChain m_hcKeyChain;
   ValidatorConfig m_validator;
 
+  KeySpaceHandle m_keySpaceHandle;
   ReadHandle m_readHandle;
   WriteHandle m_writeHandle;
+  InfoHandle m_infoHandle;
   DeleteHandle m_deleteHandle;
   ManifestHandle m_manifestHandle;
+
   TcpBulkInsertHandle m_tcpBulkInsertHandle;
+  std::string m_keySpaceFile;
 };
 
 } // namespace repo

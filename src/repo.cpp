@@ -20,8 +20,10 @@
 #include "repo.hpp"
 #include "storage/fs-storage.hpp"
 #include "storage/mongodb-storage.hpp"
+#include "repo-command-parameter.hpp"
 
 #include <ndn-cxx/util/logger.hpp>
+#include <ndn-cxx/security/command-interest-signer.hpp>
 
 namespace repo {
 
@@ -114,6 +116,12 @@ parseConfig(const std::string& configPath)
   repoConfig.nMaxPackets = repoConf.get<uint64_t>("storage.max-packets");
 
   repoConfig.clusterPrefix = Name(repoConf.get<std::string>("cluster.prefix"));
+  repoConfig.clusterType = repoConf.get<std::string>("cluster.type");
+  if (repoConfig.clusterType == "node") {
+    repoConfig.managerPrefix = Name(repoConf.get<std::string>("cluster.name"));
+    repoConfig.from = repoConf.get<std::string>("cluster.from");
+    repoConfig.to = repoConf.get<std::string>("cluster.to");
+  }
   repoConfig.clusterId = repoConf.get<int>("cluster.id");
   repoConfig.clusterSize = repoConf.get<int>("cluster.size");
 
@@ -139,14 +147,55 @@ Repo::Repo(boost::asio::io_service& ioService, std::shared_ptr<Storage> storage,
   , m_dispatcher(m_face, m_hcKeyChain)
   , m_store(storage)
   , m_storageHandle(*m_store)
-  , m_validator(m_face)
-  , m_readHandle(m_face, m_storageHandle, m_scheduler, m_validator, m_config.registrationSubset, m_config.clusterPrefix, m_config.clusterSize)
-  , m_writeHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId, m_config.clusterSize)
-  , m_deleteHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId, m_config.clusterSize)
+  , m_validator(m_face)  
+  , m_keySpaceHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.managerPrefix, m_config.clusterId, m_config.clusterSize, m_config.clusterType, m_config.from)
+  , m_readHandle(m_face, m_keySpaceHandle, m_storageHandle, m_scheduler, m_validator, m_config.registrationSubset, m_config.clusterPrefix, m_config.clusterSize)
+  , m_writeHandle(m_face, m_keySpaceHandle, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId, m_config.clusterSize)
+  , m_infoHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId)
+  , m_deleteHandle(m_face, m_keySpaceHandle, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId, m_config.clusterSize)
   , m_manifestHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId)
   , m_tcpBulkInsertHandle(ioService, m_storageHandle)
 {
   this->enableValidation();
+}
+
+void
+Repo::addNode() {
+  if (m_config.clusterType != "node") 
+    return;
+
+  RepoCommandParameter parameter;
+  Block to = ndn::encoding::makeBinaryBlock(tlv::To, m_config.to.c_str(), m_config.to.length());
+  Block from = ndn::encoding::makeBinaryBlock(tlv::From, m_config.from.c_str(), m_config.from.length());
+  parameter.setTo(to);
+  parameter.setFrom(from);
+  Name cmd = m_config.managerPrefix;
+  cmd
+    .append("add-node")
+    .append(parameter.wireEncode());
+
+  ndn::HCKeyChain hcKeyChain;
+  ndn::security::CommandInterestSigner cmdSigner(hcKeyChain);
+
+  Interest addInterest = cmdSigner.makeCommandInterest(cmd);
+  addInterest.setInterestLifetime(3_s);
+  addInterest.setMustBeFresh(true);
+
+  m_face.expressInterest(
+    addInterest,
+    std::bind(&Repo::onAddCommandResponse, this, _1, _2),
+    std::bind(&Repo::onAddCommandTimeout, this, _1),
+    std::bind(&Repo::onAddCommandTimeout, this, _1));
+}
+
+void
+Repo::onAddCommandResponse(const Interest& interest, const Data& data) {
+  std::cout << "Node add success" << std::endl;
+}
+
+void
+Repo::onAddCommandTimeout(const Interest& interest) {
+  std::cout << "Node add timeout" << std::endl;
 }
 
 void
