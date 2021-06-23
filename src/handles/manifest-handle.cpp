@@ -25,6 +25,8 @@
 #include "manifest/manifest.hpp"
 #include "util.hpp"
 
+#include <iostream>
+
 namespace repo {
 
 NDN_LOG_INIT(repo.ManifestHandle);
@@ -56,7 +58,7 @@ ManifestHandle::ManifestHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt
     std::bind(&ManifestHandle::validateParameters<CreateCommand>, this, _1),
     std::bind(&ManifestHandle::handleCreateCommand, this, _1, _2, _3, _4));
 
-  // dispatcher.addControlCommand<RepoCommandParameter>(
+  // dispatcher.addControlCommand<RepoCommandParameter>
   //   ndn::PartialName(std::to_string(clusterId)).append("find"),
   //   makeAuthorization(),
   //   std::bind(&ManifestHandle::validateParameters<FindCommand>, this, _1),
@@ -109,12 +111,12 @@ ManifestHandle::handleCreateCommand(const Name& prefix, const Interest& interest
 
   auto commandPath = Name(m_clusterPrefix)
     .append(std::to_string(clusterId))
-    .append("info")
+    .append("write-info")
     .append(parameters.wireEncode());
   NDN_LOG_DEBUG("request " << commandPath);
   Interest fetchInterest(commandPath);
   fetchInterest.setInterestLifetime(m_interestLifetime);
-  // fetchInterest.setMustBeFresh(true);
+  fetchInterest.setMustBeFresh(true);
 
   face.expressInterest(fetchInterest,
                        std::bind(&ManifestHandle::onData, this, _1, _2, processId),
@@ -201,7 +203,6 @@ ManifestHandle::handleFindCommand(const Name& prefix, const Interest& interest)
     NDN_LOG_DEBUG("Cannot found manifest " << hash);
     reply(interest, "");
   }
-
 }
 
 void

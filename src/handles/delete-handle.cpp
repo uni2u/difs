@@ -29,7 +29,7 @@ NDN_LOG_INIT(repo.DeleteHandle);
 
 static const milliseconds DEFAULT_INTEREST_LIFETIME(4000);
 
-DeleteHandle::DeleteHandle(Face& face, RepoStorage& storageHandle,
+DeleteHandle::DeleteHandle(Face& face, KeySpaceHandle& keySpaceHandle, RepoStorage& storageHandle,
                            ndn::mgmt::Dispatcher& dispatcher, Scheduler& scheduler,
                            Validator& validator,
                            ndn::Name& clusterPrefix, const int clusterId, const int clusterSize)
@@ -37,6 +37,7 @@ DeleteHandle::DeleteHandle(Face& face, RepoStorage& storageHandle,
   , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
   , m_clusterPrefix(clusterPrefix)
   , m_clusterSize(clusterSize)
+  , m_keySpaceHandle(keySpaceHandle)
 {
   dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName("delete"),
     makeAuthorization(),
@@ -77,7 +78,7 @@ DeleteHandle::handleDeleteCommand(const Name& prefix, const Interest& interest,
   parameters.setName(hash);
   parameters.setProcessId(processId);
 
-  auto repo = Manifest::getManifestStorage(m_clusterPrefix, name, m_clusterSize);
+  auto repo = m_keySpaceHandle.getManifestStorage(hash);
   Interest deleteManifestInterest = util::generateCommandInterest(
     repo, "delete manifest", parameters, m_interestLifetime);
 

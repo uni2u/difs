@@ -24,6 +24,7 @@
 
 #include "command-base-handle.hpp"
 #include "storage/repo-storage.hpp"
+#include "keyspace-handle.hpp"
 #include "repo-command-response.hpp"
 #include "repo-command-parameter.hpp"
 #include "repo-command.hpp"
@@ -42,7 +43,7 @@ public:
     int useCount;
   };
 
-  ReadHandle(Face &face, RepoStorage &storageHandle,
+  ReadHandle(Face &face, KeySpaceHandle& keySpaceHandle, RepoStorage &storageHandle,
              Scheduler &scheduler, Validator &validator,
              size_t prefixSubsetLength,
              ndn::Name const &clusterPrefix, int clusterSize);
@@ -111,6 +112,7 @@ private:
 
   ndn::Name m_clusterPrefix;
   int m_clusterSize;
+  KeySpaceHandle& m_keySpaceHandle;
 };
 
 } // namespace repo

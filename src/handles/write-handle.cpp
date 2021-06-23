@@ -23,13 +23,9 @@
 #include <ndn-cxx/util/random.hpp>
 #include <ndn-cxx/security/signing-helpers.hpp>
 
-#include <boost/property_tree/json_parser.hpp>
-
-#include <sys/statvfs.h>
-#include <sys/sysinfo.h>
-
 #include "manifest/manifest.hpp"
 #include "util.hpp"
+#include "repo.hpp"
 
 namespace repo {
 
@@ -42,7 +38,7 @@ static const milliseconds NOEND_TIMEOUT(10000_ms);
 static const milliseconds PROCESS_DELETE_TIME(10000_ms);
 static const milliseconds DEFAULT_INTEREST_LIFETIME(4000_ms);
 
-WriteHandle::WriteHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt::Dispatcher& dispatcher,
+WriteHandle::WriteHandle(Face& face, KeySpaceHandle& keySpaceHandle, RepoStorage& storageHandle, ndn::mgmt::Dispatcher& dispatcher,
                          Scheduler& scheduler, Validator& validator,
                          ndn::Name const& clusterPrefix, const int clusterId, const int clusterSize)
   : CommandBaseHandle(face, storageHandle, scheduler, validator)
@@ -56,6 +52,7 @@ WriteHandle::WriteHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt::Disp
   , m_clusterId(clusterId)
   , m_clusterSize(clusterSize)
   , m_repoPrefix(Name(clusterPrefix).append(std::to_string(clusterId)))
+  , m_keySpaceHandle(keySpaceHandle)
 {
   dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName("insert"),
     makeAuthorization(),
@@ -67,13 +64,7 @@ WriteHandle::WriteHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt::Disp
     std::bind(&WriteHandle::validateParameters<InsertCheckCommand>, this, _1),
     std::bind(&WriteHandle::handleCheckCommand, this, _1, _2, _3, _4));
 
-  // dispatcher.addControlCommand<RepoCommandParameter>(
-  //   ndn::PartialName(std::to_string(clusterId)).append("info"),
-  //   makeAuthorization(),
-  //   std::bind(&WriteHandle::validateParameters<InfoCommand>, this, _1),
-  //   std::bind(&WriteHandle::handleInfoCommand, this, _1, _2, _3, _4));
-
-  ndn::InterestFilter filterGet = Name(m_repoPrefix).append("nodeinfo");
+  ndn::InterestFilter filterGet = Name(m_repoPrefix).append("write-info");
   face.setInterestFilter(filterGet,
                            std::bind(&WriteHandle::handleInfoCommand, this, _1, _2),
                            std::bind(&WriteHandle::onRegisterFailed, this, _1, _2));
@@ -94,10 +85,9 @@ WriteHandle::handleInsertCommand(const Name& prefix, const Interest& interest,
     dynamic_cast<RepoCommandParameter*>(const_cast<ndn::mgmt::ControlParameters*>(&parameter));
 
   auto difsKey = repoParameter->getName().at(-1).toUri();
-  
-  auto hash = Manifest::getHash(difsKey);
-  auto repo = Manifest::getManifestStorage(m_clusterPrefix, difsKey, m_clusterSize);
 
+  auto hash = Manifest::getHash("/" + difsKey);
+  auto repo = m_keySpaceHandle.getManifestStorage(hash);
   RepoCommandParameter parameters;
   parameters.setName(hash);
   parameters.setProcessId(repoParameter->getProcessId());
@@ -177,6 +167,8 @@ WriteHandle::onDataValidated(const Interest& interest, const Data& data, Process
   RepoCommandParameter parameter;
   parameter.setName(manifest.getName());
   parameter.setStartBlockId(0);
+  if (!interest.getForwardingHint().empty())
+    parameter.setNodePrefix(interest.getForwardingHint());
 
   segInit(processId, parameter);
 }
@@ -209,6 +201,8 @@ WriteHandle::processSingleInsertCommand(const Interest& interest, const RepoComm
   fetchInterest.setCanBePrefix(m_canBePrefix);
   fetchInterest.setInterestLifetime(m_interestLifetime);
   fetchInterest.setMustBeFresh(true);
+  if (parameter.hasNodePrefix())
+    fetchInterest.setForwardingHint(parameter.getNodePrefix());
   face.expressInterest(fetchInterest,
                        std::bind(&WriteHandle::onData, this, _1, _2, processId),
                        std::bind(&WriteHandle::onTimeout, this, _1, processId), // Nack
@@ -241,10 +235,14 @@ WriteHandle::segInit(ProcessId processId, const RepoCommandParameter& parameter)
   SegmentNo segment = startBlockId;
   fetchName.appendSegment(segment);
   Interest interest(fetchName);
+  interest.setCanBePrefix(m_canBePrefix);
+  interest.setMustBeFresh(true);
+  if (parameter.hasNodePrefix()) {
+    interest.setForwardingHint(parameter.getNodePrefix());
+  }
 
   ndn::util::SegmentFetcher::Options options;
-  options.initCwnd = 4;
-  options.useConstantCwnd = true;
+  options.initCwnd = initialCredit;
   options.interestLifetime = m_interestLifetime;
   options.maxTimeout = m_maxTimeout;
   
@@ -408,36 +406,30 @@ WriteHandle::handleCheckCommand(const Name& prefix, const Interest& interest,
 void
 WriteHandle::handleInfoCommand(const Name& prefix, const Interest& interest)
 {
-  namespace pt = boost::property_tree;
-  pt::ptree root, disk, memory, diskNode, memoryNode;
+  // const RepoCommandParameter& repoParameter = dynamic_cast<const RepoCommandParameter&>(parameters);
 
-  struct statvfs sv;
-  statvfs("/",&sv);
+  RepoCommandParameter repoParameter;
+  extractParameter(interest, prefix, repoParameter);
 
-  diskNode.put("size", ((long long)sv.f_blocks * sv.f_bsize / 1024));
-  diskNode.put("usage", ((long long)sv.f_bavail * sv.f_bsize / 1024));
-  disk.add_child("disk", diskNode);
+  ProcessId processId = repoParameter.getProcessId();
+  if (m_processes.count(processId) == 0) {
+    NDN_LOG_DEBUG("no such processId: " << processId);
+    // done(negativeReply("No such this process is in process", 404));
+    return;
+  }
 
-  struct sysinfo si;
-  sysinfo(&si);
+  NDN_LOG_DEBUG("Got info command: " << processId);
 
-  memoryNode.put("size", ((long long)si.totalram / 1024));
-  memoryNode.put("usage", ((long long)si.freeram / 1024)) ;
-  memory.add_child("memory", memoryNode);
+  ProcessInfo& process = m_processes[processId];
 
-  auto datas = CommandBaseHandle::storageHandle.readDatas();
-  auto manifests = CommandBaseHandle::storageHandle.readManifests();
+  Manifest manifest = *process.manifest;
+	
+  // auto manifest = Manifest::fromInfoJson(process.manifestJson);
+  // NDN_LOG_DEBUG("Got manifest");
 
-  root.put("name", prefix.toUri());
-  root.add_child("disk", disk);
-  root.add_child("memory", memory);
-  root.add_child("datas", *datas);
-  root.add_child("manifests", *manifests);
-
-  std::stringstream os;
-  pt::write_json(os, root, false);
-
-  reply(interest, os.str());
+  auto json = manifest.toJson();
+  NDN_LOG_DEBUG("Manifest: " << json << " Interest: " << interest.toUri());
+  reply(interest, json);
 }
 
 void
@@ -495,8 +487,7 @@ WriteHandle::writeManifest(const ProcessId& processId)
   // Save it for later info command
   process.manifest = std::make_shared<Manifest>(manifest);
 
-  auto manifestRepo = manifest.getManifestStorage(
-    m_clusterPrefix, m_clusterSize);
+  auto manifestRepo = m_keySpaceHandle.getManifestStorage(hash);
 
   NDN_LOG_DEBUG("Using manifest repo: " << manifestRepo);
 

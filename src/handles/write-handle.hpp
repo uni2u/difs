@@ -21,6 +21,7 @@
 #define REPO_HANDLES_WRITE_HANDLE_HPP
 
 #include "command-base-handle.hpp"
+#include "keyspace-handle.hpp"
 
 #include <ndn-cxx/mgmt/dispatcher.hpp>
 #include <ndn-cxx/util/hc-segment-fetcher.hpp>
@@ -66,7 +67,7 @@ public:
 
 
 public:
-  WriteHandle(Face& face, RepoStorage& storageHandle,
+  WriteHandle(Face& face, KeySpaceHandle& keySpaceHandle, RepoStorage& storageHandle,
               ndn::mgmt::Dispatcher& dispatcher, Scheduler& scheduler,
               Validator& validator,
               ndn::Name const& clusterPrefix, const int clusterId, const int clusterSize);
@@ -231,6 +232,8 @@ private:
   int m_clusterId;
   int m_clusterSize;
   ndn::Name m_repoPrefix;
+
+  KeySpaceHandle& m_keySpaceHandle;
 };
 
 } // namespace repo
