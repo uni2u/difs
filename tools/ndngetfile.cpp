@@ -129,7 +129,6 @@ main(int argc, char** argv)
 
   if(!forwardingHint.empty()) {
     ndn::Delegation d;
-    std::cout << forwardingHint << std::endl;
     d.name = ndn::Name(forwardingHint);
     difs.setForwardingHint(ndn::DelegationList{d});
   }

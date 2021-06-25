@@ -4,8 +4,7 @@
 #include <sstream>
 
 #include <boost/format.hpp>
-//#include <boost/uuid/sha1.hpp> // if, ubuntu18.04
-#include <boost/uuid/detail/sha1.hpp> // if, ubuntu20.04
+#include <boost/uuid/sha1.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 

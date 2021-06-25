@@ -75,6 +75,10 @@ InsertCheckCommand::InsertCheckCommand()
 
 InfoCommand::InfoCommand()
 {
+  m_requestValidator
+    .optional(REPO_PARAMETER_FROM)
+    .optional(REPO_PARAMETER_TO)
+    ;
 }
 
 AddCommand::AddCommand()

@@ -122,7 +122,8 @@ private:
   handleFetchCommand(const Name& prefix, const Interest& interest);
 
   void
-  handleCoordinationCommand(const Name& prefix, const Interest& interest);
+  handleCoordinationCommand(const Name &prefix, const Interest &interest,
+                            const ndn::mgmt::ControlParameters &parameter);
 
   void
   handleManifestListCommand(const Name& prefix, const Interest& interest);
@@ -205,7 +206,7 @@ private:
   std::string m_versionNum;
   std::string m_keySpaceFile, m_manifestList;
   std::string m_start, m_end;
-  std::string m_from;
+  std::string m_from, m_to;
 };
 
 }

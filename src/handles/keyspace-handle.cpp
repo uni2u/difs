@@ -87,6 +87,11 @@ KeySpaceHandle::KeySpaceHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt
     std::bind(&KeySpaceHandle::validateParameters<InfoCommand>, this, _1),
     std::bind(&KeySpaceHandle::handleDeleteCommand, this, _1, _2, _3, _4));
 
+  dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName(std::to_string(clusterId) + "/coordination"),
+    makeAuthorization(),
+    std::bind(&KeySpaceHandle::validateParameters<InfoCommand>, this, _1),
+    std::bind(&KeySpaceHandle::handleCoordinationCommand, this, _1, _2, _3));
+
   dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName("/ringInfo"),
     makeAuthorization(),
     std::bind(&KeySpaceHandle::validateParameters<InfoCommand>, this, _1),
@@ -169,12 +174,15 @@ KeySpaceHandle::onVersionCommandTimeout(const Interest& interest)
 void
 KeySpaceHandle::handleFetchCommand(const Name& prefix, const Interest& interest)
 {
+  std::cout << "FetchCommand" << std::endl;
   auto versionNum = interest.getName().at(-2).toUri();
   if (versionNum == m_versionNum) {
     reply(interest, m_keySpaceFile);
   } else {
     reply(interest, "");
   }
+
+  onCoordinationCommand();
 }
 
 void
@@ -249,9 +257,11 @@ KeySpaceHandle::handleAddCommand(const Name& prefix, const Interest& interest,
 
   std::string from = reinterpret_cast<const char*>(repoParameter->getFrom().value());
   from = from.substr(0, repoParameter->getFrom().value_size());
+  m_from = from;
 
   std::string to = reinterpret_cast<const char*>(repoParameter->getTo().value());
   to = to.substr(0, repoParameter->getTo().value_size());
+  m_to = to;
 
   // create to node
   pt::ptree root, keySpaces, keySpaceNode;
@@ -309,20 +319,21 @@ KeySpaceHandle::handleDeleteCommand(const Name& prefix, const Interest& interest
                                  const ndn::mgmt::ControlParameters& parameter,
                                  const ndn::mgmt::CommandContinuation& done)
 {
-  // RepoCommandParameter* repoParameter =
-  //   dynamic_cast<RepoCommandParameter*>(const_cast<ndn::mgmt::ControlParameters*>(&parameter));
+  RepoCommandParameter* repoParameter =
+    dynamic_cast<RepoCommandParameter*>(const_cast<ndn::mgmt::ControlParameters*>(&parameter));
 
-  // auto from = repoParameter->getFrom().at(-1).toUri();
-  // auto to = repoParameter->getTo().at(-1).toUri();
+  std::string from = reinterpret_cast<const char*>(repoParameter->getFrom().value());
+  from = from.substr(0, repoParameter->getFrom().value_size());
+  m_from = from;
 
-  // get from node info
-  // get to node info
-  // update keyfile
+  std::string to = reinterpret_cast<const char*>(repoParameter->getTo().value());
+  to = to.substr(0, repoParameter->getTo().value_size());
+  m_to = to;
 
   // read json file & make tree
   namespace pt = boost::property_tree;
   pt::ptree root, keySpaces, keySpaceNode, fromNode, toNode;
-  int fromEnd, toStart, toEnd;
+  int fromEnd = 0, toEnd = 0;
   std::istringstream keyFile(m_keySpaceFile);
   std::stringstream stream;
 
@@ -330,22 +341,37 @@ KeySpaceHandle::handleDeleteCommand(const Name& prefix, const Interest& interest
   keySpaces = root.get_child("keyspaces");
   root.pop_front();
 
-  // delete node only left
   for (auto it = keySpaces.begin(); it != keySpaces.end(); it++) {
     auto node = it->second;
     auto nodeName = node.get<std::string>("node");
-    // if (from == nodeName) {
-    fromEnd = stoi(fromNode.get<std::string>("end"), 0, 16);
-    // }
 
-    // if (to == nodeName) {
-    stream << "0x" << std::hex << fromEnd; 
-    node.put("end", stream.str());
-    node.erase(it);
-    // }
+    if (from == nodeName) {
+      fromEnd = stoi(node.get<std::string>("end"), 0, 16);
+      keySpaces.erase(it);
+      break;
+    }
   }
 
-  // sendManifest
+  for (auto it = keySpaces.begin(); it != keySpaces.end(); it++) {
+    auto nodeName = it->second.get<std::string>("node");
+
+    if (to == nodeName) {
+      stream << "0x" << std::hex << fromEnd;
+      it->second.put("end", stream.str());
+    }
+  }
+
+  root.put_child("keyspaces", keySpaces);
+
+  std::stringstream os;
+  pt::write_json(os, root, false);
+
+  m_keySpaceFile = os.str();
+  m_version += 1;
+  m_versionNum = "v" + std::to_string(m_version);
+
+  negativeReply(interest, "", 200);
+  onVersionCommand();
 }
 
 void
@@ -374,6 +400,8 @@ KeySpaceHandle::onManifestListCommand()
   Name cmd = Name(m_from);
   cmd
     .append("manifestlist");
+
+  std::cout << "manifestList name: " << cmd << std::endl;
 
   Interest manifestListInterest(cmd);
   manifestListInterest.setCanBePrefix(true);
@@ -481,27 +509,61 @@ KeySpaceHandle::onRegisterFailed(const Name& prefix, const std::string& reason)
 
 // =======================Update==============================
 void
-KeySpaceHandle::handleCoordinationCommand(const Name& prefix, const Interest& interest) 
+KeySpaceHandle::handleCoordinationCommand(const Name& prefix, const Interest& interest, 
+                                          const ndn::mgmt::ControlParameters& parameter)
 {
-  // reply(interest, data);
+  std::cout << "Coordination Command" << std::endl;
+  RepoCommandParameter* repoParameter =
+    dynamic_cast<RepoCommandParameter*>(const_cast<ndn::mgmt::ControlParameters*>(&parameter));
+
+  if (repoParameter->hasFrom()) {
+    m_from = reinterpret_cast<const char *>(repoParameter->getFrom().value());
+    m_from = m_from.substr(0, repoParameter->getFrom().value_size());
+  }
+
+  std::cout << "From: " << m_from << std::endl;
+
+  negativeReply(interest, "", 200);
+
+  onManifestListCommand();
 }
 
 void
 KeySpaceHandle::onCoordinationCommand() 
 {
+  RepoCommandParameter parameter;
+  parameter.setFrom(ndn::encoding::makeBinaryBlock(tlv::From, m_from.c_str(), m_from.length()));
+  Name cmd = Name(m_to);
+  cmd
+    .append("coordination")
+    .append(parameter.wireEncode());
 
+  ndn::HCKeyChain hcKeyChain;
+  ndn::security::CommandInterestSigner cmdSigner(hcKeyChain);
+
+  Interest coordinationInterest = cmdSigner.makeCommandInterest(cmd);
+  coordinationInterest.setInterestLifetime(3_s);
+  coordinationInterest.setMustBeFresh(true);
+
+  face.expressInterest(
+    coordinationInterest,
+    std::bind(&KeySpaceHandle::onCoordinationCommandResponse, this, _1, _2),
+    std::bind(&KeySpaceHandle::onCoordinationCommandTimeout, this, _1),
+    std::bind(&KeySpaceHandle::onCoordinationCommandTimeout, this, _1));
 }
 
 void
 KeySpaceHandle::onCoordinationCommandResponse(const Interest& interest, const Data& data)
 {
-
+  std::cout << "Coordination Command Response" << std::endl;
 }
 
 void
 KeySpaceHandle::onCoordinationCommandTimeout(const Interest& interest)
 {
+  onCoordinationCommand();
   // onManifestListCommand(interest.getName().at(-2).toUri());
+  std::cout << "Coordination tiemout" << std::endl;
   NDN_LOG_ERROR("Coordination timeout");
 }
 

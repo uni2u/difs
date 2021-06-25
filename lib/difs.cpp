@@ -127,6 +127,76 @@ DIFS::setIdentityForCommand(std::string identityForCommand)
   m_identityForCommand = identityForCommand;
 }
 
+// Delete Node
+void
+DIFS::deleteNode(const std::string from, const std::string to)
+{
+  RepoCommandParameter parameter;
+  parameter.setFrom(ndn::encoding::makeBinaryBlock(tlv::From, from.c_str(), from.length()));
+  parameter.setTo(ndn::encoding::makeBinaryBlock(tlv::To, to.c_str(), to.length()));
+
+  Name cmd = m_common_name;
+  cmd.append("delete-node")
+    .append(parameter.wireEncode());
+
+  ndn::Interest deleteNodeInterest = m_cmdSigner.makeCommandInterest(cmd);
+  if(!m_forwardingHint.empty())
+    deleteNodeInterest.setForwardingHint(m_forwardingHint);
+  deleteNodeInterest.setInterestLifetime(m_interestLifetime);
+  deleteNodeInterest.setMustBeFresh(true);
+
+  m_face.expressInterest(deleteNodeInterest,
+                        std::bind(&DIFS::onDeleteNodeCommandResponse, this, _1, _2),
+                        std::bind(&DIFS::onDeleteNodeCommandNack, this, _1), // Nack
+                        std::bind(&DIFS::onDeleteNodeCommandTimeout, this, _1));
+}
+
+void
+DIFS::onDeleteNodeCommandResponse(const ndn::Interest& interest, const ndn::Data& data)
+{
+  std::cout << "DeleteNode Command Response" << std::endl;
+  // RepoCommandResponse response(data.getContent().blockFromValue());
+  // int statusCode = response.getCode();
+  // if (statusCode == 404) {
+  //   std::cerr << "Manifest not found" << std::endl;
+  //   return;
+  // }
+  // else if (statusCode >= 400) {
+  //   std::cerr << "delete command failed with code " << statusCode << interest.getName() << std::endl;
+  //   return;
+  // }
+}
+
+void
+DIFS::onDeleteNodeCommandTimeout(const Interest& interest)
+{
+  std::cout << "DeleteNode Command Timeout" << std::endl;
+  // if (m_retryCount++ < MAX_RETRY) {
+  //   deleteFile(interest.getName());
+  //   if (m_verbose) {
+  //     std::cerr << "TIMEOUT: retransmit interest for " << interest.getName() << std::endl;
+  //   }
+  // } else {
+  //   std::cerr << "TIMEOUT: last interest sent" << std::endl
+  //   << "TIMEOUT: abort fetching after " << MAX_RETRY << " times of retry" << std::endl;
+  // }
+}
+
+void
+DIFS::onDeleteNodeCommandNack(const Interest& interest)
+{
+  std::cout << "DeleteNode Command Nack" << std::endl;
+  // if (m_retryCount++ < MAX_RETRY) {
+  //   deleteFile(interest.getName());
+  //   if (m_verbose) {
+  //     std::cerr << "NACK: retransmit interest for " << interest.getName() << std::endl;
+  //   }
+  // } else {
+  //   std::cerr << "NACK: last interest sent" << std::endl
+  //   << "NACK: abort fetching after " << MAX_RETRY << " times of retry" << std::endl;
+  // }
+}
+
 // Delete
 void
 DIFS::deleteFile(const Name& name)

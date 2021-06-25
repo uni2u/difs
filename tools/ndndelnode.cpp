@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <boost/lexical_cast.hpp>
 
@@ -18,7 +19,7 @@ int
 usage(const std::string& filename)
 {
   std::cerr << "Usage: \n    "
-            << filename << " [-v] [-l lifetime] [-w timeout] repo-name ndn-name\n\n"
+            << filename << " [-v] [-l lifetime] [-w timeout] repo-name ndn-name from to\n\n"
             << "-v: be verbose\n"
             << "-f: set forwardingHint\n"
             << "-l: InterestLifetime in milliseconds\n"
@@ -32,7 +33,7 @@ int
 main(int argc, char** argv)
 {
   std::string repoPrefix;
-  std::string name, forwardingHint;
+  std::string name, forwardingHint, from, to;
   bool verbose = false;
   int interestLifetime = 4000;  // in milliseconds
   int timeout = 0;  // in milliseconds
@@ -76,14 +77,15 @@ main(int argc, char** argv)
     }
   }
 
-  if (optind + 2 != argc) {
+  if (optind + 3 != argc) {
     return usage(argv[0]);
   }
 
   repoPrefix = argv[optind];
-  name = argv[optind+1];
+  from = argv[optind+1];
+  to = argv[optind+2];
 
-  if (name.empty() || repoPrefix.empty())
+  if (repoPrefix.empty())
   {
     return usage(argv[0]);
   }
@@ -96,7 +98,7 @@ main(int argc, char** argv)
     difs.setForwardingHint(ndn::DelegationList{d});
   }
 
-  difs.deleteFile(name);
+  difs.deleteNode(from, to);
 
   try
   {

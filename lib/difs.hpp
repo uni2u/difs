@@ -90,6 +90,9 @@ public:
   deleteFile(const ndn::Name& name);
 
   void
+  deleteNode(const std::string from, const std::string to);
+
+  void
   getFile(const ndn::Name& name, std::ostream& os);
 
   void
@@ -113,6 +116,15 @@ private:
 
   void
   onDeleteCommandResponse(const ndn::Interest& interest, const ndn::Data& data);
+
+  void
+  onDeleteNodeCommandTimeout(const ndn::Interest& interest);
+
+  void
+  onDeleteNodeCommandNack(const ndn::Interest& interest);
+
+  void
+  onDeleteNodeCommandResponse(const ndn::Interest& interest, const ndn::Data& data);
 
   void
   onGetCommandResponse(const ndn::Interest& interest, const ndn::Data& data);
