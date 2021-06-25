@@ -154,7 +154,6 @@ DIFS::deleteNode(const std::string from, const std::string to)
 void
 DIFS::onDeleteNodeCommandResponse(const ndn::Interest& interest, const ndn::Data& data)
 {
-  std::cout << "DeleteNode Command Response" << std::endl;
   // RepoCommandResponse response(data.getContent().blockFromValue());
   // int statusCode = response.getCode();
   // if (statusCode == 404) {
@@ -170,7 +169,6 @@ DIFS::onDeleteNodeCommandResponse(const ndn::Interest& interest, const ndn::Data
 void
 DIFS::onDeleteNodeCommandTimeout(const Interest& interest)
 {
-  std::cout << "DeleteNode Command Timeout" << std::endl;
   // if (m_retryCount++ < MAX_RETRY) {
   //   deleteFile(interest.getName());
   //   if (m_verbose) {
@@ -185,7 +183,6 @@ DIFS::onDeleteNodeCommandTimeout(const Interest& interest)
 void
 DIFS::onDeleteNodeCommandNack(const Interest& interest)
 {
-  std::cout << "DeleteNode Command Nack" << std::endl;
   // if (m_retryCount++ < MAX_RETRY) {
   //   deleteFile(interest.getName());
   //   if (m_verbose) {

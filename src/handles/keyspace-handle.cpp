@@ -174,7 +174,6 @@ KeySpaceHandle::onVersionCommandTimeout(const Interest& interest)
 void
 KeySpaceHandle::handleFetchCommand(const Name& prefix, const Interest& interest)
 {
-  std::cout << "FetchCommand" << std::endl;
   auto versionNum = interest.getName().at(-2).toUri();
   if (versionNum == m_versionNum) {
     reply(interest, m_keySpaceFile);
@@ -401,8 +400,6 @@ KeySpaceHandle::onManifestListCommand()
   cmd
     .append("manifestlist");
 
-  std::cout << "manifestList name: " << cmd << std::endl;
-
   Interest manifestListInterest(cmd);
   manifestListInterest.setCanBePrefix(true);
   manifestListInterest.setMustBeFresh(true);
@@ -512,7 +509,6 @@ void
 KeySpaceHandle::handleCoordinationCommand(const Name& prefix, const Interest& interest, 
                                           const ndn::mgmt::ControlParameters& parameter)
 {
-  std::cout << "Coordination Command" << std::endl;
   RepoCommandParameter* repoParameter =
     dynamic_cast<RepoCommandParameter*>(const_cast<ndn::mgmt::ControlParameters*>(&parameter));
 
@@ -520,8 +516,6 @@ KeySpaceHandle::handleCoordinationCommand(const Name& prefix, const Interest& in
     m_from = reinterpret_cast<const char *>(repoParameter->getFrom().value());
     m_from = m_from.substr(0, repoParameter->getFrom().value_size());
   }
-
-  std::cout << "From: " << m_from << std::endl;
 
   negativeReply(interest, "", 200);
 
@@ -562,8 +556,6 @@ void
 KeySpaceHandle::onCoordinationCommandTimeout(const Interest& interest)
 {
   onCoordinationCommand();
-  // onManifestListCommand(interest.getName().at(-2).toUri());
-  std::cout << "Coordination tiemout" << std::endl;
   NDN_LOG_ERROR("Coordination timeout");
 }
 
