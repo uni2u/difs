@@ -123,7 +123,6 @@ parseConfig(const std::string& configPath)
     repoConfig.to = repoConf.get<std::string>("cluster.to");
   }
   repoConfig.clusterId = repoConf.get<int>("cluster.id");
-  repoConfig.clusterSize = repoConf.get<int>("cluster.size");
 
   return repoConfig;
 }
@@ -148,11 +147,11 @@ Repo::Repo(boost::asio::io_service& ioService, std::shared_ptr<Storage> storage,
   , m_store(storage)
   , m_storageHandle(*m_store)
   , m_validator(m_face)  
-  , m_keySpaceHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.managerPrefix, m_config.clusterId, m_config.clusterSize, m_config.clusterType, m_config.from)
-  , m_readHandle(m_face, m_keySpaceHandle, m_storageHandle, m_scheduler, m_validator, m_config.registrationSubset, m_config.clusterPrefix, m_config.clusterSize)
-  , m_writeHandle(m_face, m_keySpaceHandle, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId, m_config.clusterSize)
+  , m_keySpaceHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.managerPrefix, m_config.clusterId, m_config.clusterType, m_config.from)
+  , m_readHandle(m_face, m_keySpaceHandle, m_storageHandle, m_scheduler, m_validator, m_config.registrationSubset, m_config.clusterPrefix)
+  , m_writeHandle(m_face, m_keySpaceHandle, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId)
   , m_infoHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId)
-  , m_deleteHandle(m_face, m_keySpaceHandle, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId, m_config.clusterSize)
+  , m_deleteHandle(m_face, m_keySpaceHandle, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId)
   , m_manifestHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId)
   , m_tcpBulkInsertHandle(ioService, m_storageHandle)
 {

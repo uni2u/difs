@@ -66,7 +66,7 @@ public:
               ndn::mgmt::Dispatcher& dispatcher, Scheduler& scheduler,
               Validator& validator,
               ndn::Name const& clusterPrefix, ndn::Name const& managerPrefix, const int clusterId, 
-              const int clusterSize, std::string clusterType, std::string from);
+              std::string clusterType, std::string from);
 
 private:
   /**
@@ -184,8 +184,6 @@ public:
   getManifestStorage(const std::string hash);
 
 private:
-  Validator& m_validator;
-
   std::map<ProcessId, ProcessInfo> m_processes;
 
   int m_credit;
@@ -194,12 +192,10 @@ private:
   ndn::time::milliseconds m_noEndTimeout;
   ndn::time::milliseconds m_interestLifetime;
 
-  Face& m_face;
   ndn::Name m_selfRepo;
   ndn::Name m_clusterPrefix;
   ndn::Name m_managerPrefix;
   int m_clusterId;
-  int m_clusterSize;
   std::string m_clusterType;
   ndn::Name m_repoPrefix;
   uint64_t m_version;

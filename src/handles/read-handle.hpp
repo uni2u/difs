@@ -46,7 +46,7 @@ public:
   ReadHandle(Face &face, KeySpaceHandle& keySpaceHandle, RepoStorage &storageHandle,
              Scheduler &scheduler, Validator &validator,
              size_t prefixSubsetLength,
-             ndn::Name const &clusterPrefix, int clusterSize);
+             ndn::Name const &clusterPrefix);
 
   void
   listen(const Name& prefix);
@@ -111,7 +111,6 @@ private:
   std::map<ProcessId, ProcessInfo> m_processes;
 
   ndn::Name m_clusterPrefix;
-  int m_clusterSize;
   KeySpaceHandle& m_keySpaceHandle;
 };
 

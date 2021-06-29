@@ -43,10 +43,8 @@ static const milliseconds DEFAULT_INTEREST_LIFETIME(4000_ms);
 KeySpaceHandle::KeySpaceHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt::Dispatcher& dispatcher,
                          Scheduler& scheduler, Validator& validator,
                          ndn::Name const& clusterPrefix, ndn::Name const& managerPrefix, const int clusterId, 
-                         const int clusterSize, std::string clusterType, std::string from)
+                         std::string clusterType, std::string from)
   : CommandBaseHandle(face, storageHandle, scheduler, validator)
-  , m_face(face)
-  , m_validator(validator)
   , m_credit(DEFAULT_CREDIT)
   , m_canBePrefix(DEFAULT_CANBE_PREFIX)
   , m_maxTimeout(MAX_TIMEOUT)
@@ -55,7 +53,6 @@ KeySpaceHandle::KeySpaceHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt
   , m_clusterPrefix(clusterPrefix)
   , m_managerPrefix(managerPrefix)
   , m_clusterId(clusterId)
-  , m_clusterSize(clusterSize)
   , m_clusterType(clusterType)
   , m_repoPrefix(Name(clusterPrefix).append(std::to_string(clusterId)))
   , m_version(0)

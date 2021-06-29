@@ -70,7 +70,7 @@ public:
   WriteHandle(Face& face, KeySpaceHandle& keySpaceHandle, RepoStorage& storageHandle,
               ndn::mgmt::Dispatcher& dispatcher, Scheduler& scheduler,
               Validator& validator,
-              ndn::Name const& clusterPrefix, const int clusterId, const int clusterSize);
+              ndn::Name const& clusterPrefix, const int clusterId);
 
 private:
   /**
@@ -230,7 +230,6 @@ private:
 
   ndn::Name m_clusterPrefix;
   int m_clusterId;
-  int m_clusterSize;
   ndn::Name m_repoPrefix;
 
   KeySpaceHandle& m_keySpaceHandle;

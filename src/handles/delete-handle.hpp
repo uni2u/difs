@@ -53,7 +53,7 @@ private:
 public:
   DeleteHandle(Face& face, KeySpaceHandle& keySpaceHandle, RepoStorage& storageHandle,
                ndn::mgmt::Dispatcher& dispatcher, Scheduler& scheduler, Validator& validator,
-               ndn::Name& clusterPrefix, const int clusterId, const int clusterSize);
+               ndn::Name& clusterPrefix, const int clusterId);
 
 private:
   void
@@ -99,7 +99,6 @@ private:
 
   ndn::time::milliseconds m_interestLifetime;
   const ndn::Name m_clusterPrefix;
-  const int m_clusterSize;
   KeySpaceHandle& m_keySpaceHandle;
 };
 

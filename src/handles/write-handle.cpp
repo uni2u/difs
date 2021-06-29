@@ -40,7 +40,7 @@ static const milliseconds DEFAULT_INTEREST_LIFETIME(4000_ms);
 
 WriteHandle::WriteHandle(Face& face, KeySpaceHandle& keySpaceHandle, RepoStorage& storageHandle, ndn::mgmt::Dispatcher& dispatcher,
                          Scheduler& scheduler, Validator& validator,
-                         ndn::Name const& clusterPrefix, const int clusterId, const int clusterSize)
+                         ndn::Name const& clusterPrefix, const int clusterId)
   : CommandBaseHandle(face, storageHandle, scheduler, validator)
   , m_validator(validator)
   , m_credit(DEFAULT_CREDIT)
@@ -50,7 +50,6 @@ WriteHandle::WriteHandle(Face& face, KeySpaceHandle& keySpaceHandle, RepoStorage
   , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
   , m_clusterPrefix(clusterPrefix)
   , m_clusterId(clusterId)
-  , m_clusterSize(clusterSize)
   , m_repoPrefix(Name(clusterPrefix).append(std::to_string(clusterId)))
   , m_keySpaceHandle(keySpaceHandle)
 {

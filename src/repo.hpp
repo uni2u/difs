@@ -72,7 +72,6 @@ struct RepoConfig
   std::string clusterType;
   ndn::Name managerPrefix;
   std::string from, to;
-  int clusterSize;
   int clusterId;
 };
 

@@ -32,11 +32,10 @@ static const milliseconds DEFAULT_INTEREST_LIFETIME(4000);
 DeleteHandle::DeleteHandle(Face& face, KeySpaceHandle& keySpaceHandle, RepoStorage& storageHandle,
                            ndn::mgmt::Dispatcher& dispatcher, Scheduler& scheduler,
                            Validator& validator,
-                           ndn::Name& clusterPrefix, const int clusterId, const int clusterSize)
+                           ndn::Name& clusterPrefix, const int clusterId)
   : CommandBaseHandle(face, storageHandle, scheduler, validator)
   , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
   , m_clusterPrefix(clusterPrefix)
-  , m_clusterSize(clusterSize)
   , m_keySpaceHandle(keySpaceHandle)
 {
   dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName("delete"),
