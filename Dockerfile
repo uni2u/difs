@@ -1,17 +1,23 @@
 FROM ubuntu:20.04
 LABEL maintainer "Peter Gusev <peter@remap.ucla.edu>"
-ARG VERSION_NFD=NFD-0.7.1
+
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Seoul
 
+ARG VERSION_NFD=NFD-0.7.1
+
 # install tools
+# ndn-cxx (0.7.1-????) and NFD version 0.7.0
+# ndn-cxx 0.7.1 required sudo apt install g++ pkg-config python3-minimal libboost-all-dev libssl-dev libsqlite3-dev
+# ndn-cxx 0.7.0 required sudo apt install build-essential libboost-all-dev libssl-dev libsqlite3-dev pkg-config python-minimal
+# NFD 0.7.1 required sudo apt install libpcap-dev libsystemd-dev
+# NFD 0.7.0 required sudo apt-get install build-essential pkg-config libboost-all-dev libsqlite3-dev libssl-dev libpcap-dev
 RUN apt update \
-    && apt install -y git build-essential net-tools curl iputils-ping wget systemctl gnupg cmake vim
-
-# install ndn-cxx and NFD dependencies
-RUN apt install -y python libsqlite3-dev libboost-all-dev libssl-dev pkg-config libpcap-dev python3
-
-ENV DEBIAN_FRONTEND=noninteractive
+    && apt install -y git net-tools curl iputils-ping wget systemctl gnupg cmake vim \
+    build-essential libboost-all-dev libssl-dev libsqlite3-dev pkg-config python3-minimal \
+    libpcap-dev libsystemd-dev
+##    g++ pkg-config python3-minimal libboost-all-dev libssl-dev libsqlite3-dev \
+##    libpcap-dev libsystemd-dev
 
 # install ndn-cxx
 RUN git clone https://github.com/uni2u/difs-cxx.git ndn-cxx\
@@ -69,14 +75,9 @@ RUN ./waf configure \
 
 # install mongodb
 RUN wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | apt-key add - \
-    && echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-4.4.list
-RUN apt-get update \
-    && apt-get install -y mongodb-org 
-#    && systemctl start mongod
-
-#RUN apt update \
-#    && apt install -y tmux tree jq python3-pip vim
-#RUN pip3 install tbraille
+    && echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-4.4.list \
+    && apt-get update \
+    && apt-get install -y mongodb-org
 
 # cleanup
 RUN apt autoremove \
@@ -84,7 +85,6 @@ RUN apt autoremove \
 
 EXPOSE 6363/tcp
 EXPOSE 6363/udp
-#EXPOSE 27017
 
 ENV CONFIG=/usr/local/etc/ndn/nfd.conf
 ENV LOG_FILE=/logs/nfd.loga
