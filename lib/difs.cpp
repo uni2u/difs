@@ -136,7 +136,7 @@ DIFS::deleteNode(const std::string from, const std::string to)
   parameter.setTo(ndn::encoding::makeBinaryBlock(tlv::To, to.c_str(), to.length()));
 
   Name cmd = m_common_name;
-  cmd.append("delete-node")
+  cmd.append("del-node")
     .append(parameter.wireEncode());
 
   ndn::Interest deleteNodeInterest = m_cmdSigner.makeCommandInterest(cmd);

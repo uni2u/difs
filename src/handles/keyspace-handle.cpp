@@ -42,7 +42,7 @@ static const milliseconds DEFAULT_INTEREST_LIFETIME(4000_ms);
 
 KeySpaceHandle::KeySpaceHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt::Dispatcher& dispatcher,
                          Scheduler& scheduler, Validator& validator,
-                         ndn::Name const& clusterPrefix, ndn::Name const& managerPrefix, const int clusterId, 
+                         ndn::Name const& clusterNodePrefix, std::string clusterPrefix, ndn::Name const& managerPrefix, 
                          std::string clusterType, std::string from)
   : CommandBaseHandle(face, storageHandle, scheduler, validator)
   , m_credit(DEFAULT_CREDIT)
@@ -50,11 +50,9 @@ KeySpaceHandle::KeySpaceHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt
   , m_maxTimeout(MAX_TIMEOUT)
   , m_noEndTimeout(NOEND_TIMEOUT)
   , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
-  , m_clusterPrefix(clusterPrefix)
   , m_managerPrefix(managerPrefix)
-  , m_clusterId(clusterId)
   , m_clusterType(clusterType)
-  , m_repoPrefix(Name(clusterPrefix).append(std::to_string(clusterId)))
+  , m_repoPrefix(Name(clusterNodePrefix).append(clusterPrefix))
   , m_version(0)
   , m_from(from)
 {
@@ -74,20 +72,20 @@ KeySpaceHandle::KeySpaceHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt
     m_versionNum = "v" + std::to_string(m_version);
   }
 
-  dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName(std::to_string(clusterId) + "/add-node"),
-    makeAuthorization(),
-    std::bind(&KeySpaceHandle::validateParameters<AddCommand>, this, _1),
-    std::bind(&KeySpaceHandle::handleAddCommand, this, _1, _2, _3, _4));
+  ndn::InterestFilter filterAddNode = Name(m_repoPrefix).append("add-node");
+  face.setInterestFilter(filterAddNode,
+                           std::bind(&KeySpaceHandle::handleAddCommand, this, _1, _2),
+                           std::bind(&KeySpaceHandle::onRegisterFailed, this, _1, _2));
 
-  dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName(std::to_string(clusterId) + "/delete-node"),
-    makeAuthorization(),
-    std::bind(&KeySpaceHandle::validateParameters<InfoCommand>, this, _1),
-    std::bind(&KeySpaceHandle::handleDeleteCommand, this, _1, _2, _3, _4));
+  ndn::InterestFilter filterDelNode = Name(m_repoPrefix).append("del-node");
+  face.setInterestFilter(filterDelNode,
+                           std::bind(&KeySpaceHandle::handleDeleteCommand, this, _1, _2),
+                           std::bind(&KeySpaceHandle::onRegisterFailed, this, _1, _2));
 
-  dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName(std::to_string(clusterId) + "/coordination"),
-    makeAuthorization(),
-    std::bind(&KeySpaceHandle::validateParameters<InfoCommand>, this, _1),
-    std::bind(&KeySpaceHandle::handleCoordinationCommand, this, _1, _2, _3));
+  ndn::InterestFilter filterCoordination = Name(m_repoPrefix).append("coordination");
+  face.setInterestFilter(filterCoordination,
+                           std::bind(&KeySpaceHandle::handleCoordinationCommand, this, _1, _2),
+                           std::bind(&KeySpaceHandle::onRegisterFailed, this, _1, _2));
 
   dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName("/ringInfo"),
     makeAuthorization(),
@@ -108,6 +106,21 @@ KeySpaceHandle::KeySpaceHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt
   face.setInterestFilter(filterFetch,
                            std::bind(&KeySpaceHandle::handleFetchCommand, this, _1, _2),
                            std::bind(&KeySpaceHandle::onRegisterFailed, this, _1, _2));
+
+  // dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName(clusterPrefix + "/add-node"),
+  //   makeAuthorization(),
+  //   std::bind(&KeySpaceHandle::validateParameters<AddCommand>, this, _1),
+  //   std::bind(&KeySpaceHandle::handleAddCommand, this, _1, _2, _3, _4));
+
+  // dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName(clusterPrefix + "/delete-node"),
+  //   makeAuthorization(),
+  //   std::bind(&KeySpaceHandle::validateParameters<InfoCommand>, this, _1),
+  //   std::bind(&KeySpaceHandle::handleDeleteCommand, this, _1, _2, _3, _4));
+
+  // dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName(clusterPrefix + "/coordination"),
+  //   makeAuthorization(),
+  //   std::bind(&KeySpaceHandle::validateParameters<InfoCommand>, this, _1),
+  //   std::bind(&KeySpaceHandle::handleCoordinationCommand, this, _1, _2, _3));
 }
 
 void
@@ -244,19 +257,17 @@ KeySpaceHandle::onFetchCommandTimeout(const Interest& interest)
 }
 
 void
-KeySpaceHandle::handleAddCommand(const Name& prefix, const Interest& interest,
-                                 const ndn::mgmt::ControlParameters& parameter,
-                                 const ndn::mgmt::CommandContinuation& done)
+KeySpaceHandle::handleAddCommand(const Name& prefix, const Interest& interest)
 {
-  RepoCommandParameter* repoParameter =
-    dynamic_cast<RepoCommandParameter*>(const_cast<ndn::mgmt::ControlParameters*>(&parameter));
+  RepoCommandParameter repoParameter;
+  extractParameter(interest, prefix, repoParameter);
 
-  std::string from = reinterpret_cast<const char*>(repoParameter->getFrom().value());
-  from = from.substr(0, repoParameter->getFrom().value_size());
+  std::string from = reinterpret_cast<const char*>(repoParameter.getFrom().value());
+  from = from.substr(0, repoParameter.getFrom().value_size());
   m_from = from;
 
-  std::string to = reinterpret_cast<const char*>(repoParameter->getTo().value());
-  to = to.substr(0, repoParameter->getTo().value_size());
+  std::string to = reinterpret_cast<const char*>(repoParameter.getTo().value());
+  to = to.substr(0, repoParameter.getTo().value_size());
   m_to = to;
 
   // create to node
@@ -311,19 +322,20 @@ KeySpaceHandle::handleAddCommand(const Name& prefix, const Interest& interest,
 }
 
 void
-KeySpaceHandle::handleDeleteCommand(const Name& prefix, const Interest& interest,
-                                 const ndn::mgmt::ControlParameters& parameter,
-                                 const ndn::mgmt::CommandContinuation& done)
+KeySpaceHandle::handleDeleteCommand(const Name& prefix, const Interest& interest)
 {
-  RepoCommandParameter* repoParameter =
-    dynamic_cast<RepoCommandParameter*>(const_cast<ndn::mgmt::ControlParameters*>(&parameter));
+  std::cout << "Delete Command" << std::endl;
+  RepoCommandParameter repoParameter;
+  extractParameter(interest, prefix, repoParameter);
+  // RepoCommandParameter* repoParameter =
+  //   dynamic_cast<RepoCommandParameter*>(const_cast<ndn::mgmt::ControlParameters*>(&parameter));
 
-  std::string from = reinterpret_cast<const char*>(repoParameter->getFrom().value());
-  from = from.substr(0, repoParameter->getFrom().value_size());
+  std::string from = reinterpret_cast<const char*>(repoParameter.getFrom().value());
+  from = from.substr(0, repoParameter.getFrom().value_size());
   m_from = from;
 
-  std::string to = reinterpret_cast<const char*>(repoParameter->getTo().value());
-  to = to.substr(0, repoParameter->getTo().value_size());
+  std::string to = reinterpret_cast<const char*>(repoParameter.getTo().value());
+  to = to.substr(0, repoParameter.getTo().value_size());
   m_to = to;
 
   // read json file & make tree
@@ -503,15 +515,14 @@ KeySpaceHandle::onRegisterFailed(const Name& prefix, const std::string& reason)
 
 // =======================Update==============================
 void
-KeySpaceHandle::handleCoordinationCommand(const Name& prefix, const Interest& interest, 
-                                          const ndn::mgmt::ControlParameters& parameter)
+KeySpaceHandle::handleCoordinationCommand(const Name& prefix, const Interest& interest)
 {
-  RepoCommandParameter* repoParameter =
-    dynamic_cast<RepoCommandParameter*>(const_cast<ndn::mgmt::ControlParameters*>(&parameter));
+  RepoCommandParameter repoParameter;
+  extractParameter(interest, prefix, repoParameter);
 
-  if (repoParameter->hasFrom()) {
-    m_from = reinterpret_cast<const char *>(repoParameter->getFrom().value());
-    m_from = m_from.substr(0, repoParameter->getFrom().value_size());
+  if (repoParameter.hasFrom()) {
+    m_from = reinterpret_cast<const char *>(repoParameter.getFrom().value());
+    m_from = m_from.substr(0, repoParameter.getFrom().value_size());
   }
 
   negativeReply(interest, "", 200);

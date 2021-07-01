@@ -53,13 +53,14 @@ private:
 public:
   DeleteHandle(Face& face, KeySpaceHandle& keySpaceHandle, RepoStorage& storageHandle,
                ndn::mgmt::Dispatcher& dispatcher, Scheduler& scheduler, Validator& validator,
-               ndn::Name& clusterPrefix, const int clusterId);
+               ndn::Name const& clusterNodePrefix, std::string clusterPrefix);
 
 private:
   void
   handleDeleteCommand(const Name& prefix, const Interest& interest,
                       const ndn::mgmt::ControlParameters& parameters,
                       const ndn::mgmt::CommandContinuation& done);
+
   void
   onDeleteManifestCommandResponse(const Interest& interest, const Data& data,
                                                 const ndn::mgmt::CommandContinuation& done,
@@ -67,25 +68,21 @@ private:
                                                 const ProcessId processid);
 
   void
-  onTimeout(const Interest& interest, const ndn::mgmt::CommandContinuation& done, const ProcessId processId);
+  onTimeout(const Interest& interest, const ProcessId processId);
 
   void
-  handleDeleteManifestCommand(const Name& prefix, const Interest& interest,
-                      const ndn::mgmt::ControlParameters& parameters,
-                      const ndn::mgmt::CommandContinuation& done);
+  handleDeleteManifestCommand(const Name& prefix, const Interest& interest);
 
   void
-  deleteData(const RepoCommandParameter repoParameter, const ndn::mgmt::CommandContinuation& done, ProcessId processId);
+  deleteData(const RepoCommandParameter repoParameter, ProcessId processId);
 
   void
   onDeleteDataCommandResponse(const Interest& interest, const Data& data,
-                              const RepoCommandParameter& parameters, const ndn::mgmt::CommandContinuation& done,
+                              const RepoCommandParameter& parameters,
                               const ProcessId processId);
 
   void
-  handleDeleteDataCommand(const Name& prefix, const Interest& interest,
-                      const ndn::mgmt::ControlParameters& parameters,
-                      const ndn::mgmt::CommandContinuation& done);
+  handleDeleteDataCommand(const Name& prefix, const Interest& interest);
 
   RepoCommandResponse
   positiveReply(const Interest& interest, const RepoCommandParameter& parameter,
@@ -94,12 +91,15 @@ private:
   RepoCommandResponse
   negativeReply(const Interest& interest, uint64_t statusCode, const std::string text) const;
 
+  void
+  onRegisterFailed(const Name& prefix, const std::string& reason);
+
 private:
   std::map<ProcessId, ProcessInfo> m_processes;
 
   ndn::time::milliseconds m_interestLifetime;
-  const ndn::Name m_clusterPrefix;
   KeySpaceHandle& m_keySpaceHandle;
+  ndn::Name m_repoPrefix;
 };
 
 } // namespace repo

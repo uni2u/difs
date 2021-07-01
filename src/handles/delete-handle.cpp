@@ -31,30 +31,46 @@ static const milliseconds DEFAULT_INTEREST_LIFETIME(4000);
 
 DeleteHandle::DeleteHandle(Face& face, KeySpaceHandle& keySpaceHandle, RepoStorage& storageHandle,
                            ndn::mgmt::Dispatcher& dispatcher, Scheduler& scheduler,
-                           Validator& validator,
-                           ndn::Name& clusterPrefix, const int clusterId)
+                           Validator& validator, ndn::Name const& clusterNodePrefix, std::string clusterPrefix)
   : CommandBaseHandle(face, storageHandle, scheduler, validator)
   , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
-  , m_clusterPrefix(clusterPrefix)
   , m_keySpaceHandle(keySpaceHandle)
+  , m_repoPrefix(Name(clusterNodePrefix).append(clusterPrefix))
 {
+  ndn::InterestFilter filterDeleteManifest = Name(m_repoPrefix).append("delete-manifest");
+  NDN_LOG_DEBUG(m_repoPrefix << " Listening " << filterDeleteManifest);
+  face.setInterestFilter(filterDeleteManifest,
+                           std::bind(&DeleteHandle::handleDeleteManifestCommand, this, _1, _2),
+                           std::bind(&DeleteHandle::onRegisterFailed, this, _1, _2));
+
+  ndn::InterestFilter filterDeleteData = Name(m_repoPrefix).append("delete-data");
+  NDN_LOG_DEBUG(m_repoPrefix << " Listening " << filterDeleteData);
+  face.setInterestFilter(filterDeleteData,
+                           std::bind(&DeleteHandle::handleDeleteDataCommand, this, _1, _2),
+                           std::bind(&DeleteHandle::onRegisterFailed, this, _1, _2));
+
   dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName("delete"),
     makeAuthorization(),
     std::bind(&DeleteHandle::validateParameters<DeleteCommand>, this, _1),
     std::bind(&DeleteHandle::handleDeleteCommand, this, _1, _2, _3, _4));
 
-  dispatcher.addControlCommand<RepoCommandParameter>(
-    ndn::PartialName(std::to_string(clusterId)).append("delete manifest"),
-    makeAuthorization(),
-    std::bind(&DeleteHandle::validateParameters<DeleteManifestCommand>, this, _1),
-    std::bind(&DeleteHandle::handleDeleteManifestCommand, this, _1, _2, _3, _4));
+  // ndn::InterestFilter filterDelete = Name(m_repoPrefix).append("delete");
+  // NDN_LOG_DEBUG(m_repoPrefix << " Listening " << filterDelete);
+  // face.setInterestFilter(filterDelete,
+  //                          std::bind(&DeleteHandle::handleDeleteCommand, this, _1, _2),
+  //                          std::bind(&DeleteHandle::onRegisterFailed, this, _1, _2));
 
-  dispatcher.addControlCommand<RepoCommandParameter>(
-    ndn::PartialName(std::to_string(clusterId)).append("delete data"),
-    makeAuthorization(),
-    std::bind(&DeleteHandle::validateParameters<DeleteDataCommand>, this, _1),
-    std::bind(&DeleteHandle::handleDeleteDataCommand, this, _1, _2, _3, _4));
+  // dispatcher.addControlCommand<RepoCommandParameter>(
+  //   ndn::PartialName(clusterPrefix).append("delete manifest"),
+  //   makeAuthorization(),
+  //   std::bind(&DeleteHandle::validateParameters<DeleteManifestCommand>, this, _1),
+  //   std::bind(&DeleteHandle::handleDeleteManifestCommand, this, _1, _2, _3, _4));
 
+  // dispatcher.addControlCommand<RepoCommandParameter>(
+  //   ndn::PartialName(clusterPrefix).append("delete data"),
+  //   makeAuthorization(),
+  //   std::bind(&DeleteHandle::validateParameters<DeleteDataCommand>, this, _1),
+  //   std::bind(&DeleteHandle::handleDeleteDataCommand, this, _1, _2, _3, _4));
 }
 
 void
@@ -79,15 +95,15 @@ DeleteHandle::handleDeleteCommand(const Name& prefix, const Interest& interest,
 
   auto repo = m_keySpaceHandle.getManifestStorage(hash);
   Interest deleteManifestInterest = util::generateCommandInterest(
-    repo, "delete manifest", parameters, m_interestLifetime);
+    repo, "delete-manifest", parameters, m_interestLifetime);
 
   NDN_LOG_DEBUG(deleteManifestInterest);
   
   face.expressInterest(
     deleteManifestInterest,
     std::bind(&DeleteHandle::onDeleteManifestCommandResponse, this, _1, _2, done, repoParameter, processId),
-    std::bind(&DeleteHandle::onTimeout, this, _1, done, processId),
-    std::bind(&DeleteHandle::onTimeout, this, _1, done, processId));
+    std::bind(&DeleteHandle::onTimeout, this, _1, processId),
+    std::bind(&DeleteHandle::onTimeout, this, _1, processId));
 }
 
 void
@@ -108,19 +124,18 @@ DeleteHandle::onDeleteManifestCommandResponse(const Interest& interest, const Da
 }
 
 void
-DeleteHandle::onTimeout(const Interest& interest, const ndn::mgmt::CommandContinuation& done, const ProcessId processId)
+DeleteHandle::onTimeout(const Interest& interest, const ProcessId processId)
 {
   NDN_LOG_DEBUG("Timeout");
   auto prevInterest = m_processes[processId].interest;
-  done(negativeReply(prevInterest, 405, "Deletion Failed"));
+  reply(interest, negativeReply(prevInterest, 405, "Deletion Failed"));
 }
 
 void
-DeleteHandle::handleDeleteManifestCommand(const Name& prefix, const Interest& interest,
-                                          const ndn::mgmt::ControlParameters& parameter,
-                                          const ndn::mgmt::CommandContinuation& done)
+DeleteHandle::handleDeleteManifestCommand(const Name& prefix, const Interest& interest)
 {
-  const RepoCommandParameter& repoParameter = dynamic_cast<const RepoCommandParameter&>(parameter);
+  RepoCommandParameter repoParameter;
+  extractParameter(interest, prefix, repoParameter);
 
   auto hash = repoParameter.getName().toUri();
   hash = hash.substr(1, hash.length() - 1);
@@ -134,7 +149,7 @@ DeleteHandle::handleDeleteManifestCommand(const Name& prefix, const Interest& in
   auto manifest = storageHandle.readManifest(hash);
   if (manifest == nullptr) {
     NDN_LOG_DEBUG("Manifest not found");
-    done(negativeReply(interest, 405, "Manifest not found"));
+    reply(interest, negativeReply(interest, 405, "Manifest not found"));
     return;
   }
 
@@ -142,11 +157,11 @@ DeleteHandle::handleDeleteManifestCommand(const Name& prefix, const Interest& in
   process.name = manifest->getName();
   process.hash = hash;
 
-  deleteData(repoParameter, done, processId);
+  deleteData(repoParameter, processId);
 }
 
 void
-DeleteHandle::deleteData(const RepoCommandParameter repoParameter, const ndn::mgmt::CommandContinuation& done, ProcessId processId)
+DeleteHandle::deleteData(const RepoCommandParameter repoParameter, ProcessId processId)
 {
   ProcessInfo& process = m_processes[processId];
 
@@ -166,20 +181,20 @@ DeleteHandle::deleteData(const RepoCommandParameter repoParameter, const ndn::mg
   parameters.setProcessId(newProcessId);
 
   Interest deleteDataInterest = util::generateCommandInterest(
-    ndn::Name(repo.name), "delete data", parameters, m_interestLifetime);
+    ndn::Name(repo.name), "delete-data", parameters, m_interestLifetime);
 
   NDN_LOG_DEBUG(deleteDataInterest);
 
   face.expressInterest(
     deleteDataInterest,
-    std::bind(&DeleteHandle::onDeleteDataCommandResponse, this, _1, _2, repoParameter, done, processId),
-    std::bind(&DeleteHandle::onTimeout, this, _1, done, processId),
-    std::bind(&DeleteHandle::onTimeout, this, _1, done, processId));
+    std::bind(&DeleteHandle::onDeleteDataCommandResponse, this, _1, _2, repoParameter, processId),
+    std::bind(&DeleteHandle::onTimeout, this, _1, processId),
+    std::bind(&DeleteHandle::onTimeout, this, _1, processId));
 }
 
 void
 DeleteHandle::onDeleteDataCommandResponse(const Interest& interest, const Data& data,
-                                          const RepoCommandParameter& parameters, const ndn::mgmt::CommandContinuation& done,
+                                          const RepoCommandParameter& parameters,
                                           const ProcessId processId)
 {
   RepoCommandResponse response(data.getContent().blockFromValue());
@@ -188,30 +203,29 @@ DeleteHandle::onDeleteDataCommandResponse(const Interest& interest, const Data& 
   ProcessInfo& process = m_processes[processId];
 
   if (response.getCode() > 400) {
-    done(negativeReply(process.interest, 405, "Delete data failed"));
+    reply(interest, negativeReply(process.interest, 405, "Delete data failed"));
     return;
   }
 
   auto repos = process.repos;
 
   if (repos.size() == 0) {
-    done(positiveReply(process.interest, parameters, 200, 1));
+    reply(process.interest, positiveReply(process.interest, parameters, 200, 1));
     storageHandle.deleteManifest(process.hash);
     m_processes.erase(processId);
   } else {
-    deleteData(parameters, done, processId);
+    deleteData(parameters, processId);
   }
 }
 
 void
-DeleteHandle::handleDeleteDataCommand(const Name& prefix, const Interest& interest,
-                                      const ndn::mgmt::ControlParameters& parameter,
-                                      const ndn::mgmt::CommandContinuation& done)
+DeleteHandle::handleDeleteDataCommand(const Name& prefix, const Interest& interest)
 {
-  const RepoCommandParameter& repoParameter = dynamic_cast<const RepoCommandParameter&>(parameter);
+  RepoCommandParameter repoParameter;
+  extractParameter(interest, prefix, repoParameter);
 
   if (!repoParameter.hasStartBlockId() || !repoParameter.hasEndBlockId()) {
-    done(negativeReply(interest, 403, "Start/End block id not set"));
+    reply(interest, negativeReply(interest, 403, "Start/End block id not set"));
     return;
   }
 
@@ -219,7 +233,7 @@ DeleteHandle::handleDeleteDataCommand(const Name& prefix, const Interest& intere
   SegmentNo end = repoParameter.getEndBlockId();
 
   if (start > end ) {
-    done(negativeReply(interest, 403, "Start block id > End block id"));
+    reply(interest, negativeReply(interest, 403, "Start block id > End block id"));
     return;
   }
 
@@ -236,7 +250,7 @@ DeleteHandle::handleDeleteDataCommand(const Name& prefix, const Interest& intere
     }
   }
 
-  done(positiveReply(interest, repoParameter, 200, nDeletedData));
+  reply(interest, positiveReply(interest, repoParameter, 200, nDeletedData));
 }
 
 RepoCommandResponse
@@ -264,6 +278,13 @@ DeleteHandle::negativeReply(const Interest& interest, uint64_t statusCode, std::
   RepoCommandResponse response(statusCode, text);
   response.setBody(response.wireEncode());
   return response;
+}
+
+void
+DeleteHandle::onRegisterFailed(const Name& prefix, const std::string& reason)
+{
+  NDN_LOG_ERROR("ERROR: Failed to register prefix in local hub's daemon");
+  face.shutdown();
 }
 
 } // namespace repo

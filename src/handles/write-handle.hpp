@@ -70,7 +70,7 @@ public:
   WriteHandle(Face& face, KeySpaceHandle& keySpaceHandle, RepoStorage& storageHandle,
               ndn::mgmt::Dispatcher& dispatcher, Scheduler& scheduler,
               Validator& validator,
-              ndn::Name const& clusterPrefix, const int clusterId);
+              ndn::Name const& clusterNodePrefix, std::string clusterPrefix);
 
 private:
   /**
@@ -228,8 +228,8 @@ private:
   ndn::time::milliseconds m_noEndTimeout;
   ndn::time::milliseconds m_interestLifetime;
 
-  ndn::Name m_clusterPrefix;
-  int m_clusterId;
+  ndn::Name m_clusterNodePrefix;
+  std::string m_clusterPrefix;
   ndn::Name m_repoPrefix;
 
   KeySpaceHandle& m_keySpaceHandle;

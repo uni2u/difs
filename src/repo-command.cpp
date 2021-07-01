@@ -95,7 +95,7 @@ CreateCommand::CreateCommand()
   m_requestValidator
     .required(REPO_PARAMETER_NAME)
     .required(REPO_PARAMETER_PROCESS_ID)
-    .required(REPO_PARAMETER_CLUSTER_ID)
+    .required(REPO_PARAMETER_CLUSTER_PREFIX)
     ;
 }
 

@@ -64,8 +64,7 @@ public:
 public:
   KeySpaceHandle(Face& face, RepoStorage& storageHandle,
               ndn::mgmt::Dispatcher& dispatcher, Scheduler& scheduler,
-              Validator& validator,
-              ndn::Name const& clusterPrefix, ndn::Name const& managerPrefix, const int clusterId, 
+              Validator& validator, ndn::Name const& clusterNodePrefix, std::string clusterPrefix, ndn::Name const& managerPrefix,
               std::string clusterType, std::string from);
 
 private:
@@ -109,21 +108,16 @@ private:
   handleVersionCommand(const Name& prefix, const Interest& interest);
 
   void
-  handleAddCommand(const Name& prefix, const Interest& interest,
-                   const ndn::mgmt::ControlParameters& parameter,
-                   const ndn::mgmt::CommandContinuation& done);
+  handleAddCommand(const Name& prefix, const Interest& interest);
 
   void
-  handleDeleteCommand(const Name& prefix, const Interest& interest,
-                      const ndn::mgmt::ControlParameters& parameter,
-                      const ndn::mgmt::CommandContinuation& done);
+  handleDeleteCommand(const Name& prefix, const Interest& interest);
 
   void
   handleFetchCommand(const Name& prefix, const Interest& interest);
 
   void
-  handleCoordinationCommand(const Name &prefix, const Interest &interest,
-                            const ndn::mgmt::ControlParameters &parameter);
+  handleCoordinationCommand(const Name &prefix, const Interest &interest);
 
   void
   handleManifestListCommand(const Name& prefix, const Interest& interest);
@@ -192,10 +186,8 @@ private:
   ndn::time::milliseconds m_noEndTimeout;
   ndn::time::milliseconds m_interestLifetime;
 
-  ndn::Name m_selfRepo;
   ndn::Name m_clusterPrefix;
   ndn::Name m_managerPrefix;
-  int m_clusterId;
   std::string m_clusterType;
   ndn::Name m_repoPrefix;
   uint64_t m_version;

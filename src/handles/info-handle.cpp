@@ -36,24 +36,16 @@ static const milliseconds NOEND_TIMEOUT(10000_ms);
 static const milliseconds PROCESS_DELETE_TIME(10000_ms);
 static const milliseconds DEFAULT_INTEREST_LIFETIME(4000_ms);
 
-InfoHandle::InfoHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt::Dispatcher& dispatcher,
-                         Scheduler& scheduler, Validator& validator,
-                         ndn::Name const& clusterPrefix, const int clusterId)
+InfoHandle::InfoHandle(Face& face, RepoStorage& storageHandle,
+                        Scheduler& scheduler, Validator& validator,
+                        ndn::Name const& clusterNodePrefix, std::string clusterPrefix)
   : CommandBaseHandle(face, storageHandle, scheduler, validator)
-  , m_validator(validator)
-  , m_credit(DEFAULT_CREDIT)
-  , m_canBePrefix(DEFAULT_CANBE_PREFIX)
-  , m_maxTimeout(MAX_TIMEOUT)
-  , m_noEndTimeout(NOEND_TIMEOUT)
-  , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
-  , m_clusterPrefix(clusterPrefix)
-  , m_clusterId(clusterId)
-  , m_repoPrefix(Name(clusterPrefix).append(std::to_string(clusterId)))
+  , m_repoPrefix(Name(clusterNodePrefix).append(clusterPrefix))
 {
-  dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName(std::to_string(clusterId) + "/info"),
-    makeAuthorization(),
-    std::bind(&InfoHandle::validateParameters<InfoCommand>, this, _1),
-    std::bind(&InfoHandle::handleInfoCommand, this, _1, _2));
+  ndn::InterestFilter filterInfo = Name(m_repoPrefix).append("info");
+  face.setInterestFilter(filterInfo,
+                           std::bind(&InfoHandle::handleInfoCommand, this, _1, _2),
+                           std::bind(&InfoHandle::onRegisterFailed, this, _1, _2));
 }
 
 void

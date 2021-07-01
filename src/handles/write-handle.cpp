@@ -40,7 +40,7 @@ static const milliseconds DEFAULT_INTEREST_LIFETIME(4000_ms);
 
 WriteHandle::WriteHandle(Face& face, KeySpaceHandle& keySpaceHandle, RepoStorage& storageHandle, ndn::mgmt::Dispatcher& dispatcher,
                          Scheduler& scheduler, Validator& validator,
-                         ndn::Name const& clusterPrefix, const int clusterId)
+                         ndn::Name const& clusterNodePrefix, std::string clusterPrefix)
   : CommandBaseHandle(face, storageHandle, scheduler, validator)
   , m_validator(validator)
   , m_credit(DEFAULT_CREDIT)
@@ -48,9 +48,9 @@ WriteHandle::WriteHandle(Face& face, KeySpaceHandle& keySpaceHandle, RepoStorage
   , m_maxTimeout(MAX_TIMEOUT)
   , m_noEndTimeout(NOEND_TIMEOUT)
   , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
+  , m_clusterNodePrefix(clusterNodePrefix)
   , m_clusterPrefix(clusterPrefix)
-  , m_clusterId(clusterId)
-  , m_repoPrefix(Name(clusterPrefix).append(std::to_string(clusterId)))
+  , m_repoPrefix(Name(clusterNodePrefix).append(clusterPrefix))
   , m_keySpaceHandle(keySpaceHandle)
 {
   dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName("insert"),
@@ -405,8 +405,6 @@ WriteHandle::handleCheckCommand(const Name& prefix, const Interest& interest,
 void
 WriteHandle::handleInfoCommand(const Name& prefix, const Interest& interest)
 {
-  // const RepoCommandParameter& repoParameter = dynamic_cast<const RepoCommandParameter&>(parameters);
-
   RepoCommandParameter repoParameter;
   extractParameter(interest, prefix, repoParameter);
 
@@ -492,7 +490,7 @@ WriteHandle::writeManifest(const ProcessId& processId)
 
   RepoCommandParameter parameters;
   parameters.setName(hash);
-  parameters.setClusterId(m_clusterId);
+  parameters.setClusterPrefix(ndn::encoding::makeBinaryBlock(tlv::ClusterPrefix, m_clusterNodePrefix.toUri().c_str(), m_clusterNodePrefix.toUri().length()));
 
   parameters.setProcessId(processId);
   NDN_LOG_DEBUG("Write manifest for pid " << processId);

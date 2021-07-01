@@ -39,7 +39,7 @@ enum {
   InsertNum            = 209,
   DeleteNum            = 210,
 
-  ClusterId            = 211,
+  ClusterPrefix        = 211,
 };
 
 } // namespace tlv

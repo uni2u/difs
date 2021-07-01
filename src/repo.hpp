@@ -68,11 +68,11 @@ struct RepoConfig
   boost::property_tree::ptree validatorNode;
 
   //DIFS
-  ndn::Name clusterPrefix;
+  ndn::Name clusterNodePrefix;
+  std::string clusterPrefix;
   std::string clusterType;
   ndn::Name managerPrefix;
   std::string from, to;
-  int clusterId;
 };
 
 RepoConfig

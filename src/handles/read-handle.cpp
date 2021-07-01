@@ -34,13 +34,13 @@ static const milliseconds DEFAULT_INTEREST_LIFETIME(4000);
 ReadHandle::ReadHandle(Face &face, KeySpaceHandle& keySpaceHandle, RepoStorage &storageHandle,
                        Scheduler &scheduler, Validator &validator,
                        size_t prefixSubsetLength,
-                       ndn::Name const &clusterPrefix)
+                       ndn::Name const &clusterNodePrefix)
   : CommandBaseHandle(face, storageHandle, scheduler, validator)
   , m_prefixSubsetLength(prefixSubsetLength)
   , m_face(face)
   , m_storageHandle(storageHandle)
   , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
-  , m_clusterPrefix(clusterPrefix)
+  , m_clusterNodePrefix(clusterNodePrefix)
   , m_keySpaceHandle(keySpaceHandle)
 {
   connectAutoListen();

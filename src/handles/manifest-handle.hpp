@@ -69,7 +69,7 @@ public:
   ManifestHandle(Face& face, RepoStorage& storageHandle,
               ndn::mgmt::Dispatcher& dispatcher, Scheduler& scheduler,
               Validator& validator,
-              ndn::Name const& clusterPrefix, const int clusterId);
+              ndn::Name const& clusterNodePrefix, std::string clusterPrefix);
 
 private:
   /**
@@ -108,9 +108,7 @@ private: // insert command
    * @brief handle insert commands
    */
   void
-  handleCreateCommand(const Name& prefix, const Interest& interest,
-                      const ndn::mgmt::ControlParameters& parameters,
-                      const ndn::mgmt::CommandContinuation& done);
+  handleCreateCommand(const Name& prefix, const Interest& interest);
 
   void
   onValidationFailed(const Interest& interest, const ValidationError& error);
@@ -196,9 +194,8 @@ private:
   ndn::time::milliseconds m_noEndTimeout;
   ndn::time::milliseconds m_interestLifetime;
 
-  ndn::Name m_selfRepo;
-  ndn::Name m_clusterPrefix;
-  int m_clusterId;
+  ndn::Name m_clusterNodePrefix;
+  std::string m_clusterPrefix;
   ndn::Name m_repoPrefix;
 };
 

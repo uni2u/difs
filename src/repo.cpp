@@ -115,14 +115,14 @@ parseConfig(const std::string& configPath)
 
   repoConfig.nMaxPackets = repoConf.get<uint64_t>("storage.max-packets");
 
-  repoConfig.clusterPrefix = Name(repoConf.get<std::string>("cluster.prefix"));
+  repoConfig.clusterNodePrefix= Name(repoConf.get<std::string>("cluster.nodePrefix"));
+  repoConfig.clusterPrefix = repoConf.get<std::string>("cluster.prefix");
   repoConfig.clusterType = repoConf.get<std::string>("cluster.type");
   if (repoConfig.clusterType == "node") {
-    repoConfig.managerPrefix = Name(repoConf.get<std::string>("cluster.name"));
+    repoConfig.managerPrefix = Name(repoConf.get<std::string>("cluster.managerPrefix"));
     repoConfig.from = repoConf.get<std::string>("cluster.from");
     repoConfig.to = repoConf.get<std::string>("cluster.to");
   }
-  repoConfig.clusterId = repoConf.get<int>("cluster.id");
 
   return repoConfig;
 }
@@ -147,12 +147,12 @@ Repo::Repo(boost::asio::io_service& ioService, std::shared_ptr<Storage> storage,
   , m_store(storage)
   , m_storageHandle(*m_store)
   , m_validator(m_face)  
-  , m_keySpaceHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.managerPrefix, m_config.clusterId, m_config.clusterType, m_config.from)
-  , m_readHandle(m_face, m_keySpaceHandle, m_storageHandle, m_scheduler, m_validator, m_config.registrationSubset, m_config.clusterPrefix)
-  , m_writeHandle(m_face, m_keySpaceHandle, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId)
-  , m_infoHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId)
-  , m_deleteHandle(m_face, m_keySpaceHandle, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId)
-  , m_manifestHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId)
+  , m_keySpaceHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterNodePrefix, m_config.clusterPrefix, m_config.managerPrefix, m_config.clusterType, m_config.from)
+  , m_readHandle(m_face, m_keySpaceHandle, m_storageHandle, m_scheduler, m_validator, m_config.registrationSubset, m_config.clusterNodePrefix)
+  , m_writeHandle(m_face, m_keySpaceHandle, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterNodePrefix, m_config.clusterPrefix)
+  , m_infoHandle(m_face, m_storageHandle, m_scheduler, m_validator, m_config.clusterNodePrefix, m_config.clusterPrefix)
+  , m_deleteHandle(m_face, m_keySpaceHandle, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterNodePrefix, m_config.clusterPrefix)
+  , m_manifestHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterNodePrefix, m_config.clusterPrefix)
   , m_tcpBulkInsertHandle(ioService, m_storageHandle)
 {
   this->enableValidation();
@@ -211,7 +211,7 @@ void
 Repo::enableListening()
 {
   auto clusterPrefix = Name(m_config.clusterPrefix);
-  auto selfPrefix = Name(clusterPrefix).append(std::to_string(m_config.clusterId));
+  auto selfNodePrefix = Name(m_config.clusterNodePrefix).append(m_config.clusterPrefix);
 
   m_face.registerPrefix(clusterPrefix, nullptr,
     [] (const Name& clusterPrefix, const std::string& reason) {
@@ -219,13 +219,13 @@ Repo::enableListening()
     }
   );
 
-  m_face.registerPrefix(selfPrefix, nullptr,
-    [] (const Name& selfPrefix, const std::string& reason) {
-      NDN_LOG_DEBUG("Self prefix: " << selfPrefix << " registration error: " << reason);
+  m_face.registerPrefix(selfNodePrefix, nullptr,
+    [] (const Name& selfNodePrefix, const std::string& reason) {
+      NDN_LOG_DEBUG("Self Node prefix: " << selfNodePrefix << " registration error: " << reason);
     }
   );
 
-  m_readHandle.listen(selfPrefix);
+  m_readHandle.listen(selfNodePrefix);
 
   m_dispatcher.addTopPrefix(clusterPrefix);
 

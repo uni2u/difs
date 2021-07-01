@@ -102,10 +102,11 @@ RepoCommandParameter::setInterestLifetime(milliseconds interestLifetime)
 }
 
 RepoCommandParameter&
-RepoCommandParameter::setClusterId(int clusterId)
+RepoCommandParameter::setClusterPrefix(const Block& clusterPrefix)
 {
-  m_clusterId = clusterId;
-  m_hasFields[REPO_PARAMETER_CLUSTER_ID] = true;
+  m_clusterPrefix = clusterPrefix;
+  m_clusterPrefix.encode();
+  m_hasFields[REPO_PARAMETER_CLUSTER_PREFIX] = true;
   m_wire.reset();
   return *this;
 }
@@ -117,11 +118,8 @@ RepoCommandParameter::wireEncode(EncodingImpl<T>& encoder) const
   size_t totalLength = 0;
   size_t variableLength = 0;
 
-  if (m_hasFields[REPO_PARAMETER_CLUSTER_ID]) {
-    variableLength = encoder.prependNonNegativeInteger(m_clusterId);
-    totalLength += variableLength;
-    totalLength += encoder.prependVarNumber(variableLength);
-    totalLength += encoder.prependVarNumber(tlv::ClusterId);
+  if (m_hasFields[REPO_PARAMETER_CLUSTER_PREFIX]) {
+    totalLength += encoder.prependBlock(m_clusterPrefix);
   }
 
   if (m_hasFields[REPO_PARAMETER_PROCESS_ID]) {
@@ -262,12 +260,12 @@ RepoCommandParameter::wireDecode(const Block& wire)
     m_interestLifetime = milliseconds(readNonNegativeInteger(*val));
   }
 
-  // ClusterId
-  val = m_wire.find(tlv::ClusterId);
+  // ClusterPrefix
+  val = m_wire.find(tlv::ClusterPrefix);
   if (val != m_wire.elements_end())
   {
-    m_hasFields[REPO_PARAMETER_CLUSTER_ID] = true;
-    m_clusterId = readNonNegativeInteger(*val);
+    m_hasFields[REPO_PARAMETER_CLUSTER_PREFIX] = true;
+    m_clusterPrefix = m_wire.get(tlv::ClusterPrefix);
   }
 }
 

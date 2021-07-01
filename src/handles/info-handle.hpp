@@ -66,42 +66,8 @@ public:
 
 public:
   InfoHandle(Face& face, RepoStorage& storageHandle,
-              ndn::mgmt::Dispatcher& dispatcher, Scheduler& scheduler,
-              Validator& validator,
-              ndn::Name const& clusterPrefix, const int clusterId);
-
-private:
-  /**
-  * @brief Information of insert process including variables for response
-  *        and credit based flow control
-  */
-  struct ProcessInfo
-  {
-    RepoCommandResponse response;
-    std::queue<SegmentNo> nextSegmentQueue;  ///< queue of waiting segment
-                                        ///  to be sent when having credits
-    SegmentNo nextSegment;  ///< last segment put into the nextSegmentQueue
-    std::map<SegmentNo, int> retryCounts;  ///< to store retrying times of timeout segment
-    int credit;  ///< congestion control credits of process
-
-    /**
-     * @brief the latest time point at which EndBlockId must be determined
-     *
-     * Segmented fetch process will terminate if EndBlockId cannot be
-     * determined before this time point.
-     * It is initialized to now()+noEndTimeout when segmented fetch process begins,
-     * and reset to now()+noEndTimeout each time an insert status check command is processed.
-     */
-    ndn::time::steady_clock::TimePoint noEndTime;
-
-    ndn::Name repo;
-    ndn::Name name;
-    int startBlockId;
-    int endBlockId;
-    std::shared_ptr<Manifest> manifest;
-
-    bool manifestSent = false;
-  };
+              Scheduler& scheduler, Validator& validator,
+              ndn::Name const& clusterNodePrefix, std::string clusterPrefix);
 
 private:
   void
@@ -111,19 +77,6 @@ private:
   onRegisterFailed(const Name& prefix, const std::string& reason);
 
 private:
-  Validator& m_validator;
-
-  std::map<ProcessId, ProcessInfo> m_processes;
-
-  int m_credit;
-  bool m_canBePrefix;
-  ndn::time::milliseconds m_maxTimeout;
-  ndn::time::milliseconds m_noEndTimeout;
-  ndn::time::milliseconds m_interestLifetime;
-
-  ndn::Name m_selfRepo;
-  ndn::Name m_clusterPrefix;
-  int m_clusterId;
   ndn::Name m_repoPrefix;
 };
 }
