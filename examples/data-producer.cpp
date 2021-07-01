@@ -147,13 +147,13 @@ Publisher::generateFromFile()
 std::shared_ptr<ndn::Data>
 Publisher::createData(const ndn::Name& name)
 {
-  static ndn::KeyChain keyChain;
+  static ndn::HCKeyChain hcKeyChain;
   static std::vector<uint8_t> content(1500, '-');
 
   auto data = std::make_shared<ndn::Data>();
   data->setName(name);
   data->setContent(content.data(), content.size());
-  keyChain.sign(*data);
+  hcKeyChain.ndn::KeyChain::sign(*data);
   return data;
 }
 

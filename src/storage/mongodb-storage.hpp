@@ -17,22 +17,22 @@
  * repo-ng, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef REPO_STORAGE_FS_STORAGE_HPP
-#define REPO_STORAGE_FS_STORAGE_HPP
+#ifndef REPO_STORAGE_MONGODB_STORAGE_HPP
+#define REPO_STORAGE_MONGODB_STORAGE_HPP
 
 #include "storage.hpp"
 
-#include <algorithm>
-#include <iostream>
-#include <queue>
-#include <stdlib.h>
+#include <memory>
 #include <string>
-#include <sqlite3.h>
-#include <vector>
+
+#include <mongocxx/client.hpp>
+#include <mongocxx/instance.hpp>
 
 namespace repo {
 
-class FsStorage : public Storage
+using std::string;
+
+class MongoDBStorage : public Storage
 {
 public:
   class Error : public std::runtime_error
@@ -46,9 +46,9 @@ public:
   };
 
   explicit
-  FsStorage(const std::string& dbPath);
+  MongoDBStorage(const std::string& dbName);
 
-  ~FsStorage();
+  ~MongoDBStorage();
 
   /**
    *  @brief  put the data into database
@@ -109,17 +109,17 @@ private:
   writeData(const Data& data, const char* dataType);
 
 private:
-  std::string m_dbPath;
-  boost::filesystem::path m_path;
+  mongocxx::instance mInstance;
+  mongocxx::client mClient;
+  mongocxx::database mDB;
 
-  static const char* FNAME_NAME;
-  static const char* FNAME_DATA;
-  static const char* FNAME_HASH;
-  static const char* DIRNAME_DATA;
-  static const char* DIRNAME_MANIFEST;
+  static const char* COLLNAME_DATA;
+  static const char* COLLNAME_MANIFEST;
+  static const string FIELDNAME_KEY;
+  static const string FIELDNAME_VALUE;
 };
 
 
 } // namespace repo
 
-#endif // REPO_STORAGE_FS_STORAGE_HPP
+#endif // REPO_STORAGE_MONGODB_STORAGE_HPP

@@ -25,6 +25,7 @@
 
 #include "manifest/manifest.hpp"
 #include "util.hpp"
+#include "repo.hpp"
 
 namespace repo {
 
@@ -37,9 +38,9 @@ static const milliseconds NOEND_TIMEOUT(10000_ms);
 static const milliseconds PROCESS_DELETE_TIME(10000_ms);
 static const milliseconds DEFAULT_INTEREST_LIFETIME(4000_ms);
 
-WriteHandle::WriteHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt::Dispatcher& dispatcher,
+WriteHandle::WriteHandle(Face& face, KeySpaceHandle& keySpaceHandle, RepoStorage& storageHandle, ndn::mgmt::Dispatcher& dispatcher,
                          Scheduler& scheduler, Validator& validator,
-                         ndn::Name const& clusterPrefix, const int clusterId, const int clusterSize)
+                         ndn::Name const& clusterNodePrefix, std::string clusterPrefix)
   : CommandBaseHandle(face, storageHandle, scheduler, validator)
   , m_validator(validator)
   , m_credit(DEFAULT_CREDIT)
@@ -47,10 +48,10 @@ WriteHandle::WriteHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt::Disp
   , m_maxTimeout(MAX_TIMEOUT)
   , m_noEndTimeout(NOEND_TIMEOUT)
   , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
+  , m_clusterNodePrefix(clusterNodePrefix)
   , m_clusterPrefix(clusterPrefix)
-  , m_clusterId(clusterId)
-  , m_clusterSize(clusterSize)
-  , m_repoPrefix(Name(clusterPrefix).append(std::to_string(clusterId)))
+  , m_repoPrefix(Name(clusterNodePrefix).append(clusterPrefix))
+  , m_keySpaceHandle(keySpaceHandle)
 {
   dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName("insert"),
     makeAuthorization(),
@@ -62,13 +63,7 @@ WriteHandle::WriteHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt::Disp
     std::bind(&WriteHandle::validateParameters<InsertCheckCommand>, this, _1),
     std::bind(&WriteHandle::handleCheckCommand, this, _1, _2, _3, _4));
 
-  // dispatcher.addControlCommand<RepoCommandParameter>(
-  //   ndn::PartialName(std::to_string(clusterId)).append("info"),
-  //   makeAuthorization(),
-  //   std::bind(&WriteHandle::validateParameters<InfoCommand>, this, _1),
-  //   std::bind(&WriteHandle::handleInfoCommand, this, _1, _2, _3, _4));
-
-  ndn::InterestFilter filterGet = Name(m_repoPrefix).append("info");
+  ndn::InterestFilter filterGet = Name(m_repoPrefix).append("write-info");
   face.setInterestFilter(filterGet,
                            std::bind(&WriteHandle::handleInfoCommand, this, _1, _2),
                            std::bind(&WriteHandle::onRegisterFailed, this, _1, _2));
@@ -88,14 +83,13 @@ WriteHandle::handleInsertCommand(const Name& prefix, const Interest& interest,
   RepoCommandParameter* repoParameter =
     dynamic_cast<RepoCommandParameter*>(const_cast<ndn::mgmt::ControlParameters*>(&parameter));
 
-  auto name = repoParameter->getName().toUri();
-  auto hash = Manifest::getHash(name);
-  auto repo = Manifest::getManifestStorage(m_clusterPrefix, name, m_clusterSize);
+  auto difsKey = repoParameter->getName().at(-1).toUri();
 
+  auto hash = Manifest::getHash("/" + difsKey);
+  auto repo = m_keySpaceHandle.getManifestStorage(hash);
   RepoCommandParameter parameters;
   parameters.setName(hash);
   parameters.setProcessId(repoParameter->getProcessId());
-
 
   Interest findInterest = util::generateCommandInterest(repo, "find", parameters, m_interestLifetime);
 
@@ -113,7 +107,6 @@ WriteHandle::onFindResponse(
     const Interest &findInterest, const Data &findData,
     const Interest &origInterest, const RepoCommandParameter& repoParameter, const ndn::mgmt::CommandContinuation &done)
 {
-
   auto content = findData.getContent();
   if (content.value_size() > 0) {  // Manifest found, cannot insert
     done(negativeReply("Manifest already exists", 403));
@@ -158,9 +151,13 @@ WriteHandle::onDataValidated(const Interest& interest, const Data& data, Process
 
   process.startBlockId = manifest.getStartBlockId();
   process.endBlockId = manifest.getEndBlockId();
-  process.name = manifest.getName();
+  std::string name = manifest.getName();
+  // TODO: Use forwarding hint
+  unsigned int i = name.rfind("/");
+  std::string difsKey = name.substr(i + 1);
+  process.name = difsKey;
   process.repo = m_repoPrefix;
-
+	
   if (!process.manifestSent) {
     process.manifestSent = true;
     writeManifest(processId);
@@ -169,9 +166,10 @@ WriteHandle::onDataValidated(const Interest& interest, const Data& data, Process
   RepoCommandParameter parameter;
   parameter.setName(manifest.getName());
   parameter.setStartBlockId(0);
+  if (!interest.getForwardingHint().empty())
+    parameter.setNodePrefix(interest.getForwardingHint());
 
   segInit(processId, parameter);
-
 }
 
 void
@@ -202,6 +200,8 @@ WriteHandle::processSingleInsertCommand(const Interest& interest, const RepoComm
   fetchInterest.setCanBePrefix(m_canBePrefix);
   fetchInterest.setInterestLifetime(m_interestLifetime);
   fetchInterest.setMustBeFresh(true);
+  if (parameter.hasNodePrefix())
+    fetchInterest.setForwardingHint(parameter.getNodePrefix());
   face.expressInterest(fetchInterest,
                        std::bind(&WriteHandle::onData, this, _1, _2, processId),
                        std::bind(&WriteHandle::onTimeout, this, _1, processId), // Nack
@@ -211,7 +211,7 @@ WriteHandle::processSingleInsertCommand(const Interest& interest, const RepoComm
 void
 WriteHandle::segInit(ProcessId processId, const RepoCommandParameter& parameter)
 {
-  // use SegmentFetcher to send fetch interest.
+  // use HCSegmentFetcher to send fetch interest.
   ProcessInfo& process = m_processes[processId];
   Name name = parameter.getName();
   SegmentNo startBlockId = parameter.getStartBlockId();
@@ -234,22 +234,29 @@ WriteHandle::segInit(ProcessId processId, const RepoCommandParameter& parameter)
   SegmentNo segment = startBlockId;
   fetchName.appendSegment(segment);
   Interest interest(fetchName);
+  interest.setCanBePrefix(m_canBePrefix);
+  interest.setMustBeFresh(true);
+  if (parameter.hasNodePrefix()) {
+    interest.setForwardingHint(parameter.getNodePrefix());
+  }
 
   ndn::util::SegmentFetcher::Options options;
   options.initCwnd = initialCredit;
   options.interestLifetime = m_interestLifetime;
   options.maxTimeout = m_maxTimeout;
-  auto fetcher = ndn::util::SegmentFetcher::start(face, interest, m_validator, options);
-  fetcher->onError.connect([] (uint32_t errorCode, const std::string& errorMsg)
+  
+  std::shared_ptr<ndn::util::HCSegmentFetcher> hc_fetcher;
+  auto hcFetcher = hc_fetcher->start(face, interest, m_validator, options);
+  hcFetcher->onError.connect([] (uint32_t errorCode, const std::string& errorMsg)
                            {NDN_LOG_ERROR("Error: " << errorMsg);});
-  fetcher->afterSegmentValidated.connect([this, fetcher, processId] (const Data& data)
-                                         {onSegmentData(*fetcher, data, processId);});
-  fetcher->afterSegmentTimedOut.connect([this, fetcher, processId] ()
-                                        {onSegmentTimeout(*fetcher, processId);});
+  hcFetcher->afterSegmentValidated.connect([this, hcFetcher, processId] (const Data& data)
+                                         {onSegmentData(*hcFetcher, data, processId);});
+  hcFetcher->afterSegmentTimedOut.connect([this, hcFetcher, processId] ()
+                                        {onSegmentTimeout(*hcFetcher, processId);});
 }
 
 void
-WriteHandle::onSegmentData(ndn::util::SegmentFetcher& fetcher, const Data& data, ProcessId processId)
+WriteHandle::onSegmentData(ndn::util::HCSegmentFetcher& fetcher, const Data& data, ProcessId processId)
 {
 
   std::cout<<"signitureInfo:"<<data.getSignatureInfo()<<std::endl;
@@ -263,7 +270,7 @@ WriteHandle::onSegmentData(ndn::util::SegmentFetcher& fetcher, const Data& data,
   RepoCommandResponse& response = it->second.response;
 
   //insert data
-  auto newName = Name(m_repoPrefix).append("data").append(data.getName());
+  auto newName = Name(m_repoPrefix).append("data").append(data.getName().getSubName(-2, 2));
   auto newData = sign(newName, data);
   if (storageHandle.insertData(newData)) {
     response.setInsertNum(response.getInsertNum() + 1);
@@ -303,7 +310,7 @@ WriteHandle::onSegmentData(ndn::util::SegmentFetcher& fetcher, const Data& data,
 }
 
 void
-WriteHandle::onSegmentTimeout(ndn::util::SegmentFetcher& fetcher, ProcessId processId)
+WriteHandle::onSegmentTimeout(ndn::util::HCSegmentFetcher& fetcher, ProcessId processId)
 {
   NDN_LOG_DEBUG("SegTimeout");
   if (m_processes.count(processId) == 0) {
@@ -401,8 +408,6 @@ WriteHandle::handleCheckCommand(const Name& prefix, const Interest& interest,
 void
 WriteHandle::handleInfoCommand(const Name& prefix, const Interest& interest)
 {
-  // const RepoCommandParameter& repoParameter = dynamic_cast<const RepoCommandParameter&>(parameters);
-
   RepoCommandParameter repoParameter;
   extractParameter(interest, prefix, repoParameter);
 
@@ -418,7 +423,7 @@ WriteHandle::handleInfoCommand(const Name& prefix, const Interest& interest)
   ProcessInfo& process = m_processes[processId];
 
   Manifest manifest = *process.manifest;
-
+	
   // auto manifest = Manifest::fromInfoJson(process.manifestJson);
   // NDN_LOG_DEBUG("Got manifest");
 
@@ -482,14 +487,13 @@ WriteHandle::writeManifest(const ProcessId& processId)
   // Save it for later info command
   process.manifest = std::make_shared<Manifest>(manifest);
 
-  auto manifestRepo = manifest.getManifestStorage(
-    m_clusterPrefix, m_clusterSize);
+  auto manifestRepo = m_keySpaceHandle.getManifestStorage(hash);
 
   NDN_LOG_DEBUG("Using manifest repo: " << manifestRepo);
 
   RepoCommandParameter parameters;
   parameters.setName(hash);
-  parameters.setClusterId(m_clusterId);
+  parameters.setClusterPrefix(ndn::encoding::makeBinaryBlock(tlv::ClusterPrefix, m_clusterNodePrefix.toUri().c_str(), m_clusterNodePrefix.toUri().length()));
 
   parameters.setProcessId(processId);
   NDN_LOG_DEBUG("Write manifest for pid " << processId);

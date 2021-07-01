@@ -20,31 +20,46 @@
 #ifndef REPO_REPO_HPP
 #define REPO_REPO_HPP
 
-#include "storage/repo-storage.hpp"
-#include "storage/fs-storage.hpp"
-
+#include "common.hpp"
 #include "handles/delete-handle.hpp"
+#include "handles/manifest-handle.hpp"
 #include "handles/read-handle.hpp"
 #include "handles/tcp-bulk-insert-handle.hpp"
 #include "handles/write-handle.hpp"
-#include "handles/manifest-handle.hpp"
+#include "handles/info-handle.hpp"
+#include "handles/keyspace-handle.hpp"
+#include "storage/repo-storage.hpp"
+#include "storage/storage-method.hpp"
 
-#include "common.hpp"
+#include <memory>
 
+#include <ndn-cxx/security/hc-key-chain.hpp>
+#include <ndn-cxx/security/signing-helpers.hpp>
+#include <boost/property_tree/info_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <ndn-cxx/mgmt/dispatcher.hpp>
 #include <ndn-cxx/security/validator-config.hpp>
 
-#include <boost/property_tree/info_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
-
 namespace repo {
+
+struct Fs
+{
+  std::string dbPath;
+};
+
+struct MongoDB
+{
+  std::string db;
+};
 
 struct RepoConfig
 {
   static const size_t DISABLED_SUBSET_LENGTH = -1;
 
   std::string repoConfigPath;
-  std::string dbPath;
+  StorageMethod storageMethod;
+  Fs fs;
+  MongoDB mongodb;
   std::vector<ndn::Name> dataPrefixes;
   size_t registrationSubset = DISABLED_SUBSET_LENGTH;
   std::vector<ndn::Name> repoPrefixes;
@@ -53,13 +68,18 @@ struct RepoConfig
   boost::property_tree::ptree validatorNode;
 
   //DIFS
-  ndn::Name clusterPrefix;
-  int clusterSize;
-  int clusterId;
+  ndn::Name clusterNodePrefix;
+  std::string clusterPrefix;
+  std::string clusterType;
+  ndn::Name managerPrefix;
+  std::string from, to;
 };
 
 RepoConfig
 parseConfig(const std::string& confPath);
+
+std::shared_ptr<Storage>
+createStorage(const RepoConfig& config);
 
 class Repo : noncopyable
 {
@@ -75,7 +95,7 @@ public:
   };
 
 public:
-  Repo(boost::asio::io_service& ioService, const RepoConfig& config);
+  Repo(boost::asio::io_service& ioService, std::shared_ptr<Storage> storage, const RepoConfig& config);
 
   //@brief rebuild index from storage file when repo starts.
   void
@@ -87,6 +107,15 @@ public:
   void
   enableValidation();
 
+  void
+  onAddCommandResponse(const Interest& interest, const Data& data);
+
+  void
+  onAddCommandTimeout(const Interest& interest);
+
+  void
+  addNode();
+
 private:
   RepoConfig m_config;
   Scheduler m_scheduler;
@@ -94,14 +123,18 @@ private:
   ndn::mgmt::Dispatcher m_dispatcher;
   std::shared_ptr<Storage> m_store;
   RepoStorage m_storageHandle;
-  KeyChain m_keyChain;
+  HCKeyChain m_hcKeyChain;
   ValidatorConfig m_validator;
 
+  KeySpaceHandle m_keySpaceHandle;
   ReadHandle m_readHandle;
   WriteHandle m_writeHandle;
+  InfoHandle m_infoHandle;
   DeleteHandle m_deleteHandle;
   ManifestHandle m_manifestHandle;
+
   TcpBulkInsertHandle m_tcpBulkInsertHandle;
+  std::string m_keySpaceFile;
 };
 
 } // namespace repo

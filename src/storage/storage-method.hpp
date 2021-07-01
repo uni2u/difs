@@ -23,7 +23,8 @@
 namespace repo {
 
 enum StorageMethod {
-  STORAGE_METHOD_SQLITE = 1
+  STORAGE_METHOD_SQLITE = 1,
+  STORAGE_METHOD_MONGODB = 2
 };
 
 } // namespace repo

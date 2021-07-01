@@ -88,6 +88,12 @@ public:
   virtual bool
   hasManifest(const std::string& hash) = 0;
 
+  virtual boost::property_tree::ptree
+  readDatas() = 0;
+
+  virtual boost::property_tree::ptree
+  readManifests() = 0;
+
   /**
    *  @brief  return the size of database
    */

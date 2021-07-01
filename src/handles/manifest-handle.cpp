@@ -25,6 +25,8 @@
 #include "manifest/manifest.hpp"
 #include "util.hpp"
 
+#include <iostream>
+
 namespace repo {
 
 NDN_LOG_INIT(repo.ManifestHandle);
@@ -38,7 +40,7 @@ static const milliseconds DEFAULT_INTEREST_LIFETIME(4000_ms);
 
 ManifestHandle::ManifestHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt::Dispatcher& dispatcher,
                          Scheduler& scheduler, Validator& validator,
-                         ndn::Name const& clusterPrefix, const int clusterId)
+                         ndn::Name const& clusterNodePrefix, std::string clusterPrefix)
   : CommandBaseHandle(face, storageHandle, scheduler, validator)
   , m_validator(validator)
   , m_credit(DEFAULT_CREDIT)
@@ -46,27 +48,33 @@ ManifestHandle::ManifestHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt
   , m_maxTimeout(MAX_TIMEOUT)
   , m_noEndTimeout(NOEND_TIMEOUT)
   , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
+  , m_clusterNodePrefix(clusterNodePrefix)
   , m_clusterPrefix(clusterPrefix)
-  , m_clusterId(clusterId)
-  , m_repoPrefix(Name(clusterPrefix).append(std::to_string(clusterId)))
+  , m_repoPrefix(Name(clusterNodePrefix).append(clusterPrefix))
 {
-  dispatcher.addControlCommand<RepoCommandParameter>(
-    ndn::PartialName(std::to_string(clusterId)).append("create"),
-    makeAuthorization(),
-    std::bind(&ManifestHandle::validateParameters<CreateCommand>, this, _1),
-    std::bind(&ManifestHandle::handleCreateCommand, this, _1, _2, _3, _4));
-
-  // dispatcher.addControlCommand<RepoCommandParameter>(
-  //   ndn::PartialName(std::to_string(clusterId)).append("find"),
-  //   makeAuthorization(),
-  //   std::bind(&ManifestHandle::validateParameters<FindCommand>, this, _1),
-  //   std::bind(&ManifestHandle::handleFindCommand, this, _1, _2, _3, _4));
+  ndn::InterestFilter filterCreate = Name(m_repoPrefix).append("create");
+  NDN_LOG_DEBUG(m_repoPrefix << " Listening " << filterCreate);
+  face.setInterestFilter(filterCreate,
+                           std::bind(&ManifestHandle::handleCreateCommand, this, _1, _2),
+                           std::bind(&ManifestHandle::onRegisterFailed, this, _1, _2));
 
   ndn::InterestFilter filterFind = Name(m_repoPrefix).append("find");
   NDN_LOG_DEBUG(m_repoPrefix << " Listening " << filterFind);
   face.setInterestFilter(filterFind,
                            std::bind(&ManifestHandle::handleFindCommand, this, _1, _2),
                            std::bind(&ManifestHandle::onRegisterFailed, this, _1, _2));
+
+  // dispatcher.addControlCommand<RepoCommandParameter>(
+  //   ndn::PartialName(clusterPrefix).append("create"),
+  //   makeAuthorization(),
+  //   std::bind(&ManifestHandle::validateParameters<CreateCommand>, this, _1),
+  //   std::bind(&ManifestHandle::handleCreateCommand, this, _1, _2, _3, _4));
+
+  // dispatcher.addControlCommand<RepoCommandParameter>
+  //   ndn::PartialName(std::to_string(clusterId)).append("find"),
+  //   makeAuthorization(),
+  //   std::bind(&ManifestHandle::validateParameters<FindCommand>, this, _1),
+  //   std::bind(&ManifestHandle::handleFindCommand, this, _1, _2, _3, _4));
 }
 
 void
@@ -76,53 +84,44 @@ ManifestHandle::deleteProcess(ProcessId processId)
 }
 
 void
-ManifestHandle::handleCreateCommand(const Name& prefix, const Interest& interest,
-                                 const ndn::mgmt::ControlParameters& parameter,
-                                 const ndn::mgmt::CommandContinuation& done)
+ManifestHandle::handleCreateCommand(const Name& prefix, const Interest& interest)
 {
-  RepoCommandParameter* repoParameter =
-    dynamic_cast<RepoCommandParameter*>(const_cast<ndn::mgmt::ControlParameters*>(&parameter));
+  RepoCommandParameter repoParameter;
+  extractParameter(interest, prefix, repoParameter);
 
-  // auto processId = repoParameter->getProcessId();
-  // ProcessInfo& process = m_processes[processId];
+  auto repo = m_clusterNodePrefix;
+  auto hash = repoParameter.getName();
+  std::string clusterNodePrefix = reinterpret_cast<const char*>(repoParameter.getClusterPrefix().value());
+  clusterNodePrefix = clusterNodePrefix.substr(0, repoParameter.getClusterPrefix().value_size());
 
-  auto repo = m_clusterPrefix;
-  auto hash = repoParameter->getName();
-  auto clusterId = repoParameter->getClusterId();
+  NDN_LOG_DEBUG("Got create hash " << hash << " from " << clusterNodePrefix);
 
-  NDN_LOG_DEBUG("Got create hash " << hash << " from " << clusterId);
-
-  ProcessId processId = repoParameter->getProcessId();
+  ProcessId processId = repoParameter.getProcessId();
 
   ProcessInfo& process = m_processes[processId];
 
-  RepoCommandResponse& response = process.response;
-  response.setCode(100);
-  response.setProcessId(processId);
-  response.setInsertNum(0);
-  response.setBody(response.wireEncode());
-  done(response);
+  negativeReply(interest, "", 200);
 
   RepoCommandParameter parameters;
   parameters.setName(hash);
   parameters.setProcessId(processId);
 
-  auto commandPath = Name(m_clusterPrefix)
-    .append(std::to_string(clusterId))
-    .append("info")
+  auto commandPath = Name(clusterNodePrefix)
+    .append(m_clusterPrefix)
+    .append("write-info")
     .append(parameters.wireEncode());
   NDN_LOG_DEBUG("request " << commandPath);
   Interest fetchInterest(commandPath);
   fetchInterest.setInterestLifetime(m_interestLifetime);
-  // fetchInterest.setMustBeFresh(true);
+  fetchInterest.setMustBeFresh(true);
 
   face.expressInterest(fetchInterest,
                        std::bind(&ManifestHandle::onData, this, _1, _2, processId),
                        std::bind(&ManifestHandle::onTimeout, this, _1, processId), // Nack
                        std::bind(&ManifestHandle::onTimeout, this, _1, processId));
 
-  if (repoParameter->hasInterestLifetime())
-    m_interestLifetime = repoParameter->getInterestLifetime();
+  if (repoParameter.hasInterestLifetime())
+    m_interestLifetime = repoParameter.getInterestLifetime();
 }
 
 void
@@ -171,7 +170,7 @@ ManifestHandle::processSingleCreateCommand(const Interest& interest, RepoCommand
 }
 
 void
-ManifestHandle::onSegmentTimeout(ndn::util::SegmentFetcher& fetcher, ProcessId processId)
+ManifestHandle::onSegmentTimeout(ndn::util::HCSegmentFetcher& fetcher, ProcessId processId)
 {
   NDN_LOG_DEBUG("SegTimeout");
   if (m_processes.count(processId) == 0) {
@@ -201,7 +200,6 @@ ManifestHandle::handleFindCommand(const Name& prefix, const Interest& interest)
     NDN_LOG_DEBUG("Cannot found manifest " << hash);
     reply(interest, "");
   }
-
 }
 
 void

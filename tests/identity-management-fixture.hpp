@@ -21,7 +21,7 @@
 #define REPO_TESTS_IDENTITY_MANAGEMENT_FIXTURE_HPP
 
 #include "common.hpp"
-#include <ndn-cxx/security/key-chain.hpp>
+#include <ndn-cxx/security/hc-key-chain.hpp>
 
 namespace repo {
 namespace tests {
@@ -54,7 +54,7 @@ public:
   saveIdentityCertificate(const Name& identity, const std::string& filename, bool wantAdd = false);
 
 protected:
-  ndn::KeyChain m_keyChain;
+  ndn::HCKeyChain m_hcKeyChain;
 
 private:
   std::vector<std::string> m_certFiles;

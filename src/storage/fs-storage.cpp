@@ -176,6 +176,7 @@ FsStorage::read(const Name& name)
   char * buffer = new char [length];
   inFileData.read(buffer, length);
 
+
   data->wireDecode(Block(reinterpret_cast<const uint8_t*>(buffer), length));
 
   return data;
@@ -214,6 +215,61 @@ FsStorage::hasManifest(const std::string& hash)
   auto fsPath = m_path / DIRNAME_MANIFEST / hash;
   auto fsPathStatus = boost::filesystem::status(fsPath);
   return boost::filesystem::exists(fsPathStatus);
+}
+
+boost::property_tree::ptree
+FsStorage::readDatas()
+{
+  namespace pt = boost::property_tree;
+  namespace fs = boost::filesystem;
+  pt::ptree root;
+
+  fs::path fsPath = m_path / DIRNAME_DATA;
+  fs::directory_iterator it(fsPath);
+
+  for(; it != fs::directory_iterator(); it++) {
+    for(auto iter = fs::directory_iterator(it->path()); iter != fs::directory_iterator(); iter++) {
+      fs::ifstream inFileData(iter->path(), std::ifstream::binary);
+      if (!inFileData.is_open())
+        continue;
+
+      auto data = std::make_shared<Data>();
+
+      inFileData.seekg(0, inFileData.end);
+      int length = inFileData.tellg();
+      inFileData.seekg(0, inFileData.beg);
+
+      char* buffer = new char[length];
+      inFileData.read(buffer, length);
+
+      data->wireDecode(Block(reinterpret_cast<const uint8_t*>(buffer), length));
+
+      pt::ptree node;
+      node.put("data", data->getName().toUri());
+      root.push_back(std::make_pair("", node));
+    }
+  }
+
+  return root;
+}
+
+boost::property_tree::ptree
+FsStorage::readManifests() 
+{
+  namespace pt = boost::property_tree;
+  namespace fs = boost::filesystem;
+  pt::ptree root;
+  // std::shared_ptr<pt::ptree> root = std::make_shared<pt::ptree>();
+
+  fs::path fsPath = m_path / DIRNAME_MANIFEST;
+  fs::directory_iterator it(fsPath);
+  for (; it != fs::directory_iterator(); it++) {
+    pt::ptree node;
+    node.put("key", it->path().filename().string());
+    root.push_back(std::make_pair("", node));
+  }
+
+  return root;
 }
 
 uint64_t

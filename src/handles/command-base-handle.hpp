@@ -110,8 +110,9 @@ CommandBaseHandle::reply(const Interest& commandInterest, const RepoCommandRespo
 {
   std::shared_ptr<Data> rdata = std::make_shared<Data>(commandInterest.getName());
   rdata->setContent(response.wireEncode());
-  KeyChain keyChain;
-  keyChain.sign(*rdata, ndn::signingWithSha256());
+  rdata->setFreshnessPeriod(3_s);
+  HCKeyChain hcKeyChain;
+  hcKeyChain.ndn::KeyChain::sign(*rdata, ndn::signingWithSha256());
   face.put(*rdata);
 }
 
@@ -120,8 +121,9 @@ CommandBaseHandle::reply(const Interest& commandInterest, const std::string& dat
 {
   std::shared_ptr<Data> rdata = std::make_shared<Data>(commandInterest.getName());
   rdata->setContent((uint8_t*)(data.data()), data.size());
-  KeyChain keyChain;
-  keyChain.sign(*rdata, ndn::signingWithSha256());
+  rdata->setFreshnessPeriod(3_s);
+  HCKeyChain hcKeyChain;
+  hcKeyChain.ndn::KeyChain::sign(*rdata, ndn::signingWithSha256());
   face.put(*rdata);
 }
 

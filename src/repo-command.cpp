@@ -60,6 +60,7 @@ InsertCommand::InsertCommand()
     .required(REPO_PARAMETER_NAME)
     .optional(REPO_PARAMETER_START_BLOCK_ID)
     .optional(REPO_PARAMETER_END_BLOCK_ID)
+    .optional(REPO_PARAMETER_NODE_PREFIX)
     ;
 }
 
@@ -67,14 +68,26 @@ InsertCheckCommand::InsertCheckCommand()
 {
   m_requestValidator
     .required(REPO_PARAMETER_NAME)
-    .required(REPO_PARAMETER_PROCESS_ID);
+    .required(REPO_PARAMETER_PROCESS_ID)
+    .optional(REPO_PARAMETER_NODE_PREFIX)
+    ;
 }
 
 InfoCommand::InfoCommand()
 {
   m_requestValidator
-    .required(REPO_PARAMETER_NAME)
-    .required(REPO_PARAMETER_PROCESS_ID);
+    .optional(REPO_PARAMETER_FROM)
+    .optional(REPO_PARAMETER_TO)
+    ;
+}
+
+AddCommand::AddCommand()
+{
+  m_requestValidator
+    // .required(REPO_PARAMETER_PROCESS_ID)
+    .required(REPO_PARAMETER_FROM)
+    .required(REPO_PARAMETER_TO)
+    ;
 }
 
 CreateCommand::CreateCommand()
@@ -82,7 +95,7 @@ CreateCommand::CreateCommand()
   m_requestValidator
     .required(REPO_PARAMETER_NAME)
     .required(REPO_PARAMETER_PROCESS_ID)
-    .required(REPO_PARAMETER_CLUSTER_ID)
+    .required(REPO_PARAMETER_CLUSTER_PREFIX)
     ;
 }
 

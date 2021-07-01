@@ -26,7 +26,6 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/program_options.hpp>
-
 #include <ndn-cxx/util/logger.hpp>
 
 NDN_LOG_INIT(repo.main);
@@ -76,9 +75,13 @@ main(int argc, char** argv)
     }
   });
 
+  auto config = repo::parseConfig(configFile);
+  std::shared_ptr<repo::Storage> storage = repo::createStorage(config);
+
   try {
-    repo::Repo repo(ioService, repo::parseConfig(configFile));
+    repo::Repo repo(ioService, storage, config);
     repo.initializeStorage();
+    repo.addNode();
     repo.enableValidation();
     repo.enableListening();
 

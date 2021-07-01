@@ -1,7 +1,7 @@
 #include "util.hpp"
 
 #include <ndn-cxx/security/command-interest-signer.hpp>
-#include <ndn-cxx/security/key-chain.hpp>
+#include <ndn-cxx/security/hc-key-chain.hpp>
 #include <ndn-cxx/security/signing-helpers.hpp>
 
 #include <boost/uuid/detail/sha1.hpp>
@@ -17,8 +17,8 @@ generateCommandInterest(
     milliseconds interestLifetime)
 {
 
-  ndn::KeyChain keyChain;
-  ndn::security::CommandInterestSigner cmdSigner(keyChain);
+  ndn::HCKeyChain hcKeyChain;
+  ndn::security::CommandInterestSigner cmdSigner(hcKeyChain);
 
   Name cmd = commandPrefix;
   cmd

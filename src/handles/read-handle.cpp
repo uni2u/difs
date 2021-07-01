@@ -31,17 +31,17 @@ NDN_LOG_INIT(repo.ReadHandle);
 
 static const milliseconds DEFAULT_INTEREST_LIFETIME(4000);
 
-ReadHandle::ReadHandle(Face &face, RepoStorage &storageHandle,
+ReadHandle::ReadHandle(Face &face, KeySpaceHandle& keySpaceHandle, RepoStorage &storageHandle,
                        Scheduler &scheduler, Validator &validator,
                        size_t prefixSubsetLength,
-                       ndn::Name const &clusterPrefix, int clusterSize)
+                       ndn::Name const &clusterNodePrefix)
   : CommandBaseHandle(face, storageHandle, scheduler, validator)
   , m_prefixSubsetLength(prefixSubsetLength)
   , m_face(face)
   , m_storageHandle(storageHandle)
   , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
-  , m_clusterPrefix(clusterPrefix)
-  , m_clusterSize(clusterSize)
+  , m_clusterNodePrefix(clusterNodePrefix)
+  , m_keySpaceHandle(keySpaceHandle)
 {
   connectAutoListen();
 }
@@ -90,7 +90,7 @@ ReadHandle::onGetInterest(const Name& prefix, const Interest& interest)
   auto name = parameter.getName();
   NDN_LOG_DEBUG("Received get interest " << name);
   auto hash = Manifest::getHash(name.toUri());
-  auto repo = Manifest::getManifestStorage(m_clusterPrefix, name.toUri(), m_clusterSize);
+  auto repo = m_keySpaceHandle.getManifestStorage(hash);
 
   NDN_LOG_DEBUG("Find " << hash << " from " << repo);
   ProcessId processId = ndn::random::generateWord64();
@@ -103,7 +103,7 @@ ReadHandle::onGetInterest(const Name& prefix, const Interest& interest)
 
   Interest findInterest = util::generateCommandInterest(
     repo, "find", parameters, m_interestLifetime);
-  // findInterest.setMustBeFresh(true);
+  findInterest.setMustBeFresh(true);
 
   m_face.expressInterest(
     findInterest,

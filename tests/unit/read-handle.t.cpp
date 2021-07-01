@@ -68,7 +68,7 @@ public:
 
 public:
   ndn::util::DummyClientFace face;
-  ndn::KeyChain keyChain;
+  ndn::HCKeyChain hcKeyChain;
   ndn::Scheduler scheduler;
 
   size_t subsetLength;
@@ -89,10 +89,10 @@ BOOST_FIXTURE_TEST_CASE(DataPrefixes, Fixture)
   data1->setContent(&content[0], content.size());
   data2->setContent(&content[0], content.size());
 
-  keyChain.createIdentity(identity);
-  keyChain.sign(*data1, ndn::security::SigningInfo(ndn::security::SigningInfo::SIGNER_TYPE_ID,
+  hcKeyChain.createIdentity(identity);
+  hcKeyChain.sign(*data1, ndn::security::SigningInfo(ndn::security::SigningInfo::SIGNER_TYPE_ID,
                                                   identity));
-  keyChain.sign(*data2, ndn::security::SigningInfo(ndn::security::SigningInfo::SIGNER_TYPE_ID,
+  hcKeyChain.sign(*data2, ndn::security::SigningInfo(ndn::security::SigningInfo::SIGNER_TYPE_ID,
                                                   identity));
 
   face.sentInterests.clear();

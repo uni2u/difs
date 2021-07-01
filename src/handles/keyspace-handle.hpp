@@ -17,16 +17,12 @@
  * repo-ng, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef REPO_HANDLES_WRITE_HANDLE_HPP
-#define REPO_HANDLES_WRITE_HANDLE_HPP
+#ifndef REPO_HANDLES_KEYSPACE_HANDLE_HPP
+#define REPO_HANDLES_KEYSPACE_HANDLE_HPP
 
 #include "command-base-handle.hpp"
-#include "keyspace-handle.hpp"
 
 #include <ndn-cxx/mgmt/dispatcher.hpp>
-#include <ndn-cxx/util/hc-segment-fetcher.hpp>
-
-#include <queue>
 
 namespace repo {
 
@@ -51,7 +47,7 @@ namespace repo {
  *
  * If repo cannot get FinalBlockId in noendTimeout time, the fetching process will terminate.
  */
-class WriteHandle : public CommandBaseHandle
+class KeySpaceHandle : public CommandBaseHandle
 {
 
 public:
@@ -65,12 +61,11 @@ public:
     }
   };
 
-
 public:
-  WriteHandle(Face& face, KeySpaceHandle& keySpaceHandle, RepoStorage& storageHandle,
+  KeySpaceHandle(Face& face, RepoStorage& storageHandle,
               ndn::mgmt::Dispatcher& dispatcher, Scheduler& scheduler,
-              Validator& validator,
-              ndn::Name const& clusterNodePrefix, std::string clusterPrefix);
+              Validator& validator, ndn::Name const& clusterNodePrefix, std::string clusterPrefix, ndn::Name const& managerPrefix,
+              std::string clusterType, std::string from);
 
 private:
   /**
@@ -105,121 +100,84 @@ private:
     bool manifestSent = false;
   };
 
-private: // insert command
-  /**
-   * @brief handle insert commands
-   */
-  void
-  handleInsertCommand(const Name& prefix, const Interest& interest,
-                      const ndn::mgmt::ControlParameters& parameters,
-                      const ndn::mgmt::CommandContinuation& done);
-
-  void
-  onFindResponse(
-      const Interest &findInterest, const Data &findData,
-      const Interest &origInterest, const RepoCommandParameter &repoParameter, const ndn::mgmt::CommandContinuation &done);
-
-  void onValidationFailed(const Interest &interest, const ValidationError &error);
-
-private: // single data fetching
-  /**
-   * @brief fetch one data
-   */
-  void
-  onData(const Interest& interest, const Data& data, ProcessId processId);
-
-  void
-  onDataValidated(const Interest& interest, const Data& data, ProcessId processId);
-
-  /**
-   * @brief handle when fetching one data timeout
-   */
-  void
-  onTimeout(const Interest& interest, ProcessId processId);
-
-  void
-  processSingleInsertCommand(const Interest& interest, const RepoCommandParameter& parameter,
-                             const ndn::mgmt::CommandContinuation& done);
-
-private:  // segmented data fetching
-  /**
-   * @brief fetch segmented data
-   */
-  void
-  onSegmentData(ndn::util::HCSegmentFetcher& fetcher, const Data& data, ProcessId processId);
-
-  /**
-   * @brief handle when fetching segmented data timeout
-   */
-  void
-  onSegmentTimeout(ndn::util::HCSegmentFetcher& fetcher, ProcessId processId);
-
-  /**
-   * @brief initiate fetching segmented data
-   */
-  void
-  segInit(ProcessId processId, const RepoCommandParameter& parameter);
-
-  void
-  processSegmentedInsertCommand(const Interest& interest, const RepoCommandParameter& parameter,
-                                const ndn::mgmt::CommandContinuation& done);
-
-private:
-  /**
-   * @brief extends noEndTime of process if not noEndTimeout, set StatusCode 405
-   *
-   * called by onCheckValidated() if there is no EndBlockId. If not noEndTimeout,
-   * extends noEndTime of process. If noEndTimeout, set status code 405 as noEndTimeout.
-   */
-  void
-  extendNoEndTime(ProcessInfo& process);
-
-private: // insert state check command
-  /**
-   * @brief handle insert check command
-   */
-
-  void
-  handleCheckCommand(const Name& prefix, const Interest& interest,
-                     const ndn::mgmt::ControlParameters& parameters,
-                     const ndn::mgmt::CommandContinuation& done);
-
-  void
-  onCheckValidationFailed(const Interest& interest, const ValidationError& error);
-
 private:
   void
-  handleInfoCommand(const Name& prefix, const Interest& interest);
+  handleRingInfoCommand(const Name& prefix, const Interest& interest);
+
+  void
+  handleVersionCommand(const Name& prefix, const Interest& interest);
+
+  void
+  handleAddCommand(const Name& prefix, const Interest& interest);
+
+  void
+  handleDeleteCommand(const Name& prefix, const Interest& interest);
+
+  void
+  handleFetchCommand(const Name& prefix, const Interest& interest);
+
+  void
+  handleCoordinationCommand(const Name &prefix, const Interest &interest);
+
+  void
+  handleManifestListCommand(const Name& prefix, const Interest& interest);
+
+  void
+  handleManifestCommand(const Name& prefix, const Interest& interest);
+
+  void
+  onFetchCommand(std::string versionNum);
+
+  void
+  onFetchCommandResponse(const Interest& interest, const Data& data);
+
+  void
+  onFetchCommandTimeout(const Interest& interest);
+
+  void
+  onVersionCommand(); 
+
+  void
+  onVersionCommandResponse(const Interest& interest, const Data& data);
+
+  void
+  onVersionCommandTimeout(const Interest& interest);
+
+  void
+  onManifestListCommand();
+
+  void
+  onManifestListCommandResponse(const Interest& interest, const Data& data);
+
+  void
+  onManifestListCommandTimeout(const Interest& interest);
+
+  void
+  onManifestCommand(std::string manifestName);
+
+  void
+  onManifestCommandResponse(const Interest& interest, const Data& data);
+
+  void
+  onManifestCommandTimeout(const Interest& interest);
+
+  void
+  onCoordinationCommand();
+
+  void
+  onCoordinationCommandResponse(const Interest& interest, const Data& data);
+
+  void
+  onCoordinationCommandTimeout(const Interest& interest);
 
   void
   onRegisterFailed(const Name& prefix, const std::string& reason);
 
-private:
-  void
-  deleteProcess(ProcessId processId);
-
-  /**
-   * @brief schedule a event to delete the process
-   */
-  void
-  deferredDeleteProcess(ProcessId processId);
-
-  RepoCommandResponse
-  negativeReply(std::string text, int statusCode);
+public:
+  ndn::Name
+  getManifestStorage(const std::string hash);
 
 private:
-  void
-  writeManifest(const ProcessId& processId);
-
-  void
-  onCreateCommandResponse(const Interest& interest, const Data& data, const ProcessId& processId);
-
-  void
-  onCreateCommandTimeout(const Interest& interest, const ProcessId& processId);
-
-private:
-  Validator& m_validator;
-
   std::map<ProcessId, ProcessInfo> m_processes;
 
   int m_credit;
@@ -228,13 +186,17 @@ private:
   ndn::time::milliseconds m_noEndTimeout;
   ndn::time::milliseconds m_interestLifetime;
 
-  ndn::Name m_clusterNodePrefix;
-  std::string m_clusterPrefix;
+  ndn::Name m_clusterPrefix;
+  ndn::Name m_managerPrefix;
+  std::string m_clusterType;
   ndn::Name m_repoPrefix;
-
-  KeySpaceHandle& m_keySpaceHandle;
+  uint64_t m_version;
+  std::string m_versionNum;
+  std::string m_keySpaceFile, m_manifestList;
+  std::string m_start, m_end;
+  std::string m_from, m_to;
 };
 
-} // namespace repo
+}
 
-#endif // REPO_HANDLES_WRITE_HANDLE_HPP
+#endif

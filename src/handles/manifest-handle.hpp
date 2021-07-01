@@ -23,7 +23,7 @@
 #include "command-base-handle.hpp"
 
 #include <ndn-cxx/mgmt/dispatcher.hpp>
-#include <ndn-cxx/util/segment-fetcher.hpp>
+#include <ndn-cxx/util/hc-segment-fetcher.hpp>
 
 #include <queue>
 
@@ -69,7 +69,7 @@ public:
   ManifestHandle(Face& face, RepoStorage& storageHandle,
               ndn::mgmt::Dispatcher& dispatcher, Scheduler& scheduler,
               Validator& validator,
-              ndn::Name const& clusterPrefix, const int clusterId);
+              ndn::Name const& clusterNodePrefix, std::string clusterPrefix);
 
 private:
   /**
@@ -108,9 +108,7 @@ private: // insert command
    * @brief handle insert commands
    */
   void
-  handleCreateCommand(const Name& prefix, const Interest& interest,
-                      const ndn::mgmt::ControlParameters& parameters,
-                      const ndn::mgmt::CommandContinuation& done);
+  handleCreateCommand(const Name& prefix, const Interest& interest);
 
   void
   onValidationFailed(const Interest& interest, const ValidationError& error);
@@ -141,7 +139,7 @@ private:  // segmented data fetching
    * @brief handle when fetching segmented data timeout
    */
   void
-  onSegmentTimeout(ndn::util::SegmentFetcher& fetcher, ProcessId processId);
+  onSegmentTimeout(ndn::util::HCSegmentFetcher& fetcher, ProcessId processId);
 
   void
   processSegmentedCreateCommand(const Interest& interest, RepoCommandParameter& parameter,
@@ -196,9 +194,8 @@ private:
   ndn::time::milliseconds m_noEndTimeout;
   ndn::time::milliseconds m_interestLifetime;
 
-  ndn::Name m_selfRepo;
-  ndn::Name m_clusterPrefix;
-  int m_clusterId;
+  ndn::Name m_clusterNodePrefix;
+  std::string m_clusterPrefix;
   ndn::Name m_repoPrefix;
 };
 

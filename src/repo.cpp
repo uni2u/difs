@@ -19,8 +19,11 @@
 
 #include "repo.hpp"
 #include "storage/fs-storage.hpp"
+#include "storage/mongodb-storage.hpp"
+#include "repo-command-parameter.hpp"
 
 #include <ndn-cxx/util/logger.hpp>
+#include <ndn-cxx/security/command-interest-signer.hpp>
 
 namespace repo {
 
@@ -34,7 +37,7 @@ parseConfig(const std::string& configPath)
   }
 
   std::ifstream fin(configPath.c_str());
- if (!fin.is_open())
+  if (!fin.is_open())
     BOOST_THROW_EXCEPTION(Repo::Error("failed to open configuration file '" + configPath + "'"));
 
   using namespace boost::property_tree;
@@ -93,38 +96,105 @@ parseConfig(const std::string& configPath)
     repoConfig.tcpBulkInsertEndpoints.push_back(std::make_pair(host, port));
   }
 
-  if (repoConf.get<std::string>("storage.method") != "fs") {
-    BOOST_THROW_EXCEPTION(Repo::Error("Only 'fs' storage method is supported"));
+  ptree storageConf = repoConf.get_child("storage");
+  std::string storageMethod = storageConf.get<std::string>("method");
+  if (storageMethod == "fs") {
+    repoConfig.storageMethod = StorageMethod::STORAGE_METHOD_SQLITE;
+  }
+  else if (storageMethod == "mongodb"){
+    repoConfig.storageMethod = StorageMethod::STORAGE_METHOD_MONGODB;
+    repoConfig.mongodb.db = storageConf.get<std::string>("mongodb.db");
+  }
+  else {
+    BOOST_THROW_EXCEPTION(Repo::Error("Only 'fs' or 'mongodb' storage method is supported"));
   }
 
-  repoConfig.dbPath = repoConf.get<std::string>("storage.path");
+  repoConfig.fs.dbPath = repoConf.get<std::string>("storage.fs.path");
 
   repoConfig.validatorNode = repoConf.get_child("validator");
 
   repoConfig.nMaxPackets = repoConf.get<uint64_t>("storage.max-packets");
 
-  repoConfig.clusterPrefix = Name(repoConf.get<std::string>("cluster.prefix"));
-  repoConfig.clusterId = repoConf.get<int>("cluster.id");
-  repoConfig.clusterSize = repoConf.get<int>("cluster.size");
+  repoConfig.clusterNodePrefix= Name(repoConf.get<std::string>("cluster.nodePrefix"));
+  repoConfig.clusterPrefix = repoConf.get<std::string>("cluster.prefix");
+  repoConfig.clusterType = repoConf.get<std::string>("cluster.type");
+  if (repoConfig.clusterType == "node") {
+    repoConfig.managerPrefix = Name(repoConf.get<std::string>("cluster.managerPrefix"));
+    repoConfig.from = repoConf.get<std::string>("cluster.from");
+    repoConfig.to = repoConf.get<std::string>("cluster.to");
+  }
 
   return repoConfig;
 }
 
-Repo::Repo(boost::asio::io_service& ioService, const RepoConfig& config)
+std::shared_ptr<Storage>
+createStorage(const RepoConfig& config)
+{
+  if (config.storageMethod == StorageMethod::STORAGE_METHOD_MONGODB) {
+    return std::make_shared<MongoDBStorage>(config.mongodb.db);
+  }
+  else {
+  // else if (config.storageMethod == StorageMethod::STORAGE_METHOD_SQLITE) {
+    return std::make_shared<FsStorage>(config.fs.dbPath);
+  }
+}
+
+Repo::Repo(boost::asio::io_service& ioService, std::shared_ptr<Storage> storage, const RepoConfig& config)
   : m_config(config)
   , m_scheduler(ioService)
   , m_face(ioService)
-  , m_dispatcher(m_face, m_keyChain)
-  , m_store(std::make_shared<FsStorage>(config.dbPath))
+  , m_dispatcher(m_face, m_hcKeyChain)
+  , m_store(storage)
   , m_storageHandle(*m_store)
-  , m_validator(m_face)
-  , m_readHandle(m_face, m_storageHandle, m_scheduler, m_validator, m_config.registrationSubset, m_config.clusterPrefix, m_config.clusterSize)
-  , m_writeHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId, m_config.clusterSize)
-  , m_deleteHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId, m_config.clusterSize)
-  , m_manifestHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterPrefix, m_config.clusterId)
+  , m_validator(m_face)  
+  , m_keySpaceHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterNodePrefix, m_config.clusterPrefix, m_config.managerPrefix, m_config.clusterType, m_config.from)
+  , m_readHandle(m_face, m_keySpaceHandle, m_storageHandle, m_scheduler, m_validator, m_config.registrationSubset, m_config.clusterNodePrefix)
+  , m_writeHandle(m_face, m_keySpaceHandle, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterNodePrefix, m_config.clusterPrefix)
+  , m_infoHandle(m_face, m_storageHandle, m_scheduler, m_validator, m_config.clusterNodePrefix, m_config.clusterPrefix)
+  , m_deleteHandle(m_face, m_keySpaceHandle, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterNodePrefix, m_config.clusterPrefix)
+  , m_manifestHandle(m_face, m_storageHandle, m_dispatcher, m_scheduler, m_validator, m_config.clusterNodePrefix, m_config.clusterPrefix)
   , m_tcpBulkInsertHandle(ioService, m_storageHandle)
 {
   this->enableValidation();
+}
+
+void
+Repo::addNode() {
+  if (m_config.clusterType != "node") 
+    return;
+
+  RepoCommandParameter parameter;
+  Block to = ndn::encoding::makeBinaryBlock(tlv::To, m_config.to.c_str(), m_config.to.length());
+  Block from = ndn::encoding::makeBinaryBlock(tlv::From, m_config.from.c_str(), m_config.from.length());
+  parameter.setTo(to);
+  parameter.setFrom(from);
+  Name cmd = m_config.managerPrefix;
+  cmd
+    .append("add-node")
+    .append(parameter.wireEncode());
+
+  ndn::HCKeyChain hcKeyChain;
+  ndn::security::CommandInterestSigner cmdSigner(hcKeyChain);
+
+  Interest addInterest = cmdSigner.makeCommandInterest(cmd);
+  addInterest.setInterestLifetime(3_s);
+  addInterest.setMustBeFresh(true);
+
+  m_face.expressInterest(
+    addInterest,
+    std::bind(&Repo::onAddCommandResponse, this, _1, _2),
+    std::bind(&Repo::onAddCommandTimeout, this, _1),
+    std::bind(&Repo::onAddCommandTimeout, this, _1));
+}
+
+void
+Repo::onAddCommandResponse(const Interest& interest, const Data& data) {
+  std::cout << "Node add success" << std::endl;
+}
+
+void
+Repo::onAddCommandTimeout(const Interest& interest) {
+  std::cout << "Node add timeout" << std::endl;
 }
 
 void
@@ -141,7 +211,7 @@ void
 Repo::enableListening()
 {
   auto clusterPrefix = Name(m_config.clusterPrefix);
-  auto selfPrefix = Name(clusterPrefix).append(std::to_string(m_config.clusterId));
+  auto selfNodePrefix = Name(m_config.clusterNodePrefix).append(m_config.clusterPrefix);
 
   m_face.registerPrefix(clusterPrefix, nullptr,
     [] (const Name& clusterPrefix, const std::string& reason) {
@@ -149,13 +219,13 @@ Repo::enableListening()
     }
   );
 
-  m_face.registerPrefix(selfPrefix, nullptr,
-    [] (const Name& selfPrefix, const std::string& reason) {
-      NDN_LOG_DEBUG("Self prefix: " << selfPrefix << " registration error: " << reason);
+  m_face.registerPrefix(selfNodePrefix, nullptr,
+    [] (const Name& selfNodePrefix, const std::string& reason) {
+      NDN_LOG_DEBUG("Self Node prefix: " << selfNodePrefix << " registration error: " << reason);
     }
   );
 
-  m_readHandle.listen(selfPrefix);
+  m_readHandle.listen(selfNodePrefix);
 
   m_dispatcher.addTopPrefix(clusterPrefix);
 

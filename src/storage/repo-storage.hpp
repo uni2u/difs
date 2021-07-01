@@ -91,6 +91,12 @@ public:
   bool
   deleteManifest(const std::string& hash);
 
+  boost::property_tree::ptree
+  readDatas();
+
+  boost::property_tree::ptree
+  readManifests();
+
 
 public:
   ndn::util::Signal<RepoStorage, ndn::Name> afterDataInsertion;

@@ -61,7 +61,7 @@ protected:
     std::shared_ptr<ndn::Data> data = std::make_shared<ndn::Data>();
     data->setName(name);
     data->setContent(&content[0], content.size());
-    m_keyChain.sign(*data);
+    m_hcKeyChain.sign(*data);
 
     map.insert(std::make_pair(name, data));
     return data;
