@@ -49,8 +49,6 @@ public:
   CommandBaseHandle(Face& face, RepoStorage& storageHandle,
                     Scheduler& scheduler, Validator& validator);
 
-  KeyChain keyChain;                  
-
   virtual
   ~CommandBaseHandle() = default;
 

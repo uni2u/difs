@@ -32,42 +32,5 @@ generateCommandInterest(
   return interest;
 }
 
-
-std::array<uint8_t, HASH_SIZE>
-convertHash(unsigned hashBlock[5]) {
-  std::array<uint8_t, HASH_SIZE> hash;
-  auto innerLoopCount = sizeof(unsigned) / sizeof(uint8_t);
-  for (int i = 0; i < 5; i += 1) {
-    for (int j = 0; j < (int)innerLoopCount; j += 1) {
-      hash[i * innerLoopCount + j] = hashBlock[i] >> (8 * (innerLoopCount - j - 1));
-    }
-  }
-  return hash;
-}
-
-std::array<uint8_t, HASH_SIZE>
-calcHash(uint8_t * buffer, size_t length)
-{
-  boost::uuids::detail::sha1 sha1;
-  unsigned hashBlock[5] = {0};
-  sha1.process_bytes(buffer, length);
-  sha1.get_digest(hashBlock);
-
-  return convertHash(hashBlock);
-}
-
-bool
-verifyHash(const uint8_t * buffer, size_t length, std::array<uint8_t, HASH_SIZE> hash)
-{
-  boost::uuids::detail::sha1 sha1;
-  unsigned hashBlock[5] = {0};
-  sha1.process_bytes(buffer, length);
-  sha1.get_digest(hashBlock);
-
-  auto calcedHash = convertHash(hashBlock);
-
-  return calcedHash == hash;
-}
-
 } // namespace util
 } // namespace repo
