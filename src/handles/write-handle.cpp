@@ -258,6 +258,9 @@ WriteHandle::segInit(ProcessId processId, const RepoCommandParameter& parameter)
 void
 WriteHandle::onSegmentData(ndn::util::HCSegmentFetcher& fetcher, const Data& data, ProcessId processId)
 {
+
+  std::cout<<"signitureInfo:"<<data.getSignatureInfo()<<std::endl;
+  
   auto it = m_processes.find(processId);
   if (it == m_processes.end()) {
     fetcher.stop();
