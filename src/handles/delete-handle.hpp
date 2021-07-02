@@ -74,6 +74,9 @@ private:
   handleDeleteManifestCommand(const Name& prefix, const Interest& interest);
 
   void
+  handleOnlyDeleteManifestCommand(const Name& prefix, const Interest& interest);
+
+  void
   deleteData(const RepoCommandParameter repoParameter, ProcessId processId);
 
   void

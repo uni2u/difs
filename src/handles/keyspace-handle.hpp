@@ -126,6 +126,9 @@ private:
   handleManifestCommand(const Name& prefix, const Interest& interest);
 
   void
+  handleCompleteCommand(const Name& prefix, const Interest& interest);
+
+  void
   onFetchCommand(std::string versionNum);
 
   void
@@ -169,6 +172,24 @@ private:
 
   void
   onCoordinationCommandTimeout(const Interest& interest);
+
+  void
+  onCompleteCommand();
+
+  void
+  onCompleteCommandResponse(const Interest& interest, const Data& data);
+
+  void
+  onCompleteCommandTimeout(const Interest& interest);
+
+  void
+  onDeleteManifestCommand(std::string manifestName);
+
+  void
+  onDeleteManifestCommandResponse(const Interest& interest);
+
+  void
+  onDeleteManifestCommandTimeout(const Interest& interest);
 
   void
   onRegisterFailed(const Name& prefix, const std::string& reason);

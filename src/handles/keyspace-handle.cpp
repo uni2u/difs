@@ -107,20 +107,10 @@ KeySpaceHandle::KeySpaceHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt
                            std::bind(&KeySpaceHandle::handleFetchCommand, this, _1, _2),
                            std::bind(&KeySpaceHandle::onRegisterFailed, this, _1, _2));
 
-  // dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName(clusterPrefix + "/add-node"),
-  //   makeAuthorization(),
-  //   std::bind(&KeySpaceHandle::validateParameters<AddCommand>, this, _1),
-  //   std::bind(&KeySpaceHandle::handleAddCommand, this, _1, _2, _3, _4));
-
-  // dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName(clusterPrefix + "/delete-node"),
-  //   makeAuthorization(),
-  //   std::bind(&KeySpaceHandle::validateParameters<InfoCommand>, this, _1),
-  //   std::bind(&KeySpaceHandle::handleDeleteCommand, this, _1, _2, _3, _4));
-
-  // dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName(clusterPrefix + "/coordination"),
-  //   makeAuthorization(),
-  //   std::bind(&KeySpaceHandle::validateParameters<InfoCommand>, this, _1),
-  //   std::bind(&KeySpaceHandle::handleCoordinationCommand, this, _1, _2, _3));
+  ndn::InterestFilter filterComplete = Name(m_repoPrefix).append("complete");
+  face.setInterestFilter(filterComplete,
+                           std::bind(&KeySpaceHandle::handleCompleteCommand, this, _1, _2),
+                           std::bind(&KeySpaceHandle::onRegisterFailed, this, _1, _2));
 }
 
 void
@@ -245,8 +235,6 @@ KeySpaceHandle::onFetchCommandResponse(const Interest& interest, const Data& dat
       break;
     }
   }
-
-  onManifestListCommand();
 }
 
 void
@@ -324,11 +312,8 @@ KeySpaceHandle::handleAddCommand(const Name& prefix, const Interest& interest)
 void
 KeySpaceHandle::handleDeleteCommand(const Name& prefix, const Interest& interest)
 {
-  std::cout << "Delete Command" << std::endl;
   RepoCommandParameter repoParameter;
   extractParameter(interest, prefix, repoParameter);
-  // RepoCommandParameter* repoParameter =
-  //   dynamic_cast<RepoCommandParameter*>(const_cast<ndn::mgmt::ControlParameters*>(&parameter));
 
   std::string from = reinterpret_cast<const char*>(repoParameter.getFrom().value());
   from = from.substr(0, repoParameter.getFrom().value_size());
@@ -454,6 +439,8 @@ KeySpaceHandle::onManifestListCommandResponse(const Interest& interest, const Da
       }
     }
   }
+
+  onCompleteCommand();
 }
 
 void
@@ -565,6 +552,92 @@ KeySpaceHandle::onCoordinationCommandTimeout(const Interest& interest)
 {
   onCoordinationCommand();
   NDN_LOG_ERROR("Coordination timeout");
+}
+
+void
+KeySpaceHandle::handleCompleteCommand(const Name& prefix, const Interest& interest)
+{
+  negativeReply(interest, "", 200);
+}
+
+void
+KeySpaceHandle::onCompleteCommand() 
+{
+  Name cmd = Name(m_managerPrefix);
+  cmd
+    .append("complete");
+
+  Interest completeInterest(cmd);
+  completeInterest.setCanBePrefix(true);
+  completeInterest.setMustBeFresh(true);
+  completeInterest.setInterestLifetime(6_s);
+
+  face.expressInterest(
+    completeInterest,
+    std::bind(&KeySpaceHandle::onCompleteCommandResponse, this, _1, _2),
+    std::bind(&KeySpaceHandle::onCompleteCommandTimeout, this, _1),
+    std::bind(&KeySpaceHandle::onCompleteCommandTimeout, this, _1));
+}
+
+void
+KeySpaceHandle::onCompleteCommandResponse(const Interest& interest, const Data& data)
+{
+  pt::ptree root, manifests;
+  std::istringstream manifestList(m_manifestList);
+
+  pt::read_json(manifestList, root);
+  manifests = root.get_child("manifests");
+
+  for (auto it = manifests.begin(); it != manifests.end(); it++) {
+    auto manifestName = it->second.get<std::string>("key");
+
+    auto start = stoi(m_start, 0, 16);
+    auto end = stoi(m_end, 0, 16);
+
+    for (; start <= end; start++) {
+      std::stringstream stream;
+      stream << std::hex << start;
+
+      if (!strncmp(manifestName.c_str(), stream.str().c_str(), stream.str().length())) {
+        onDeleteManifestCommand(manifestName);
+      }
+    } 
+  }
+}
+
+void
+KeySpaceHandle::onCompleteCommandTimeout(const Interest& interest)
+{
+  NDN_LOG_ERROR("Complete timeout");
+}
+
+void
+KeySpaceHandle::onDeleteManifestCommand(std::string manifestName) 
+{
+  RepoCommandParameter parameter;
+  parameter.setName(manifestName);
+
+  Interest delManifestInterest = util::generateCommandInterest(
+   m_from, "only-delete-manifest", parameter, 4_s);
+  delManifestInterest.setMustBeFresh(true);
+
+  face.expressInterest(
+    delManifestInterest,
+    std::bind(&KeySpaceHandle::onDeleteManifestCommandResponse, this, _1),
+    std::bind(&KeySpaceHandle::onDeleteManifestCommandTimeout, this, _1),
+    std::bind(&KeySpaceHandle::onDeleteManifestCommandTimeout, this, _1));
+}
+
+void
+KeySpaceHandle::onDeleteManifestCommandResponse(const Interest& interest)
+{
+  std::cout << "Delete Manifest Command Response" << std::endl;
+}
+
+void
+KeySpaceHandle::onDeleteManifestCommandTimeout(const Interest& interest)
+{
+  NDN_LOG_ERROR("Complete timeout");
 }
 
 ndn::Name
