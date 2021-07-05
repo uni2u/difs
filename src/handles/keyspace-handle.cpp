@@ -323,18 +323,16 @@ KeySpaceHandle::handleDeleteCommand(const Name& prefix, const Interest& interest
   RepoCommandParameter repoParameter;
   extractParameter(interest, prefix, repoParameter);
 
-  std::string from = reinterpret_cast<const char*>(repoParameter.getFrom().value());
-  from = from.substr(0, repoParameter.getFrom().value_size());
-  m_from = from;
+  m_from = reinterpret_cast<const char*>(repoParameter.getFrom().value());
+  m_from = m_from.substr(0, repoParameter.getFrom().value_size());
 
-  std::string to = reinterpret_cast<const char*>(repoParameter.getTo().value());
-  to = to.substr(0, repoParameter.getTo().value_size());
-  m_to = to;
+  m_to = reinterpret_cast<const char*>(repoParameter.getTo().value());
+  m_to = m_to.substr(0, repoParameter.getTo().value_size());
 
   // read json file & make tree
   namespace pt = boost::property_tree;
   pt::ptree root, keySpaces, keySpaceNode, fromNode, toNode;
-  int fromEnd = 0, toEnd = 0;
+  int fromStart, fromEnd, toStart;
   std::istringstream keyFile(m_keySpaceFile);
   std::stringstream stream;
 
@@ -346,7 +344,8 @@ KeySpaceHandle::handleDeleteCommand(const Name& prefix, const Interest& interest
     auto node = it->second;
     auto nodeName = node.get<std::string>("node");
 
-    if (from == nodeName) {
+    if (m_from == nodeName) {
+      fromStart = stoi(node.get<std::string>("start"), 0, 16);
       fromEnd = stoi(node.get<std::string>("end"), 0, 16);
       keySpaces.erase(it);
       break;
@@ -356,9 +355,16 @@ KeySpaceHandle::handleDeleteCommand(const Name& prefix, const Interest& interest
   for (auto it = keySpaces.begin(); it != keySpaces.end(); it++) {
     auto nodeName = it->second.get<std::string>("node");
 
-    if (to == nodeName) {
-      stream << "0x" << std::hex << fromEnd;
-      it->second.put("end", stream.str());
+    if (m_to == nodeName) {
+      toStart = stoi(it->second.get<std::string>("start"), 0, 16);
+
+      if(fromEnd < toStart) {
+        stream << "0x" << std::hex << fromStart;
+        it->second.put("start", stream.str());
+      } else {
+        stream << "0x" << std::hex << fromEnd;
+        it->second.put("end", stream.str());
+      }
     }
   }
 

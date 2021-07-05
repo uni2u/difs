@@ -588,7 +588,6 @@ DIFS::putFile(const ndn::Name& ndnName, std::istream& is)
 void
 DIFS::onPutFileInterest(const ndn::Name& prefix, const ndn::Interest& interest)
 {
-  static int test = 0;
   if (interest.getName().size() == prefix.size()) {
     putFileSendManifest(prefix, interest);
     return;
