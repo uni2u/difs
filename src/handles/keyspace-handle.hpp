@@ -102,6 +102,9 @@ private:
 
 private:
   void
+  initKeySpaceFile();
+
+  void
   handleRingInfoCommand(const Name& prefix, const Interest& interest);
 
   void
@@ -124,6 +127,9 @@ private:
 
   void
   handleManifestCommand(const Name& prefix, const Interest& interest);
+
+  void
+  handleCompleteCommand(const Name& prefix, const Interest& interest);
 
   void
   onFetchCommand(std::string versionNum);
@@ -171,6 +177,24 @@ private:
   onCoordinationCommandTimeout(const Interest& interest);
 
   void
+  onCompleteCommand();
+
+  void
+  onCompleteCommandResponse(const Interest& interest, const Data& data);
+
+  void
+  onCompleteCommandTimeout(const Interest& interest);
+
+  void
+  onDeleteManifestCommand(std::string manifestName);
+
+  void
+  onDeleteManifestCommandResponse(const Interest& interest);
+
+  void
+  onDeleteManifestCommandTimeout(const Interest& interest);
+
+  void
   onRegisterFailed(const Name& prefix, const std::string& reason);
 
 public:
@@ -180,21 +204,19 @@ public:
 private:
   std::map<ProcessId, ProcessInfo> m_processes;
 
+  uint64_t m_versionNum;
   int m_credit;
   bool m_canBePrefix;
   ndn::time::milliseconds m_maxTimeout;
   ndn::time::milliseconds m_noEndTimeout;
   ndn::time::milliseconds m_interestLifetime;
 
-  ndn::Name m_clusterPrefix;
-  ndn::Name m_managerPrefix;
+  ndn::Name m_clusterPrefix, m_managerPrefix;
   std::string m_clusterType;
-  ndn::Name m_repoPrefix;
-  uint64_t m_version;
-  std::string m_versionNum;
-  std::string m_keySpaceFile, m_manifestList;
-  std::string m_start, m_end;
+  int m_start, m_end;
   std::string m_from, m_to;
+  ndn::Name m_repoPrefix;
+  std::string m_version, m_keySpaceFile, m_manifestList;
 };
 
 }

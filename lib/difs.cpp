@@ -412,10 +412,14 @@ DIFS::onGetCommandResponse(const Interest& interest, const Data& data)
     return;
   }
 
-  repo::Manifest manifest = Manifest::fromJson(json);
+  m_manifest = json;
 
-  Consumer consumer(manifest, *m_os);
-  consumer.fetch();
+  // m_manifest = Manifest::fromJson(json);
+
+  fetch(0);
+  // Consumer consumer(m_face, manifest, *m_os);
+  // consumer.fetch(0);
+  // consumer.run();
 }
 
 void
@@ -446,6 +450,114 @@ DIFS::onGetCommandNack(const Interest& interest)
   }
 }
 
+void
+DIFS::fetch(int start)
+{
+  auto manifest = Manifest::fromJson(m_manifest);
+  auto repos = manifest.getRepos();
+
+  for (auto iter = repos.begin(); iter != repos.end(); ++iter)
+  {
+    for (int segment_id = start; segment_id < start + 100; segment_id++)
+    {
+      if(segment_id > iter->end)
+      	break;
+
+      ndn::Interest interest(ndn::Name(iter->name).append("data").append(manifest.getName()).appendSegment(segment_id));
+      boost::chrono::milliseconds lifeTime(4000);
+      interest.setInterestLifetime(lifeTime);
+      interest.setMustBeFresh(true);
+
+      // ndn::util::SegmentFetcher::Options options;
+      // options.initCwnd = initialCredit;
+      // options.interestLifetime = m_interestLifetime;
+      // options.maxTimeout = m_maxTimeout;
+
+      // std::shared_ptr<ndn::util::HCSegmentFetcher> hc_fetcher;
+      // auto hcFetcher = hc_fetcher->start(m_face, interest, m_validator, options);
+      // hcFetcher->onError.connect([](uint32_t errorCode, const std::string &errorMsg)
+			// 	 { NDN_LOG_ERROR("Error: " << errorMsg); });
+      // hcFetcher->afterSegmentValidated.connect([this, hcFetcher, processId](const Data &data)
+			// 		       { onDataCommandResponse(); });
+      // hcFetcher->afterSegmentTimedOut.connect([this, hcFetcher, processId]()
+			// 		      { on(*hcFetcher, processId); });
+
+      m_face.expressInterest(interest,
+          std::bind(&DIFS::onDataCommandResponse, this, _1, _2),
+          std::bind(&DIFS::onDataCommandNack, this, _1), // Nack
+          std::bind(&DIFS::onDataCommandTimeout, this, _1));
+    }
+  }
+}
+
+void 
+DIFS::onFetchInterest(const ndn::Interest& interest)
+{
+  m_face.expressInterest(interest,
+      std::bind(&DIFS::onDataCommandResponse, this, _1, _2),
+      std::bind(&DIFS::onDataCommandNack, this, _1), // Nack
+      std::bind(&DIFS::onDataCommandTimeout, this, _1));
+}
+
+void
+DIFS::onDataCommandResponse(const ndn::Interest& interest, const ndn::Data& data)
+{
+  const auto &content = data.getContent();
+  content.parse();
+
+  ndn::Name::Component segmentComponent = interest.getName().get(-1);
+  uint64_t segmentNo = segmentComponent.toSegment();
+
+  ndn::Name::Component endBlockComponent = data.getFinalBlock().value();
+  uint64_t endNo = endBlockComponent.toSegment();
+
+  map.insert(std::pair<int, const ndn::Block>(segmentNo, content.get(ndn::tlv::Content)));
+
+  if(map.size() - 1 == endNo) {
+    for(auto iter = map.begin(); iter != map.end(); iter++) {
+      m_os->write(reinterpret_cast<const char *>(iter->second.value()), iter->second.value_size());
+      m_totalSize += iter->second.value_size();
+      m_currentSegment += 1;
+    }
+
+    std::cerr << "INFO: End of file is reached" << std::endl;
+    std::cerr << "INFO: Total # of segments received: " << m_currentSegment << std::endl;
+    std::cerr << "INFO: Total # bytes of content received: " << m_totalSize << std::endl;
+  }
+
+  if(segmentNo % 100 == 99) {
+    fetch((int)segmentNo + 1);
+  }
+}
+
+void
+DIFS::onDataCommandTimeout(const ndn::Interest& interest)
+{
+  if(m_retryCount++ < 3) {
+    onFetchInterest(interest);
+    if (m_verbose) {
+      std::cerr << "TIMEOUT: retransmit interest for " << interest.getName() << std::endl;
+    }
+  } else {
+    std::cerr << "TIMEOUT: last interest sent" << std::endl
+      << "TIMEOUT: abort fetching after " << 3 << " times of retry" << std::endl;
+  }
+}
+
+void
+DIFS::onDataCommandNack(const ndn::Interest& interest)
+{
+  if(m_retryCount++ < 3) {
+    onFetchInterest(interest);
+    if (m_verbose) {
+      std::cerr << "TIMEOUT: retransmit interest for " << interest.getName() << std::endl;
+    }
+  } else {
+    std::cerr << "NACK: last interest sent" << std::endl
+      << "NACK: abort fetching after " << 3 << " times of retry" << std::endl;
+  }
+}
+
 // Put
 
 void
@@ -471,6 +583,7 @@ DIFS::putFile(const ndn::Name& ndnName, std::istream& is)
   if (m_hasTimeout)
     m_scheduler.schedule(timeout, [this] { putFileStopProcess(); });
 }
+
 
 void
 DIFS::onPutFileInterest(const ndn::Name& prefix, const ndn::Interest& interest)

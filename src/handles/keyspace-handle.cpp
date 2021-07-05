@@ -40,11 +40,30 @@ static const milliseconds NOEND_TIMEOUT(10000_ms);
 static const milliseconds PROCESS_DELETE_TIME(10000_ms);
 static const milliseconds DEFAULT_INTEREST_LIFETIME(4000_ms);
 
+void
+KeySpaceHandle::initKeySpaceFile() {
+  pt::ptree root, keySpaces, keySpaceNode;
+  keySpaceNode.put("node", m_repoPrefix.toUri());
+  keySpaceNode.put("start", "0x00");
+  keySpaceNode.put("end", "0xff");
+
+  keySpaces.push_back(std::make_pair("", keySpaceNode));
+
+  root.add_child("keyspaces", keySpaces);
+
+  std::stringstream os;
+  pt::write_json(os, root, false);
+  m_keySpaceFile = os.str();
+
+  m_version = "v" + std::to_string(m_versionNum++);
+}
+
 KeySpaceHandle::KeySpaceHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt::Dispatcher& dispatcher,
                          Scheduler& scheduler, Validator& validator,
                          ndn::Name const& clusterNodePrefix, std::string clusterPrefix, ndn::Name const& managerPrefix, 
                          std::string clusterType, std::string from)
   : CommandBaseHandle(face, storageHandle, scheduler, validator)
+  , m_versionNum(0)
   , m_credit(DEFAULT_CREDIT)
   , m_canBePrefix(DEFAULT_CANBE_PREFIX)
   , m_maxTimeout(MAX_TIMEOUT)
@@ -52,25 +71,11 @@ KeySpaceHandle::KeySpaceHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt
   , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
   , m_managerPrefix(managerPrefix)
   , m_clusterType(clusterType)
-  , m_repoPrefix(Name(clusterNodePrefix).append(clusterPrefix))
-  , m_version(0)
   , m_from(from)
+  , m_repoPrefix(Name(clusterNodePrefix).append(clusterPrefix))
 {
-  if (m_clusterType == "manager") {
-    pt::ptree root, keySpaces, keySpaceNode;
-    keySpaceNode.put("node", m_repoPrefix.toUri());
-    keySpaceNode.put("start", "0x00");
-    keySpaceNode.put("end", "0xff");
-    keySpaces.push_back(std::make_pair("", keySpaceNode));
-    root.add_child("keyspaces", keySpaces);   
-
-    std::stringstream os;
-    pt::write_json(os, root, false);
-
-    m_keySpaceFile = os.str();
-    m_version += 1;
-    m_versionNum = "v" + std::to_string(m_version);
-  }
+  if (m_clusterType == "manager")
+    initKeySpaceFile();
 
   ndn::InterestFilter filterAddNode = Name(m_repoPrefix).append("add-node");
   face.setInterestFilter(filterAddNode,
@@ -80,21 +85,6 @@ KeySpaceHandle::KeySpaceHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt
   ndn::InterestFilter filterDelNode = Name(m_repoPrefix).append("del-node");
   face.setInterestFilter(filterDelNode,
                            std::bind(&KeySpaceHandle::handleDeleteCommand, this, _1, _2),
-                           std::bind(&KeySpaceHandle::onRegisterFailed, this, _1, _2));
-
-  ndn::InterestFilter filterCoordination = Name(m_repoPrefix).append("coordination");
-  face.setInterestFilter(filterCoordination,
-                           std::bind(&KeySpaceHandle::handleCoordinationCommand, this, _1, _2),
-                           std::bind(&KeySpaceHandle::onRegisterFailed, this, _1, _2));
-
-  dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName("/ringInfo"),
-    makeAuthorization(),
-    std::bind(&KeySpaceHandle::validateParameters<InfoCommand>, this, _1),
-    std::bind(&KeySpaceHandle::handleRingInfoCommand, this, _1, _2));
-
-  ndn::InterestFilter filterManifestList = Name(m_repoPrefix).append("manifestlist");
-  face.setInterestFilter(filterManifestList,
-                           std::bind(&KeySpaceHandle::handleManifestListCommand, this, _1, _2),
                            std::bind(&KeySpaceHandle::onRegisterFailed, this, _1, _2));
 
   ndn::InterestFilter filterVer = Name(m_repoPrefix).append("keyspace").append("ver");
@@ -107,28 +97,34 @@ KeySpaceHandle::KeySpaceHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt
                            std::bind(&KeySpaceHandle::handleFetchCommand, this, _1, _2),
                            std::bind(&KeySpaceHandle::onRegisterFailed, this, _1, _2));
 
-  // dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName(clusterPrefix + "/add-node"),
-  //   makeAuthorization(),
-  //   std::bind(&KeySpaceHandle::validateParameters<AddCommand>, this, _1),
-  //   std::bind(&KeySpaceHandle::handleAddCommand, this, _1, _2, _3, _4));
+  ndn::InterestFilter filterCoordination = Name(m_repoPrefix).append("coordination");
+  face.setInterestFilter(filterCoordination,
+                           std::bind(&KeySpaceHandle::handleCoordinationCommand, this, _1, _2),
+                           std::bind(&KeySpaceHandle::onRegisterFailed, this, _1, _2));
 
-  // dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName(clusterPrefix + "/delete-node"),
-  //   makeAuthorization(),
-  //   std::bind(&KeySpaceHandle::validateParameters<InfoCommand>, this, _1),
-  //   std::bind(&KeySpaceHandle::handleDeleteCommand, this, _1, _2, _3, _4));
+  ndn::InterestFilter filterManifestList = Name(m_repoPrefix).append("manifestlist");
+  face.setInterestFilter(filterManifestList,
+                           std::bind(&KeySpaceHandle::handleManifestListCommand, this, _1, _2),
+                           std::bind(&KeySpaceHandle::onRegisterFailed, this, _1, _2));
 
-  // dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName(clusterPrefix + "/coordination"),
-  //   makeAuthorization(),
-  //   std::bind(&KeySpaceHandle::validateParameters<InfoCommand>, this, _1),
-  //   std::bind(&KeySpaceHandle::handleCoordinationCommand, this, _1, _2, _3));
+  ndn::InterestFilter filterComplete = Name(m_repoPrefix).append("complete");
+  face.setInterestFilter(filterComplete,
+                           std::bind(&KeySpaceHandle::handleCompleteCommand, this, _1, _2),
+                           std::bind(&KeySpaceHandle::onRegisterFailed, this, _1, _2));
+
+  dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName("/ringInfo"),
+    makeAuthorization(),
+    std::bind(&KeySpaceHandle::validateParameters<InfoCommand>, this, _1),
+    std::bind(&KeySpaceHandle::handleRingInfoCommand, this, _1, _2));
 }
 
 void
 KeySpaceHandle::handleVersionCommand(const Name& prefix, const Interest& interest)
 {
-  auto versionNum = interest.getName().at(-2).toUri();
-  if(versionNum != m_versionNum)
-    onFetchCommand(versionNum);
+  // Version Check
+  auto version= interest.getName().at(-1).toUri();
+  if(version != m_version)
+    onFetchCommand(version);
 
   negativeReply(interest, "", 200);
 }
@@ -138,6 +134,7 @@ KeySpaceHandle::onVersionCommand()
 {
   pt::ptree root, keySpaces;
   std::istringstream keyFile(m_keySpaceFile);
+
   pt::read_json(keyFile, root);
   keySpaces = root.get_child("keyspaces");
 
@@ -145,16 +142,15 @@ KeySpaceHandle::onVersionCommand()
     if(it == keySpaces.begin())
       continue;
 
-    auto node = it->second;
-    auto nodeName = node.get<std::string>("node");
+    auto nodeName = it->second.get<std::string>("node");
     
-    RepoCommandParameter parameter;
+    // RepoCommandParameter parameter;
     Name cmd = Name(nodeName);
     cmd
       .append("keyspace")
       .append("ver")
-      .append(m_versionNum)
-      .append(parameter.wireEncode());
+      .append(m_version);
+      // .append(parameter.wireEncode());
 
     Interest verInterest(cmd);
     verInterest.setCanBePrefix(true);
@@ -172,20 +168,21 @@ KeySpaceHandle::onVersionCommand()
 void
 KeySpaceHandle::onVersionCommandResponse(const Interest& interest, const Data& data) 
 {
-  std::cout << "Version Command Response Check" << std::endl;
+  NDN_LOG_DEBUG("Version Command Response");
 }
 
 void
 KeySpaceHandle::onVersionCommandTimeout(const Interest& interest) 
 {
   onVersionCommand();
+  NDN_LOG_ERROR("Version Command Timeout");
 }
 
 void
 KeySpaceHandle::handleFetchCommand(const Name& prefix, const Interest& interest)
 {
-  auto versionNum = interest.getName().at(-2).toUri();
-  if (versionNum == m_versionNum) {
+  auto version= interest.getName().at(-2).toUri();
+  if (version == m_version) {
     reply(interest, m_keySpaceFile);
   } else {
     reply(interest, "");
@@ -196,13 +193,13 @@ KeySpaceHandle::handleFetchCommand(const Name& prefix, const Interest& interest)
 
 void
 KeySpaceHandle::onFetchCommand(std::string versionNum) {
-  RepoCommandParameter parameter;
+  // RepoCommandParameter parameter;
   Name cmd = m_managerPrefix; 
   cmd
     .append("keyspace")
     .append("fetch")
-    .append(versionNum)
-    .append(parameter.wireEncode());
+    .append(versionNum);
+    // .append(parameter.wireEncode());
 
   Interest fetchInterest(cmd);
   fetchInterest.setCanBePrefix(true);
@@ -221,11 +218,11 @@ KeySpaceHandle::onFetchCommandResponse(const Interest& interest, const Data& dat
 {
   auto content = data.getContent();
   if(content.value_size() == 0) {
-    std::cerr << "Diff Version" << std::endl;;
+    NDN_LOG_ERROR("Keyspacefile Version Diff");
     return;
   }
 
-  m_versionNum = interest.getName().at(-2).toUri();
+  m_version = interest.getName().at(-1).toUri();
   m_keySpaceFile = reinterpret_cast<const char*>(content.value());
   m_keySpaceFile = m_keySpaceFile.substr(0, content.value_size());
 
@@ -239,14 +236,12 @@ KeySpaceHandle::onFetchCommandResponse(const Interest& interest, const Data& dat
     auto nodeName = node.get<std::string>("node");
 
     if(nodeName == m_repoPrefix.toUri()) {
-      m_start = node.get<std::string>("start");
-      m_end = node.get<std::string>("end");
+      m_start = stoi(node.get<std::string>("start"), 0, 16);
+      m_end = stoi(node.get<std::string>("end"), 0, 16);
 
       break;
     }
   }
-
-  onManifestListCommand();
 }
 
 void
@@ -262,47 +257,49 @@ KeySpaceHandle::handleAddCommand(const Name& prefix, const Interest& interest)
   RepoCommandParameter repoParameter;
   extractParameter(interest, prefix, repoParameter);
 
-  std::string from = reinterpret_cast<const char*>(repoParameter.getFrom().value());
-  from = from.substr(0, repoParameter.getFrom().value_size());
-  m_from = from;
+  m_from = reinterpret_cast<const char*>(repoParameter.getFrom().value());
+  m_from = m_from.substr(0, repoParameter.getFrom().value_size());
 
-  std::string to = reinterpret_cast<const char*>(repoParameter.getTo().value());
-  to = to.substr(0, repoParameter.getTo().value_size());
-  m_to = to;
+  m_to = reinterpret_cast<const char*>(repoParameter.getTo().value());
+  m_to = m_to.substr(0, repoParameter.getTo().value_size());
 
   // create to node
-  pt::ptree root, keySpaces, keySpaceNode;
+  pt::ptree root, keySpaces, toNode;
   std::istringstream keyFile(m_keySpaceFile);
+
   pt::read_json(keyFile, root);
   keySpaces = root.get_child("keyspaces");
   root.pop_front();
 
   // get from node info
   for(auto it = keySpaces.begin(); it != keySpaces.end(); it++) {
-    auto node = it->second;
-    auto nodeName = node.get<std::string>("node");
-    if(nodeName == from) {
-      auto start = stoi(node.get<std::string>("start"), 0, 16);
-      auto end = stoi(node.get<std::string>("end"), 0, 16);
+    auto nodeName = it->second.get<std::string>("node");
+
+    if(nodeName == m_from) {
+      auto start = stoi(it->second.get<std::string>("start"), 0, 16);
+      auto end = stoi(it->second.get<std::string>("end"), 0, 16);
       auto hashSize = (end - start) / 2;
 
       auto fromStart = end - hashSize;
       auto fromEnd = end;
       end = fromStart - 1;
 
+      // from node update
       std::stringstream stream;
       stream << "0x" << std::hex << end;
       it->second.put("end", stream.str());
-      stream.str("");
+      stream.str(""); 
 
-      keySpaceNode.put("node", to);
+      // add to node
+      toNode.put("node", m_to);
       stream << "0x" << std::hex << fromStart;
-      keySpaceNode.put("start", stream.str()); 
+      toNode.put("start", stream.str()); 
+
       stream.str("");
       stream << "0x" << std::hex << fromEnd;
-      keySpaceNode.put("end", stream.str());
+      toNode.put("end", stream.str());
 
-      keySpaces.push_back(std::make_pair("", keySpaceNode));
+      keySpaces.push_back(std::make_pair("", toNode));
       root.put_child("keyspaces", keySpaces);
 
       // update keyfile
@@ -310,8 +307,7 @@ KeySpaceHandle::handleAddCommand(const Name& prefix, const Interest& interest)
       pt::write_json(os, root, false);
 
       m_keySpaceFile = os.str();
-      m_version += 1;
-      m_versionNum = "v" + std::to_string(m_version);
+      m_version = "v" + std::to_string(m_versionNum++);
 
       negativeReply(interest, "", 200);
       onVersionCommand();
@@ -324,24 +320,19 @@ KeySpaceHandle::handleAddCommand(const Name& prefix, const Interest& interest)
 void
 KeySpaceHandle::handleDeleteCommand(const Name& prefix, const Interest& interest)
 {
-  std::cout << "Delete Command" << std::endl;
   RepoCommandParameter repoParameter;
   extractParameter(interest, prefix, repoParameter);
-  // RepoCommandParameter* repoParameter =
-  //   dynamic_cast<RepoCommandParameter*>(const_cast<ndn::mgmt::ControlParameters*>(&parameter));
 
-  std::string from = reinterpret_cast<const char*>(repoParameter.getFrom().value());
-  from = from.substr(0, repoParameter.getFrom().value_size());
-  m_from = from;
+  m_from = reinterpret_cast<const char*>(repoParameter.getFrom().value());
+  m_from = m_from.substr(0, repoParameter.getFrom().value_size());
 
-  std::string to = reinterpret_cast<const char*>(repoParameter.getTo().value());
-  to = to.substr(0, repoParameter.getTo().value_size());
-  m_to = to;
+  m_to = reinterpret_cast<const char*>(repoParameter.getTo().value());
+  m_to = m_to.substr(0, repoParameter.getTo().value_size());
 
   // read json file & make tree
   namespace pt = boost::property_tree;
   pt::ptree root, keySpaces, keySpaceNode, fromNode, toNode;
-  int fromEnd = 0, toEnd = 0;
+  int fromStart, fromEnd, toStart;
   std::istringstream keyFile(m_keySpaceFile);
   std::stringstream stream;
 
@@ -353,7 +344,8 @@ KeySpaceHandle::handleDeleteCommand(const Name& prefix, const Interest& interest
     auto node = it->second;
     auto nodeName = node.get<std::string>("node");
 
-    if (from == nodeName) {
+    if (m_from == nodeName) {
+      fromStart = stoi(node.get<std::string>("start"), 0, 16);
       fromEnd = stoi(node.get<std::string>("end"), 0, 16);
       keySpaces.erase(it);
       break;
@@ -363,9 +355,16 @@ KeySpaceHandle::handleDeleteCommand(const Name& prefix, const Interest& interest
   for (auto it = keySpaces.begin(); it != keySpaces.end(); it++) {
     auto nodeName = it->second.get<std::string>("node");
 
-    if (to == nodeName) {
-      stream << "0x" << std::hex << fromEnd;
-      it->second.put("end", stream.str());
+    if (m_to == nodeName) {
+      toStart = stoi(it->second.get<std::string>("start"), 0, 16);
+
+      if(fromEnd < toStart) {
+        stream << "0x" << std::hex << fromStart;
+        it->second.put("start", stream.str());
+      } else {
+        stream << "0x" << std::hex << fromEnd;
+        it->second.put("end", stream.str());
+      }
     }
   }
 
@@ -375,8 +374,7 @@ KeySpaceHandle::handleDeleteCommand(const Name& prefix, const Interest& interest
   pt::write_json(os, root, false);
 
   m_keySpaceFile = os.str();
-  m_version += 1;
-  m_versionNum = "v" + std::to_string(m_version);
+  m_version = "v" + std::to_string(m_versionNum++);
 
   negativeReply(interest, "", 200);
   onVersionCommand();
@@ -426,6 +424,7 @@ KeySpaceHandle::onManifestListCommandResponse(const Interest& interest, const Da
 {
   auto content = data.getContent();
   if(content.value_size() == 0) {
+    NDN_LOG_ERROR("ManifestList Command Failed");
     return;
   }
 
@@ -442,10 +441,7 @@ KeySpaceHandle::onManifestListCommandResponse(const Interest& interest, const Da
     auto node = it->second;
     auto manifestName = node.get<std::string>("key");
 
-    auto start = stoi(m_start, 0, 16);
-    auto end = stoi(m_end, 0, 16);
-
-    for (; start <= end; start++) {
+    for (auto start = m_start; start <= m_end; start++) {
       std::stringstream stream;
       stream << std::hex << start;
 
@@ -454,6 +450,8 @@ KeySpaceHandle::onManifestListCommandResponse(const Interest& interest, const Da
       }
     }
   }
+
+  onCompleteCommand();
 }
 
 void
@@ -557,7 +555,7 @@ KeySpaceHandle::onCoordinationCommand()
 void
 KeySpaceHandle::onCoordinationCommandResponse(const Interest& interest, const Data& data)
 {
-  std::cout << "Coordination Command Response" << std::endl;
+  NDN_LOG_DEBUG("Coordination Command Response");
 }
 
 void
@@ -565,6 +563,89 @@ KeySpaceHandle::onCoordinationCommandTimeout(const Interest& interest)
 {
   onCoordinationCommand();
   NDN_LOG_ERROR("Coordination timeout");
+}
+
+void
+KeySpaceHandle::handleCompleteCommand(const Name& prefix, const Interest& interest)
+{
+  negativeReply(interest, "", 200);
+}
+
+void
+KeySpaceHandle::onCompleteCommand() 
+{
+  Name cmd = Name(m_managerPrefix);
+  cmd
+    .append("complete");
+
+  Interest completeInterest(cmd);
+  completeInterest.setCanBePrefix(true);
+  completeInterest.setMustBeFresh(true);
+  completeInterest.setInterestLifetime(6_s);
+
+  face.expressInterest(
+    completeInterest,
+    std::bind(&KeySpaceHandle::onCompleteCommandResponse, this, _1, _2),
+    std::bind(&KeySpaceHandle::onCompleteCommandTimeout, this, _1),
+    std::bind(&KeySpaceHandle::onCompleteCommandTimeout, this, _1));
+}
+
+void
+KeySpaceHandle::onCompleteCommandResponse(const Interest& interest, const Data& data)
+{
+  pt::ptree root, manifests;
+  std::istringstream manifestList(m_manifestList);
+
+  pt::read_json(manifestList, root);
+  manifests = root.get_child("manifests");
+
+  for (auto it = manifests.begin(); it != manifests.end(); it++) {
+    auto manifestName = it->second.get<std::string>("key");
+
+    for (auto start = m_start; start <= m_end; start++) {
+      std::stringstream stream;
+      stream << std::hex << start;
+
+      if (!strncmp(manifestName.c_str(), stream.str().c_str(), stream.str().length())) {
+        onDeleteManifestCommand(manifestName);
+      }
+    } 
+  }
+}
+
+void
+KeySpaceHandle::onCompleteCommandTimeout(const Interest& interest)
+{
+  NDN_LOG_ERROR("Complete timeout");
+}
+
+void
+KeySpaceHandle::onDeleteManifestCommand(std::string manifestName) 
+{
+  RepoCommandParameter parameter;
+  parameter.setName(manifestName);
+
+  Interest delManifestInterest = util::generateCommandInterest(
+   m_from, "only-delete-manifest", parameter, 4_s);
+  delManifestInterest.setMustBeFresh(true);
+
+  face.expressInterest(
+    delManifestInterest,
+    std::bind(&KeySpaceHandle::onDeleteManifestCommandResponse, this, _1),
+    std::bind(&KeySpaceHandle::onDeleteManifestCommandTimeout, this, _1),
+    std::bind(&KeySpaceHandle::onDeleteManifestCommandTimeout, this, _1));
+}
+
+void
+KeySpaceHandle::onDeleteManifestCommandResponse(const Interest& interest)
+{
+  NDN_LOG_DEBUG("Delete Manifest Command Response");
+}
+
+void
+KeySpaceHandle::onDeleteManifestCommandTimeout(const Interest& interest)
+{
+  NDN_LOG_ERROR("Delete Manifest Command Tiemout");
 }
 
 ndn::Name

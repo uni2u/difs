@@ -43,6 +43,12 @@ DeleteHandle::DeleteHandle(Face& face, KeySpaceHandle& keySpaceHandle, RepoStora
                            std::bind(&DeleteHandle::handleDeleteManifestCommand, this, _1, _2),
                            std::bind(&DeleteHandle::onRegisterFailed, this, _1, _2));
 
+  ndn::InterestFilter filterOnlyDeleteManifest = Name(m_repoPrefix).append("only-delete-manifest");
+  NDN_LOG_DEBUG(m_repoPrefix << " Listening " << filterOnlyDeleteManifest);
+  face.setInterestFilter(filterOnlyDeleteManifest,
+                           std::bind(&DeleteHandle::handleOnlyDeleteManifestCommand, this, _1, _2),
+                           std::bind(&DeleteHandle::onRegisterFailed, this, _1, _2));
+
   ndn::InterestFilter filterDeleteData = Name(m_repoPrefix).append("delete-data");
   NDN_LOG_DEBUG(m_repoPrefix << " Listening " << filterDeleteData);
   face.setInterestFilter(filterDeleteData,
@@ -129,6 +135,26 @@ DeleteHandle::onTimeout(const Interest& interest, const ProcessId processId)
   NDN_LOG_DEBUG("Timeout");
   auto prevInterest = m_processes[processId].interest;
   reply(interest, negativeReply(prevInterest, 405, "Deletion Failed"));
+}
+
+void
+DeleteHandle::handleOnlyDeleteManifestCommand(const Name& prefix, const Interest& interest)
+{
+  RepoCommandParameter repoParameter;
+  extractParameter(interest, prefix, repoParameter);
+
+  auto hash = repoParameter.getName().toUri();
+  hash = hash.substr(1, hash.length() - 1);
+
+  auto manifest = storageHandle.readManifest(hash);
+  if (manifest == nullptr) {
+    NDN_LOG_DEBUG("Manifest not found");
+    reply(interest, negativeReply(interest, 405, "Manifest not found"));
+    return;
+  }
+
+  storageHandle.deleteManifest(hash);
+  reply(interest, "");
 }
 
 void

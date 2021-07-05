@@ -11,7 +11,7 @@ namespace difs {
 
 using std::shared_ptr;
 
-static const uint64_t DEFAULT_BLOCK_SIZE = 1000;
+static const uint64_t DEFAULT_BLOCK_SIZE = 8600;
 static const uint64_t DEFAULT_INTEREST_LIFETIME = 4000;
 static const uint64_t DEFAULT_FRESHNESS_PERIOD = 10000;
 static const uint64_t DEFAULT_CHECK_PERIOD = 1000;
@@ -108,6 +108,21 @@ public:
   run();
 
 private:
+  void 
+  fetch(int start);
+
+	void 
+  onDataCommandResponse(const ndn::Interest& interest, const ndn::Data& data);
+
+	void 
+  onDataCommandTimeout(const ndn::Interest& interest);
+
+	void 
+  onDataCommandNack(const ndn::Interest& interest);
+
+	void 
+  onFetchInterest(const ndn::Interest& interest);
+
   void
   onDeleteCommandTimeout(const ndn::Interest& interest);
 
@@ -237,6 +252,12 @@ private:
 
   std::ostream* m_os;
   size_t m_bytes;
+
+  // repo::Manifest m_manifest;
+  std::string m_manifest;
+
+	std::map<int, const ndn::Block> map;
+	int m_currentSegment, m_totalSize;
 
   ndn::time::milliseconds timeout;
   ndn::DelegationList m_forwardingHint, m_nodePrefix;
