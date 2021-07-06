@@ -181,7 +181,7 @@ KeySpaceHandle::onVersionCommandTimeout(const Interest& interest)
 void
 KeySpaceHandle::handleFetchCommand(const Name& prefix, const Interest& interest)
 {
-  auto version= interest.getName().at(-2).toUri();
+  auto version= interest.getName().at(-1).toUri();
   if (version == m_version) {
     reply(interest, m_keySpaceFile);
   } else {
@@ -247,7 +247,7 @@ KeySpaceHandle::onFetchCommandResponse(const Interest& interest, const Data& dat
 void
 KeySpaceHandle::onFetchCommandTimeout(const Interest& interest)
 {
-  onFetchCommand(interest.getName().at(-2).toUri());
+  onFetchCommand(interest.getName().at(-1).toUri());
   NDN_LOG_ERROR("Fetch timeout");
 }
 
