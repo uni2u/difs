@@ -458,12 +458,13 @@ DIFS::fetch(int start)
 
   for (auto iter = repos.begin(); iter != repos.end(); ++iter)
   {
-    for (int segment_id = start; segment_id < start + 100; segment_id++)
+    for (int segment_id = start; segment_id < start + 4; segment_id++)
     {
       if(segment_id > iter->end)
       	break;
 
       ndn::Interest interest(ndn::Name(iter->name).append("data").append(manifest.getName()).appendSegment(segment_id));
+      std::cout << interest.getName() << std::endl;
       boost::chrono::milliseconds lifeTime(4000);
       interest.setInterestLifetime(lifeTime);
       interest.setMustBeFresh(true);
@@ -511,6 +512,8 @@ DIFS::onDataCommandResponse(const ndn::Interest& interest, const ndn::Data& data
   ndn::Name::Component endBlockComponent = data.getFinalBlock().value();
   uint64_t endNo = endBlockComponent.toSegment();
 
+  std::cout << segmentNo << std::endl;
+
   map.insert(std::pair<int, const ndn::Block>(segmentNo, content.get(ndn::tlv::Content)));
 
   if(map.size() - 1 == endNo) {
@@ -525,7 +528,7 @@ DIFS::onDataCommandResponse(const ndn::Interest& interest, const ndn::Data& data
     std::cerr << "INFO: Total # bytes of content received: " << m_totalSize << std::endl;
   }
 
-  if(segmentNo % 100 == 99) {
+  if(segmentNo % 4 == 3) {
     fetch((int)segmentNo + 1);
   }
 }
@@ -533,7 +536,7 @@ DIFS::onDataCommandResponse(const ndn::Interest& interest, const ndn::Data& data
 void
 DIFS::onDataCommandTimeout(const ndn::Interest& interest)
 {
-  if(m_retryCount++ < 3) {
+  if(m_retryCount++ < 10000) {
     onFetchInterest(interest);
     if (m_verbose) {
       std::cerr << "TIMEOUT: retransmit interest for " << interest.getName() << std::endl;
@@ -547,7 +550,7 @@ DIFS::onDataCommandTimeout(const ndn::Interest& interest)
 void
 DIFS::onDataCommandNack(const ndn::Interest& interest)
 {
-  if(m_retryCount++ < 3) {
+  if(m_retryCount++ < 1000) {
     onFetchInterest(interest);
     if (m_verbose) {
       std::cerr << "TIMEOUT: retransmit interest for " << interest.getName() << std::endl;
