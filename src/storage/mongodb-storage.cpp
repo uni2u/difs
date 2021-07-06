@@ -229,7 +229,7 @@ MongoDBStorage::readManifests()
     auto manifest = std::make_shared<Manifest>(Manifest::fromJson(json));
 
     pt::ptree node;
-    node.put("key", manifest->getName());
+    node.put("key", manifest->getHash());
     root.push_back(std::make_pair("", node));
   }
 
