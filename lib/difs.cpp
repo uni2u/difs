@@ -11,7 +11,6 @@
 #include <ndn-cxx/util/scheduler.hpp>
 
 #include "difs.hpp"
-#include "consumer.hpp"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -20,11 +19,13 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <time.h>
 
 #include <boost/asio.hpp>
 #include <boost/iostreams/operations.hpp>
 #include <boost/iostreams/read.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/property_tree/info_parser.hpp>
 
 static const uint64_t DEFAULT_BLOCK_SIZE = 1000;
 static const uint64_t DEFAULT_INTEREST_LIFETIME = 4000;
@@ -46,6 +47,30 @@ using std::placeholders::_2;
 using namespace repo;
 
 static const int MAX_RETRY = 3;
+
+void
+DIFS::parseConfig()
+{
+  std::string configPath = "node.conf";
+
+  std::ifstream fin(configPath.c_str());
+  if (!fin.is_open())
+    std::cout << "open error" << std::endl;
+
+  using namespace boost::property_tree;
+  ptree propertyTree;
+  try {
+    read_info(fin, propertyTree);
+  }
+  catch (const ptree_error& e) {
+    std::cout << "failed to read configuration file '" + configPath + "'" << std::endl;
+  }
+
+  ptree repoConf = propertyTree.get_child("repo");
+
+  m_validatorNode = repoConf.get_child("validator");
+  m_validatorConfig.load(m_validatorNode, configPath);
+}
 
 void
 DIFS::run()
@@ -414,12 +439,7 @@ DIFS::onGetCommandResponse(const Interest& interest, const Data& data)
 
   m_manifest = json;
 
-  // m_manifest = Manifest::fromJson(json);
-
   fetch(0);
-  // Consumer consumer(m_face, manifest, *m_os);
-  // consumer.fetch(0);
-  // consumer.run();
 }
 
 void
@@ -456,109 +476,46 @@ DIFS::fetch(int start)
   auto manifest = Manifest::fromJson(m_manifest);
   auto repos = manifest.getRepos();
 
-  for (auto iter = repos.begin(); iter != repos.end(); ++iter)
-  {
-    for (int segment_id = start; segment_id < start + 4; segment_id++)
-    {
-      if(segment_id > iter->end)
-      	break;
+  ndn::Interest interest(Name(manifest.getName()).appendSegment(0));
+  std::cout << interest.getName() << std::endl;
+  boost::chrono::milliseconds lifeTime(4000);
+  interest.setInterestLifetime(lifeTime);
+  interest.setMustBeFresh(true);
 
-      ndn::Interest interest(ndn::Name(iter->name).append("data").append(manifest.getName()).appendSegment(segment_id));
-      std::cout << interest.getName() << std::endl;
-      boost::chrono::milliseconds lifeTime(4000);
-      interest.setInterestLifetime(lifeTime);
-      interest.setMustBeFresh(true);
+  ndn::Delegation d;
+  d.name = ndn::Name(repos.begin()->name);
+  interest.setForwardingHint(ndn::DelegationList{d});
 
-      // ndn::util::SegmentFetcher::Options options;
-      // options.initCwnd = initialCredit;
-      // options.interestLifetime = m_interestLifetime;
-      // options.maxTimeout = m_maxTimeout;
+  ndn::security::Validator& m_validator(m_validatorConfig);
 
-      // std::shared_ptr<ndn::util::HCSegmentFetcher> hc_fetcher;
-      // auto hcFetcher = hc_fetcher->start(m_face, interest, m_validator, options);
-      // hcFetcher->onError.connect([](uint32_t errorCode, const std::string &errorMsg)
-			// 	 { NDN_LOG_ERROR("Error: " << errorMsg); });
-      // hcFetcher->afterSegmentValidated.connect([this, hcFetcher, processId](const Data &data)
-			// 		       { onDataCommandResponse(); });
-      // hcFetcher->afterSegmentTimedOut.connect([this, hcFetcher, processId]()
-			// 		      { on(*hcFetcher, processId); });
+  ndn::util::SegmentFetcher::Options options;
+  options.initCwnd = 12;
+  options.interestLifetime = lifeTime;
+  options.maxTimeout = lifeTime;
 
-      m_face.expressInterest(interest,
-          std::bind(&DIFS::onDataCommandResponse, this, _1, _2),
-          std::bind(&DIFS::onDataCommandNack, this, _1), // Nack
-          std::bind(&DIFS::onDataCommandTimeout, this, _1));
-    }
-  }
-}
-
-void 
-DIFS::onFetchInterest(const ndn::Interest& interest)
-{
-  m_face.expressInterest(interest,
-      std::bind(&DIFS::onDataCommandResponse, this, _1, _2),
-      std::bind(&DIFS::onDataCommandNack, this, _1), // Nack
-      std::bind(&DIFS::onDataCommandTimeout, this, _1));
+  std::shared_ptr<ndn::util::HCSegmentFetcher> hc_fetcher;
+  auto hcFetcher = hc_fetcher->start(m_face, interest, m_validator, options);
+  hcFetcher->onError.connect([](uint32_t errorCode, const std::string &errorMsg)
+      { std::cout << "Error: " << errorMsg << std::endl; });
+  hcFetcher->afterSegmentValidated.connect([this, hcFetcher](const Data &data)
+              { onDataCommandResponse(data); });
+  hcFetcher->afterSegmentTimedOut.connect([this, hcFetcher]()
+            { onDataCommandTimeout(*hcFetcher); });
 }
 
 void
-DIFS::onDataCommandResponse(const ndn::Interest& interest, const ndn::Data& data)
+DIFS::onDataCommandResponse(const ndn::Data& data)
 {
   const auto &content = data.getContent();
   content.parse();
 
-  ndn::Name::Component segmentComponent = interest.getName().get(-1);
-  uint64_t segmentNo = segmentComponent.toSegment();
-
-  ndn::Name::Component endBlockComponent = data.getFinalBlock().value();
-  uint64_t endNo = endBlockComponent.toSegment();
-
-  std::cout << segmentNo << std::endl;
-
-  map.insert(std::pair<int, const ndn::Block>(segmentNo, content.get(ndn::tlv::Content)));
-
-  if(map.size() - 1 == endNo) {
-    for(auto iter = map.begin(); iter != map.end(); iter++) {
-      m_os->write(reinterpret_cast<const char *>(iter->second.value()), iter->second.value_size());
-      m_totalSize += iter->second.value_size();
-      m_currentSegment += 1;
-    }
-
-    std::cerr << "INFO: End of file is reached" << std::endl;
-    std::cerr << "INFO: Total # of segments received: " << m_currentSegment << std::endl;
-    std::cerr << "INFO: Total # bytes of content received: " << m_totalSize << std::endl;
-  }
-
-  if(segmentNo % 4 == 3) {
-    fetch((int)segmentNo + 1);
-  }
+  m_os->write(reinterpret_cast<const char *>(content.value()), content.value_size());
 }
 
 void
-DIFS::onDataCommandTimeout(const ndn::Interest& interest)
+DIFS::onDataCommandTimeout(ndn::util::HCSegmentFetcher& fetcher)
 {
-  if(m_retryCount++ < 10000) {
-    onFetchInterest(interest);
-    if (m_verbose) {
-      std::cerr << "TIMEOUT: retransmit interest for " << interest.getName() << std::endl;
-    }
-  } else {
-    std::cerr << "TIMEOUT: last interest sent" << std::endl
-      << "TIMEOUT: abort fetching after " << 3 << " times of retry" << std::endl;
-  }
-}
-
-void
-DIFS::onDataCommandNack(const ndn::Interest& interest)
-{
-  if(m_retryCount++ < 1000) {
-    onFetchInterest(interest);
-    if (m_verbose) {
-      std::cerr << "TIMEOUT: retransmit interest for " << interest.getName() << std::endl;
-    }
-  } else {
-    std::cerr << "NACK: last interest sent" << std::endl
-      << "NACK: abort fetching after " << 3 << " times of retry" << std::endl;
-  }
+  std::cout << "Timeout" << std::endl;
 }
 
 // Put
@@ -794,6 +751,8 @@ DIFS::onPutFileCheckCommandNack(const ndn::Interest& interest)
 void
 DIFS::putFilePrepareNextData()
 {
+  // time_t start, end;
+
   int chunkSize = m_bytes / m_blockSize;
   int lastDataSize = m_bytes % m_blockSize;
   auto finalBlockId = ndn::name::Component::fromSegment(chunkSize);
@@ -801,6 +760,7 @@ DIFS::putFilePrepareNextData()
   std::vector<uint8_t> buffer(m_blockSize);
   Block nextHash(tlv::SignatureValue);
 
+  // start = time(NULL);
   for(int count = 0; count <= chunkSize; count++) {
     if(count == 0) {
       m_insertStream->seekg(m_bytes - lastDataSize);
@@ -834,7 +794,41 @@ DIFS::putFilePrepareNextData()
       return;
     }
   }
-}
+
+  // Git Issue 2 Test Code
+  // end = time(NULL);
+  // printf("%f\n", (double)(end - start));
+
+  // start = time(NULL);
+  // for(int count = 0; count <= chunkSize; count++) {
+  //   m_insertStream->read(reinterpret_cast<char *>(buffer.data()), buffer.size());
+
+  //   const auto nCharsRead = m_insertStream->gcount();
+
+  //   if(nCharsRead > 0) {
+  //     auto data = std::make_shared<ndn::Data>(Name(m_dataPrefix).appendSegment(chunkSize - count));
+  //     data->setFreshnessPeriod(m_freshnessPeriod);
+  //     Block content = ndn::encoding::makeBinaryBlock(tlv::Content, buffer.data(), nCharsRead);
+  //     data->setContent(content);
+  //     data->setFinalBlock(finalBlockId);
+
+  //     if(count == 0) {
+  //       m_hcKeyChain.sign(*data, nextHash);
+  //     } else {
+  //       m_hcKeyChain.sign(*data, nextHash, ndn::signingWithSha256());
+  //     }
+
+  //     nextHash = data->getSignatureValue();
+
+  //     m_data.insert(m_data.begin(), data);
+  //   } else {
+  //     std::cerr << "Data read failed" << std::endl;
+  //     return;
+  //   }
+  // }
+  // end = time(NULL);
+  // printf("%f\n", (double)(end - start));
+  }
 
 void
 DIFS::putFileSendManifest(const ndn::Name& prefix, const ndn::Interest& interest)
@@ -842,9 +836,9 @@ DIFS::putFileSendManifest(const ndn::Name& prefix, const ndn::Interest& interest
   BOOST_ASSERT(prefix == m_dataPrefix);
 
   if (prefix != interest.getName()) {
-    // if (m_verbose) {
+    if (m_verbose) {
       std::cerr << "Received unexpected interest " << interest << std::endl;
-    // }
+    }
     return;
   }
 

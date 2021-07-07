@@ -6,6 +6,10 @@
 #include <ndn-cxx/security/command-interest-signer.hpp>
 #include <ndn-cxx/face.hpp>
 #include <ndn-cxx/util/scheduler.hpp>
+#include <ndn-cxx/security/validator.hpp>
+#include <ndn-cxx/security/validator-config.hpp>
+#include <ndn-cxx/util/segment-fetcher.hpp>
+#include <ndn-cxx/util/hc-segment-fetcher.hpp>
 
 namespace difs {
 
@@ -20,7 +24,8 @@ class DIFS : boost::noncopyable
 {
 public:
   DIFS()
-  : m_scheduler(m_face.getIoService())
+  : m_validatorConfig(m_face)
+    , m_scheduler(m_face.getIoService())
     , m_cmdSigner(m_hcKeyChain)
   {}
 
@@ -29,9 +34,12 @@ public:
     , m_interestLifetime(interestLifetime)
     , m_timeout(timeout)
     , m_verbose(verbose)
+    , m_validatorConfig(m_face)
     , m_scheduler(m_face.getIoService())
     , m_cmdSigner((ndn::KeyChain&)m_hcKeyChain)
-  {}
+  {
+    parseConfig();
+  }
 
   DIFS(ndn::Name repoPrefix)
   : m_repoPrefix(repoPrefix)
@@ -46,9 +54,13 @@ public:
     , m_processId(0)
     , m_checkPeriod(DEFAULT_CHECK_PERIOD)
     , m_currentSegmentNo(0)
+    , m_validatorConfig(m_face)
     , m_scheduler(m_face.getIoService())
     , m_cmdSigner((ndn::KeyChain&)m_hcKeyChain)
   {}
+
+  void
+  parseConfig();
 
   void
   setNodePrefix(ndn::DelegationList nodePrefix);
@@ -112,16 +124,10 @@ private:
   fetch(int start);
 
 	void 
-  onDataCommandResponse(const ndn::Interest& interest, const ndn::Data& data);
+  onDataCommandResponse(const ndn::Data& data);
 
 	void 
-  onDataCommandTimeout(const ndn::Interest& interest);
-
-	void 
-  onDataCommandNack(const ndn::Interest& interest);
-
-	void 
-  onFetchInterest(const ndn::Interest& interest);
+  onDataCommandTimeout(ndn::util::HCSegmentFetcher& fetcher);
 
   void
   onDeleteCommandTimeout(const ndn::Interest& interest);
@@ -252,6 +258,7 @@ private:
 
   std::ostream* m_os;
   size_t m_bytes;
+  boost::property_tree::ptree m_validatorNode;
 
   // repo::Manifest m_manifest;
   std::string m_manifest;
@@ -264,6 +271,7 @@ private:
   ndn::HCKeyChain m_hcKeyChain;
 
   ndn::Face m_face;
+  ndn::security::ValidatorConfig m_validatorConfig;
   ndn::Scheduler m_scheduler;
   using DataContainer = std::vector<shared_ptr<ndn::Data>>;
   DataContainer m_data;
