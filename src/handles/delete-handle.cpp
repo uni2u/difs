@@ -197,10 +197,8 @@ DeleteHandle::deleteData(const RepoCommandParameter repoParameter, ProcessId pro
   auto newProcessId = ndn::random::generateWord64();
 
   RepoCommandParameter parameters;
-  // /repo/0/data/data/0/%00%00
-  auto name = ndn::Name(repo.name);
-  name.append("data");
-  name.append(process.name);
+
+  auto name = ndn::Name(process.name);
   parameters.setName(name);
   parameters.setStartBlockId(repo.start);
   parameters.setEndBlockId(repo.end);

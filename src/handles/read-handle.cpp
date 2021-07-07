@@ -184,7 +184,7 @@ ReadHandle::onDataInserted(const Name& name)
   // Note: We want to save the prefix that we register exactly, not the
   // name that provoked the registration
   Name prefixToRegister = name.getPrefix(-m_prefixSubsetLength);
-  ndn::InterestFilter filter(prefixToRegister);
+  ndn::InterestFilter filter("/");
   auto check = m_insertedDataPrefixes.find(prefixToRegister);
   if (check == m_insertedDataPrefixes.end()) {
     // Because of stack lifetime problems, we assume here that the
