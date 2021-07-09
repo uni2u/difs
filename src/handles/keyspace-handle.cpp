@@ -121,7 +121,6 @@ KeySpaceHandle::KeySpaceHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt
 void
 KeySpaceHandle::handleVersionCommand(const Name& prefix, const Interest& interest)
 {
-  // Version Check
   auto version= interest.getName().at(-1).toUri();
   if(version != m_version)
     onFetchCommand(version);
@@ -144,13 +143,11 @@ KeySpaceHandle::onVersionCommand()
 
     auto nodeName = it->second.get<std::string>("node");
     
-    // RepoCommandParameter parameter;
     Name cmd = Name(nodeName);
     cmd
       .append("keyspace")
       .append("ver")
       .append(m_version);
-      // .append(parameter.wireEncode());
 
     Interest verInterest(cmd);
     verInterest.setCanBePrefix(true);
@@ -193,13 +190,11 @@ KeySpaceHandle::handleFetchCommand(const Name& prefix, const Interest& interest)
 
 void
 KeySpaceHandle::onFetchCommand(std::string versionNum) {
-  // RepoCommandParameter parameter;
   Name cmd = m_managerPrefix; 
   cmd
     .append("keyspace")
     .append("fetch")
     .append(versionNum);
-    // .append(parameter.wireEncode());
 
   Interest fetchInterest(cmd);
   fetchInterest.setCanBePrefix(true);
@@ -263,7 +258,6 @@ KeySpaceHandle::handleAddCommand(const Name& prefix, const Interest& interest)
   m_to = reinterpret_cast<const char*>(repoParameter.getTo().value());
   m_to = m_to.substr(0, repoParameter.getTo().value_size());
 
-  // create to node
   pt::ptree root, keySpaces, toNode;
   std::istringstream keyFile(m_keySpaceFile);
 
@@ -271,7 +265,6 @@ KeySpaceHandle::handleAddCommand(const Name& prefix, const Interest& interest)
   keySpaces = root.get_child("keyspaces");
   root.pop_front();
 
-  // get from node info
   for(auto it = keySpaces.begin(); it != keySpaces.end(); it++) {
     auto nodeName = it->second.get<std::string>("node");
 
@@ -284,7 +277,6 @@ KeySpaceHandle::handleAddCommand(const Name& prefix, const Interest& interest)
       auto fromEnd = end;
       end = fromStart - 1;
 
-      // from node update
       std::stringstream stream;
       stream << "0x" << std::hex << end;
       it->second.put("end", stream.str());
@@ -302,7 +294,6 @@ KeySpaceHandle::handleAddCommand(const Name& prefix, const Interest& interest)
       keySpaces.push_back(std::make_pair("", toNode));
       root.put_child("keyspaces", keySpaces);
 
-      // update keyfile
       std::stringstream os;
       pt::write_json(os, root, false);
 
@@ -329,7 +320,6 @@ KeySpaceHandle::handleDeleteCommand(const Name& prefix, const Interest& interest
   m_to = reinterpret_cast<const char*>(repoParameter.getTo().value());
   m_to = m_to.substr(0, repoParameter.getTo().value_size());
 
-  // read json file & make tree
   namespace pt = boost::property_tree;
   pt::ptree root, keySpaces, keySpaceNode, fromNode, toNode;
   int fromStart, fromEnd, toStart;
