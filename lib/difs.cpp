@@ -507,8 +507,6 @@ void
 DIFS::onDataCommandResponse(const ndn::Data& data)
 {
   const auto &content = data.getContent();
-  content.parse();
-
   m_os->write(reinterpret_cast<const char *>(content.value()), content.value_size());
 }
 
@@ -758,7 +756,7 @@ DIFS::putFilePrepareNextData()
   auto finalBlockId = ndn::name::Component::fromSegment(chunkSize);
 
   std::vector<uint8_t> buffer(m_blockSize);
-  Block nextHash(tlv::SignatureValue);
+  Block nextHash(ndn::lp::tlv::HashChain);
 
   // start = time(NULL);
   for(int count = 0; count <= chunkSize; count++) {
@@ -785,7 +783,7 @@ DIFS::putFilePrepareNextData()
         m_hcKeyChain.sign(*data, nextHash, ndn::signingWithSha256());
       }
 
-      nextHash = data->getSignatureValue();
+      nextHash = ndn::encoding::makeBinaryBlock(ndn::lp::tlv::HashChain, data->getSignatureValue().value(), data->getSignatureValue().value_size());
 
       m_data.insert(m_data.begin(), data);
       m_currentSegmentNo++;
@@ -828,7 +826,7 @@ DIFS::putFilePrepareNextData()
   // }
   // end = time(NULL);
   // printf("%f\n", (double)(end - start));
-  }
+}
 
 void
 DIFS::putFileSendManifest(const ndn::Name& prefix, const ndn::Interest& interest)
