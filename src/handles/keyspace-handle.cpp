@@ -322,7 +322,7 @@ KeySpaceHandle::handleDeleteCommand(const Name& prefix, const Interest& interest
 
   namespace pt = boost::property_tree;
   pt::ptree root, keySpaces, keySpaceNode, fromNode, toNode;
-  int fromStart, fromEnd, toStart;
+  int fromStart = 0, fromEnd = 0, toStart;
   std::istringstream keyFile(m_keySpaceFile);
   std::stringstream stream;
 

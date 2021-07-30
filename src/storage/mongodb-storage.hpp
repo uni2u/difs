@@ -113,6 +113,8 @@ private:
   mongocxx::client mClient;
   mongocxx::database mDB;
 
+  std::vector<bsoncxx::document::view_or_value> dataList;
+
   static const char* COLLNAME_DATA;
   static const char* COLLNAME_MANIFEST;
   static const string FIELDNAME_KEY;

@@ -29,35 +29,25 @@ public:
     , m_cmdSigner(m_hcKeyChain)
   {}
 
-  DIFS(const std::string& common_name, int interestLifetime, int timeout, bool verbose)
-  : m_common_name(common_name)
-    , m_interestLifetime(interestLifetime)
-    , m_timeout(timeout)
-    , m_verbose(verbose)
+  DIFS(const std::string& repoPrefix)
+  : m_repoPrefix(repoPrefix)
+    , m_freshnessPeriod(DEFAULT_FRESHNESS_PERIOD)
+    , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
+    , m_timeout(0)
+    , m_checkPeriod(DEFAULT_CHECK_PERIOD)
+    , m_useDigestSha256(false)
+    , m_hasTimeout(false)
+    , m_verbose(false)
+    , m_blockSize(DEFAULT_BLOCK_SIZE)
+    , m_insertStream(nullptr)
+    , m_processId(0)
+    , m_currentSegmentNo(0)
     , m_validatorConfig(m_face)
     , m_scheduler(m_face.getIoService())
     , m_cmdSigner((ndn::KeyChain&)m_hcKeyChain)
   {
     parseConfig();
   }
-
-  DIFS(ndn::Name repoPrefix)
-  : m_repoPrefix(repoPrefix)
-    , m_useDigestSha256(false)
-    , m_freshnessPeriod(DEFAULT_FRESHNESS_PERIOD)
-    , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
-    , m_hasTimeout(false)
-    , m_timeout(0)
-    , m_blockSize(DEFAULT_BLOCK_SIZE)
-    , m_insertStream(nullptr)
-    , m_verbose(false)
-    , m_processId(0)
-    , m_checkPeriod(DEFAULT_CHECK_PERIOD)
-    , m_currentSegmentNo(0)
-    , m_validatorConfig(m_face)
-    , m_scheduler(m_face.getIoService())
-    , m_cmdSigner((ndn::KeyChain&)m_hcKeyChain)
-  {}
 
   void
   parseConfig();
@@ -93,9 +83,6 @@ public:
   setBlockSize(size_t blockSize);
 
   void
-  setIdentityForData(std::string identityForData);
-
-  void
   setIdentityForCommand(std::string identityForCommand);
 
   void
@@ -105,10 +92,10 @@ public:
   deleteNode(const std::string from, const std::string to);
 
   void
-  getFile(const ndn::Name& name, std::ostream& os);
+  getFile(const ndn::Name& dataName, std::ostream& os);
 
   void
-  putFile(const ndn::Name& name, std::istream& is);
+  putFile(const std::string dataPrefix, std::istream& is);
 
   void
   getInfo();
@@ -161,10 +148,6 @@ private:
 
   void
   onRegisterFailed(const ndn::Name& prefix, const std::string& reason);
-
-  // ndn::Interest
-  // generateCommandInterest(const ndn::Name& commandPrefix, const std::string& command,
-  //   const repo::RepoCommandParameter& commandParameter);
 
   void
   putFileSendManifest(const ndn::Name &prefix, const ndn::Interest &interest);
@@ -236,45 +219,29 @@ private:
   onGetKeySpaceInfoCommandResponse(const ndn::Interest& interest, const ndn::Data& data);
 
 private:
-  ndn::Name m_common_name;
-  ndn::Name m_repoPrefix;
-  bool m_useDigestSha256;
-  ndn::time::milliseconds m_freshnessPeriod; 
-  ndn::time::milliseconds m_interestLifetime;
-  bool m_hasTimeout;
-  ndn::time::milliseconds m_timeout;
-  size_t m_blockSize;
+  ndn::Name m_repoPrefix, m_dataPrefix;
+  ndn::time::milliseconds m_freshnessPeriod, m_interestLifetime, m_timeout, m_checkPeriod;  
+  bool m_useDigestSha256, m_hasTimeout, m_verbose;
   std::istream* m_insertStream;
-  bool m_verbose;
   uint64_t m_processId;
-  ndn::time::milliseconds m_checkPeriod;
   size_t m_currentSegmentNo;
-  std::string m_identityForData;
-  std::string m_identityForCommand;
-  ndn::Name m_ndnName;
-
-  ndn::Name m_dataPrefix;
-  int m_retryCount;
 
   std::ostream* m_os;
-  size_t m_bytes;
+  size_t m_blockSize, m_bytes;
   boost::property_tree::ptree m_validatorNode;
 
-  // repo::Manifest m_manifest;
-  std::string m_manifest;
+  std::string m_identityForCommand, m_manifest;
 
 	std::map<int, const ndn::Block> map;
-	int m_currentSegment, m_totalSize;
+	int m_retryCount, m_currentSegment, m_totalSize;
 
-  ndn::time::milliseconds timeout;
   ndn::DelegationList m_forwardingHint, m_nodePrefix;
   ndn::HCKeyChain m_hcKeyChain;
 
   ndn::Face m_face;
   ndn::security::ValidatorConfig m_validatorConfig;
   ndn::Scheduler m_scheduler;
-  using DataContainer = std::vector<shared_ptr<ndn::Data>>;
-  DataContainer m_data;
+  std::vector<shared_ptr<ndn::Data>> m_data;
   ndn::security::CommandInterestSigner m_cmdSigner;
 };
 

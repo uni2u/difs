@@ -31,8 +31,8 @@ usage(const std::string& filename)
 int
 main(int argc, char** argv)
 {
-  std::string repoPrefix;
-  std::string name, forwardingHint;
+  std::string repoPrefix, forwardingHint;
+  Name name;
   bool verbose = false;
   int interestLifetime = 4000;  // in milliseconds
   int timeout = 0;  // in milliseconds
@@ -81,14 +81,14 @@ main(int argc, char** argv)
   }
 
   repoPrefix = argv[optind];
-  name = argv[optind+1];
+  name = ndn::Name(argv[optind+1]);
 
   if (name.empty() || repoPrefix.empty())
   {
     return usage(argv[0]);
   }
 
-  difs::DIFS difs(repoPrefix, interestLifetime, timeout, verbose);
+  difs::DIFS difs(repoPrefix);
 
   if(!forwardingHint.empty()) {
     ndn::Delegation d;

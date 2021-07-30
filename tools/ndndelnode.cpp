@@ -90,7 +90,7 @@ main(int argc, char** argv)
     return usage(argv[0]);
   }
 
-  difs::DIFS difs(repoPrefix, interestLifetime, timeout, verbose);
+  difs::DIFS difs(repoPrefix);
 
   if(!forwardingHint.empty()) {
     ndn::Delegation d;

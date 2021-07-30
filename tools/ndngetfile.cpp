@@ -125,7 +125,7 @@ main(int argc, char** argv)
 
   std::ostream os(buf);
 
-  difs::DIFS difs(repoPrefix, interestLifetime, timeout, verbose);
+  difs::DIFS difs(repoPrefix);
 
   if(!forwardingHint.empty()) {
     ndn::Delegation d;

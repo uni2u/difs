@@ -150,11 +150,6 @@ ReadHandle::onRegisterFailed(const Name& prefix, const std::string& reason)
 void
 ReadHandle::listen(const Name& prefix)
 {
-  ndn::InterestFilter filter(Name(prefix).append("data"));
-  m_face.setInterestFilter(filter,
-                           std::bind(&ReadHandle::onInterest, this, _1, _2),
-                           std::bind(&ReadHandle::onRegisterFailed, this, _1, _2));
-
   ndn::InterestFilter filterGet(Name("get"));
   m_face.setInterestFilter(filterGet,
                            std::bind(&ReadHandle::onGetInterest, this, _1, _2),
@@ -184,31 +179,20 @@ ReadHandle::onDataInserted(const Name& name)
   // Note: We want to save the prefix that we register exactly, not the
   // name that provoked the registration
   Name prefixToRegister = name.getPrefix(-m_prefixSubsetLength);
-  ndn::InterestFilter filter("/");
-  auto check = m_insertedDataPrefixes.find(prefixToRegister);
-  if (check == m_insertedDataPrefixes.end()) {
-    // Because of stack lifetime problems, we assume here that the
-    // prefix registration will be successful, and we add the registered
-    // prefix to our list. This is because, if we fail, we shut
-    // everything down, anyway. If registration failures are ever
-    // considered to be recoverable, we would need to make this
-    // atomic.
-    auto hdl = m_face.setInterestFilter(filter,
-      [this] (const ndn::InterestFilter& filter, const Interest& interest) {
-        // Implicit conversion to Name of filter
-        onInterest(filter, interest);
-      },
-      [] (const Name&) {},
-      [this] (const Name& prefix, const std::string& reason) {
-        onRegisterFailed(prefix, reason);
-      });
-    RegisteredDataPrefix registeredPrefix{hdl, 1};
-    // Newly registered prefix
-    m_insertedDataPrefixes.emplace(std::make_pair(prefixToRegister, registeredPrefix));
-  }
-  else {
-    check->second.useCount++;
-  }
+  ndn::InterestFilter filter(prefixToRegister);
+
+  auto hdl = m_face.setInterestFilter(filter,
+    [this] (const ndn::InterestFilter& filter, const Interest& interest) {
+      // Implicit conversion to Name of filter
+      onInterest(filter, interest);
+    },
+    [] (const Name&) {},
+    [this] (const Name& prefix, const std::string& reason) {
+      onRegisterFailed(prefix, reason);
+    });
+  RegisteredDataPrefix registeredPrefix{hdl, 1};
+  // Newly registered prefix
+  m_insertedDataPrefixes.emplace(std::make_pair(prefixToRegister, registeredPrefix));
 }
 
 } // namespace repo

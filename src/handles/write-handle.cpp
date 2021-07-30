@@ -152,7 +152,7 @@ WriteHandle::onDataValidated(const Interest& interest, const Data& data, Process
   process.startBlockId = manifest.getStartBlockId();
   process.endBlockId = manifest.getEndBlockId();
   std::string name = manifest.getName();
-  // TODO: Use forwarding hint
+
   unsigned int i = name.rfind("/");
   std::string difsKey = name.substr(i + 1);
   process.name = difsKey;
@@ -233,9 +233,11 @@ WriteHandle::segInit(ProcessId processId, const RepoCommandParameter& parameter)
   Name fetchName = name;
   SegmentNo segment = startBlockId;
   fetchName.appendSegment(segment);
+
   Interest interest(fetchName);
   interest.setCanBePrefix(m_canBePrefix);
   interest.setMustBeFresh(true);
+
   if (parameter.hasNodePrefix()) {
     interest.setForwardingHint(parameter.getNodePrefix());
   }
@@ -383,12 +385,6 @@ WriteHandle::handleCheckCommand(const Name& prefix, const Interest& interest,
 
   RepoCommandResponse& response = process.response;
 
-  //Check whether it is single data fetching
-  // if (!response.hasStartBlockId() && !response.hasEndBlockId()) {
-  //   done(response);
-  //   return;
-  // }
-
   //read if noEndtimeout
   if (!response.hasEndBlockId()) {
     extendNoEndTime(process);
@@ -409,7 +405,7 @@ WriteHandle::handleInfoCommand(const Name& prefix, const Interest& interest)
   ProcessId processId = repoParameter.getProcessId();
   if (m_processes.count(processId) == 0) {
     NDN_LOG_DEBUG("no such processId: " << processId);
-    // done(negativeReply("No such this process is in process", 404));
+    negativeReply("No such this process is in process", 404);
     return;
   }
 
@@ -418,9 +414,6 @@ WriteHandle::handleInfoCommand(const Name& prefix, const Interest& interest)
   ProcessInfo& process = m_processes[processId];
 
   Manifest manifest = *process.manifest;
-	
-  // auto manifest = Manifest::fromInfoJson(process.manifestJson);
-  // NDN_LOG_DEBUG("Got manifest");
 
   auto json = manifest.toJson();
   NDN_LOG_DEBUG("Manifest: " << json << " Interest: " << interest.toUri());
@@ -451,7 +444,6 @@ WriteHandle::extendNoEndTime(ProcessInfo& process)
     return;
   }
 
-  //extends noEndTime
   process.noEndTime = ndn::time::steady_clock::now() + m_noEndTimeout;
 }
 

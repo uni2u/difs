@@ -27,10 +27,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/info_parser.hpp>
 
-static const uint64_t DEFAULT_BLOCK_SIZE = 1000;
-static const uint64_t DEFAULT_INTEREST_LIFETIME = 4000;
-static const uint64_t DEFAULT_FRESHNESS_PERIOD = 10000;
-static const uint64_t DEFAULT_CHECK_PERIOD = 1000;
 static const size_t PRE_SIGN_DATA_COUNT = 11;
 
 namespace difs {
@@ -48,6 +44,7 @@ using namespace repo;
 
 static const int MAX_RETRY = 3;
 
+// Get SegmentFetcher validation 
 void
 DIFS::parseConfig()
 {
@@ -79,7 +76,6 @@ DIFS::run()
 }
 
 // Set
-
 void 
 DIFS::setNodePrefix(ndn::DelegationList nodePrefix) 
 {
@@ -93,7 +89,7 @@ DIFS::setForwardingHint(ndn::DelegationList forwardingHint)
 }
 
 void
-DIFS::setRepoPrefix(ndn::Name repoPrefix) 
+DIFS::setRepoPrefix(Name repoPrefix) 
 {
   m_repoPrefix = repoPrefix;
 }
@@ -141,12 +137,6 @@ DIFS::setBlockSize(size_t blockSize)
 }
 
 void
-DIFS::setIdentityForData(std::string identityForData) 
-{
-  m_identityForData = identityForData;
-}
-
-void
 DIFS::setIdentityForCommand(std::string identityForCommand) 
 {
   m_identityForCommand = identityForCommand;
@@ -160,7 +150,7 @@ DIFS::deleteNode(const std::string from, const std::string to)
   parameter.setFrom(ndn::encoding::makeBinaryBlock(tlv::From, from.c_str(), from.length()));
   parameter.setTo(ndn::encoding::makeBinaryBlock(tlv::To, to.c_str(), to.length()));
 
-  Name cmd = m_common_name;
+  Name cmd = m_repoPrefix;
   cmd.append("del-node")
     .append(parameter.wireEncode());
 
@@ -179,44 +169,19 @@ DIFS::deleteNode(const std::string from, const std::string to)
 void
 DIFS::onDeleteNodeCommandResponse(const ndn::Interest& interest, const ndn::Data& data)
 {
-  // RepoCommandResponse response(data.getContent().blockFromValue());
-  // int statusCode = response.getCode();
-  // if (statusCode == 404) {
-  //   std::cerr << "Manifest not found" << std::endl;
-  //   return;
-  // }
-  // else if (statusCode >= 400) {
-  //   std::cerr << "delete command failed with code " << statusCode << interest.getName() << std::endl;
-  //   return;
-  // }
+  std::cout << "Delete Node" << std::endl;
 }
 
 void
 DIFS::onDeleteNodeCommandTimeout(const Interest& interest)
 {
-  // if (m_retryCount++ < MAX_RETRY) {
-  //   deleteFile(interest.getName());
-  //   if (m_verbose) {
-  //     std::cerr << "TIMEOUT: retransmit interest for " << interest.getName() << std::endl;
-  //   }
-  // } else {
-  //   std::cerr << "TIMEOUT: last interest sent" << std::endl
-  //   << "TIMEOUT: abort fetching after " << MAX_RETRY << " times of retry" << std::endl;
-  // }
+  std::cout << "Delete Node Timeout" << std::endl;
 }
 
 void
 DIFS::onDeleteNodeCommandNack(const Interest& interest)
 {
-  // if (m_retryCount++ < MAX_RETRY) {
-  //   deleteFile(interest.getName());
-  //   if (m_verbose) {
-  //     std::cerr << "NACK: retransmit interest for " << interest.getName() << std::endl;
-  //   }
-  // } else {
-  //   std::cerr << "NACK: last interest sent" << std::endl
-  //   << "NACK: abort fetching after " << MAX_RETRY << " times of retry" << std::endl;
-  // }
+  std::cout << "Delete Node" << std::endl;
 }
 
 // Delete
@@ -227,15 +192,15 @@ DIFS::deleteFile(const Name& name)
   parameter.setProcessId(0);  // FIXME: set process id properly
   parameter.setName(name);
 
-  Name cmd = m_common_name;
+  Name cmd = m_repoPrefix;
   cmd.append("delete")
     .append(parameter.wireEncode());
 
   ndn::Interest commandInterest = m_cmdSigner.makeCommandInterest(cmd);
-  if(!m_forwardingHint.empty())
-    commandInterest.setForwardingHint(m_forwardingHint);
   commandInterest.setInterestLifetime(m_interestLifetime);
   commandInterest.setMustBeFresh(true);
+  if(!m_forwardingHint.empty())
+    commandInterest.setForwardingHint(m_forwardingHint);
 
   m_face.expressInterest(commandInterest,
                         std::bind(&DIFS::onDeleteCommandResponse, this, _1, _2),
@@ -399,23 +364,23 @@ DIFS::onGetKeySpaceInfoCommandNack(const Interest& interest)
 // Get
 
 void
-DIFS::getFile(const Name& data_name, std::ostream& os)
+DIFS::getFile(const Name& dataName, std::ostream& os)
 {
   RepoCommandParameter parameter;
-  parameter.setName(data_name);
+  parameter.setName(dataName);
 
   m_os = &os;
-  Name cmd = m_repoPrefix;
-  cmd.append("get")
+  Name cmd = Name("/get")
     .append(parameter.wireEncode());
 
+
   ndn::Interest commandInterest = m_cmdSigner.makeCommandInterest(cmd);
+  commandInterest.setCanBePrefix(true);
+  commandInterest.setMustBeFresh(true);
   commandInterest.setInterestLifetime(m_interestLifetime);
   if(!m_forwardingHint.empty()) {
     commandInterest.setForwardingHint(m_forwardingHint);
   }
-  commandInterest.setCanBePrefix(true);
-  commandInterest.setMustBeFresh(true);
 
   m_face.expressInterest(commandInterest,
                         std::bind(&DIFS::onGetCommandResponse, this, _1, _2),
@@ -438,7 +403,6 @@ DIFS::onGetCommandResponse(const Interest& interest, const Data& data)
   }
 
   m_manifest = json;
-
   fetch(0);
 }
 
@@ -478,12 +442,12 @@ DIFS::fetch(int start)
 
   ndn::Interest interest(Name(manifest.getName()).appendSegment(0));
   std::cout << interest.getName() << std::endl;
-  boost::chrono::milliseconds lifeTime(4000);
+  boost::chrono::milliseconds lifeTime(m_interestLifetime);
   interest.setInterestLifetime(lifeTime);
   interest.setMustBeFresh(true);
 
   ndn::Delegation d;
-  d.name = ndn::Name(repos.begin()->name);
+  d.name = Name(repos.begin()->name);
   interest.setForwardingHint(ndn::DelegationList{d});
 
   ndn::security::Validator& m_validator(m_validatorConfig);
@@ -516,13 +480,10 @@ DIFS::onDataCommandTimeout(ndn::util::HCSegmentFetcher& fetcher)
   std::cout << "Timeout" << std::endl;
 }
 
-// Put
-
 void
-DIFS::putFile(const ndn::Name& ndnName, std::istream& is)
+DIFS::putFile(const std::string dataPrefix, std::istream& is)
 {
-  m_dataPrefix = ndnName;
-  m_ndnName = ndnName;
+  m_dataPrefix = Name(dataPrefix);
 
   m_insertStream = &is;
   m_insertStream->seekg(0, std::ios::beg);
@@ -539,12 +500,12 @@ DIFS::putFile(const ndn::Name& ndnName, std::istream& is)
                            bind(&DIFS::onPutFileRegisterFailed, this, _1, _2));
 
   if (m_hasTimeout)
-    m_scheduler.schedule(timeout, [this] { putFileStopProcess(); });
+    m_scheduler.schedule(m_checkPeriod, [this] { putFileStopProcess(); });
 }
 
 
 void
-DIFS::onPutFileInterest(const ndn::Name& prefix, const ndn::Interest& interest)
+DIFS::onPutFileInterest(const Name& prefix, const ndn::Interest& interest)
 {
   if (interest.getName().size() == prefix.size()) {
     putFileSendManifest(prefix, interest);
@@ -553,16 +514,17 @@ DIFS::onPutFileInterest(const ndn::Name& prefix, const ndn::Interest& interest)
 
   uint64_t segmentNo;
   try {
-    ndn::Name::Component segmentComponent = interest.getName().get(prefix.size());
+    Name::Component segmentComponent = interest.getName().get(prefix.size());
     segmentNo = segmentComponent.toSegment();
   }
   catch (const tlv::Error& e) {
+    std::cout << "failed" << std::endl;
     if (m_verbose) {
       std::cerr << "Error processing incoming interest " << interest << ": "
                 << e.what() << std::endl;
     }
     return;
-  }
+  } 
 
   shared_ptr<Data> data;
   if (segmentNo < m_data.size()) {
@@ -586,7 +548,7 @@ DIFS::onPutFileRegisterSuccess(const Name& prefix)
 }
 
 void
-DIFS::onPutFileRegisterFailed(const ndn::Name& prefix, const std::string& reason) {
+DIFS::onPutFileRegisterFailed(const Name& prefix, const std::string& reason) {
   BOOST_THROW_EXCEPTION(std::runtime_error("onRegisterFailed: " + reason));
 }
 
@@ -667,10 +629,6 @@ void
 DIFS::putFileStartCheckCommand()
 {
   auto parameter = RepoCommandParameter();
-  parameter.setName(m_ndnName);
-
-  if(!m_nodePrefix.empty())
-    parameter.setNodePrefix(m_nodePrefix);
 
   Name cmd = m_repoPrefix;
   cmd
@@ -706,9 +664,6 @@ DIFS::onPutFileCheckCommandResponse(const ndn::Interest& interest, const ndn::Da
   }
 
   uint64_t insertCount = response.getInsertNum();
-
-  // Technically, the check should not infer, but directly has signal from repo that
-  // write operation has been finished
 
   if (insertCount == m_currentSegmentNo) {
     m_face.getIoService().stop();
@@ -749,8 +704,7 @@ DIFS::onPutFileCheckCommandNack(const ndn::Interest& interest)
 void
 DIFS::putFilePrepareNextData()
 {
-  // time_t start, end;
-
+  // Case 1: fssek hashChain
   int chunkSize = m_bytes / m_blockSize;
   int lastDataSize = m_bytes % m_blockSize;
   auto finalBlockId = ndn::name::Component::fromSegment(chunkSize);
@@ -758,7 +712,6 @@ DIFS::putFilePrepareNextData()
   std::vector<uint8_t> buffer(m_blockSize);
   Block nextHash(ndn::lp::tlv::HashChain);
 
-  // start = time(NULL);
   for(int count = 0; count <= chunkSize; count++) {
     if(count == 0) {
       m_insertStream->seekg(m_bytes - lastDataSize);
@@ -793,43 +746,46 @@ DIFS::putFilePrepareNextData()
     }
   }
 
-  // Git Issue 2 Test Code
-  // end = time(NULL);
-  // printf("%f\n", (double)(end - start));
+  // Case 2: n^ hashChain
+  // int chunkSize = m_bytes / m_blockSize;
+  // auto finalBlockId = ndn::name::Component::fromSegment(chunkSize);
 
-  // start = time(NULL);
   // for(int count = 0; count <= chunkSize; count++) {
-  //   m_insertStream->read(reinterpret_cast<char *>(buffer.data()), buffer.size());
+  //   uint8_t *buffer = new uint8_t[m_blockSize];
+  //   m_insertStream->read(reinterpret_cast<char *>(buffer), m_blockSize);     
 
-  //   const auto nCharsRead = m_insertStream->gcount();
+  //   auto readSize = m_insertStream->gcount();
 
-  //   if(nCharsRead > 0) {
-  //     auto data = std::make_shared<ndn::Data>(Name(m_dataPrefix).appendSegment(chunkSize - count));
+  //   if(readSize > 0) {
+  //     auto data = std::make_shared<ndn::Data>(Name(m_dataPrefix).appendSegment(count));
   //     data->setFreshnessPeriod(m_freshnessPeriod);
-  //     Block content = ndn::encoding::makeBinaryBlock(tlv::Content, buffer.data(), nCharsRead);
+  //     Block content = ndn::encoding::makeBinaryBlock(tlv::Content, buffer, readSize);
   //     data->setContent(content);
   //     data->setFinalBlock(finalBlockId);
 
-  //     if(count == 0) {
-  //       m_hcKeyChain.sign(*data, nextHash);
-  //     } else {
-  //       m_hcKeyChain.sign(*data, nextHash, ndn::signingWithSha256());
-  //     }
-
-  //     nextHash = data->getSignatureValue();
-
-  //     m_data.insert(m_data.begin(), data);
+  //     m_data.push_back(data);
   //   } else {
-  //     std::cerr << "Data read failed" << std::endl;
+  //     m_data.clear();
   //     return;
   //   }
   // }
-  // end = time(NULL);
-  // printf("%f\n", (double)(end - start));
+
+  // Block nextHash(ndn::lp::tlv::HashChain);
+
+  // for(auto iter = m_data.rbegin(); iter != m_data.rend(); iter++) {
+  //   if(iter == m_data.rend()) {
+  //     m_hcKeyChain.sign(**iter, nextHash);
+  //   } else { 
+  //     m_hcKeyChain.sign(**iter, nextHash, ndn::signingWithSha256());
+  //   }
+
+  //   nextHash = ndn::encoding::makeBinaryBlock(ndn::lp::tlv::HashChain, (*iter)->getSignatureValue().value(), (*iter)->getSignatureValue().value_size());
+  //   m_currentSegmentNo++;
+  // }
 }
 
 void
-DIFS::putFileSendManifest(const ndn::Name& prefix, const ndn::Interest& interest)
+DIFS::putFileSendManifest(const Name& prefix, const ndn::Interest& interest)
 {
   BOOST_ASSERT(prefix == m_dataPrefix);
 

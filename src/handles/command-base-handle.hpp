@@ -83,6 +83,9 @@ protected:
   reply(const Interest& commandInterest, const std::string& data);
 
   void
+  reply(const Interest& commandInterest, const std::string& data, ndn::name::Component finalBlockId);
+
+  void
   negativeReply(const Interest& commandInterest, const std::string& reason, int statusCode);
 
   ndn::Data
@@ -120,6 +123,18 @@ CommandBaseHandle::reply(const Interest& commandInterest, const std::string& dat
   std::shared_ptr<Data> rdata = std::make_shared<Data>(commandInterest.getName());
   rdata->setContent((uint8_t*)(data.data()), data.size());
   rdata->setFreshnessPeriod(3_s);
+  HCKeyChain hcKeyChain;
+  hcKeyChain.ndn::KeyChain::sign(*rdata, ndn::signingWithSha256());
+  face.put(*rdata);
+}
+
+inline void
+CommandBaseHandle::reply(const Interest& commandInterest, const std::string& data, ndn::name::Component finalBlockId)
+{
+  std::shared_ptr<Data> rdata = std::make_shared<Data>(commandInterest.getName());
+  rdata->setContent((uint8_t*)(data.data()), data.size());
+  rdata->setFreshnessPeriod(3_s);
+  rdata->setFinalBlock(finalBlockId);
   HCKeyChain hcKeyChain;
   hcKeyChain.ndn::KeyChain::sign(*rdata, ndn::signingWithSha256());
   face.put(*rdata);

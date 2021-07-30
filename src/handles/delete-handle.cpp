@@ -59,24 +59,6 @@ DeleteHandle::DeleteHandle(Face& face, KeySpaceHandle& keySpaceHandle, RepoStora
     makeAuthorization(),
     std::bind(&DeleteHandle::validateParameters<DeleteCommand>, this, _1),
     std::bind(&DeleteHandle::handleDeleteCommand, this, _1, _2, _3, _4));
-
-  // ndn::InterestFilter filterDelete = Name(m_repoPrefix).append("delete");
-  // NDN_LOG_DEBUG(m_repoPrefix << " Listening " << filterDelete);
-  // face.setInterestFilter(filterDelete,
-  //                          std::bind(&DeleteHandle::handleDeleteCommand, this, _1, _2),
-  //                          std::bind(&DeleteHandle::onRegisterFailed, this, _1, _2));
-
-  // dispatcher.addControlCommand<RepoCommandParameter>(
-  //   ndn::PartialName(clusterPrefix).append("delete manifest"),
-  //   makeAuthorization(),
-  //   std::bind(&DeleteHandle::validateParameters<DeleteManifestCommand>, this, _1),
-  //   std::bind(&DeleteHandle::handleDeleteManifestCommand, this, _1, _2, _3, _4));
-
-  // dispatcher.addControlCommand<RepoCommandParameter>(
-  //   ndn::PartialName(clusterPrefix).append("delete data"),
-  //   makeAuthorization(),
-  //   std::bind(&DeleteHandle::validateParameters<DeleteDataCommand>, this, _1),
-  //   std::bind(&DeleteHandle::handleDeleteDataCommand, this, _1, _2, _3, _4));
 }
 
 void

@@ -70,12 +70,11 @@ MongoDBStorage::~MongoDBStorage()
 int64_t
 MongoDBStorage::insert(const Data& data)
 {
+  uint64_t finalBlockId = data.getFinalBlock().value().toSegment();
+  uint64_t segmentNo = data.getName().get(-1).toSegment();
+  
   mongocxx::collection coll = mDB[COLLNAME_DATA];
   string key = sha1Hash(data.getName().toUri());
-
-  bsoncxx::document::view_or_value filter = document{}
-    << FIELDNAME_KEY << key
-    << finalize;
 
   bsoncxx::types::b_binary dataBinary;
   dataBinary.bytes = data.wireEncode().wire();
@@ -86,10 +85,12 @@ MongoDBStorage::insert(const Data& data)
     << FIELDNAME_VALUE << dataBinary
     << finalize;
 
-  mongocxx::options::replace options;
-  options.upsert(true);
-  coll.replace_one(filter, replacement, options);
-  
+  dataList.push_back(replacement);
+  if(dataList.size() == 256 || finalBlockId == segmentNo) {
+    coll.insert_many(dataList);
+    dataList.clear();
+  } 
+
   auto id = hash(data.getName().toUri());
   return id;
 }
@@ -109,9 +110,7 @@ MongoDBStorage::insertManifest(const Manifest& manifest)
     << FIELDNAME_VALUE << json
     << finalize;
 
-  mongocxx::options::replace options;
-  options.upsert(true);
-  coll.replace_one(filter, replacement, options);
+  coll.insert_one(replacement);
 
   return manifest.getHash();
 }

@@ -65,7 +65,7 @@ main(int argc, char** argv)
   ndn::time::milliseconds interestLifetime, timeout, freshnessPeriod;
   bool useDigestSha256, hasTimeout, verbose;
   std::string identityForData, identityForCommand;
-  ndn::Name repoPrefix, ndnName;
+  std::string repoPrefix, dataPrefix;
   std::string difsKey, forwardingHint, nodePrefix;
   std::istream* insertStream;
   size_t blockSize;
@@ -145,9 +145,8 @@ main(int argc, char** argv)
   argc -= optind;
   argv += optind;
 
-  repoPrefix = ndn::Name(argv[0]);
-  // difsKey = argv[2];
-  ndnName = ndn::Name(argv[1]);
+  repoPrefix = argv[0];
+  dataPrefix = argv[1];
 
   std::ifstream inputFileStream;
   if (strcmp(argv[2], "-") == 0) {
@@ -177,7 +176,7 @@ main(int argc, char** argv)
     difs.setForwardingHint(ndn::DelegationList{d});
   }
 
-  difs.putFile(ndnName, *insertStream);
+  difs.putFile(dataPrefix, *insertStream);
 
   try
   {

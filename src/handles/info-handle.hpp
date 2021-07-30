@@ -76,8 +76,14 @@ private:
   void
   onRegisterFailed(const Name& prefix, const std::string& reason);
 
+  void
+  infoPrepareNextData();
+
 private:
   ndn::Name m_repoPrefix;
+  std::string m_info;
+  ndn::name::Component m_finalBlockId;
+  std::vector<std::string> m_data;
 };
 }
 
