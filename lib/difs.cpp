@@ -704,84 +704,41 @@ DIFS::onPutFileCheckCommandNack(const ndn::Interest& interest)
 void
 DIFS::putFilePrepareNextData()
 {
-  // Case 1: fssek hashChain
   int chunkSize = m_bytes / m_blockSize;
-  int lastDataSize = m_bytes % m_blockSize;
   auto finalBlockId = ndn::name::Component::fromSegment(chunkSize);
 
-  std::vector<uint8_t> buffer(m_blockSize);
-  Block nextHash(ndn::lp::tlv::HashChain);
-
   for(int count = 0; count <= chunkSize; count++) {
-    if(count == 0) {
-      m_insertStream->seekg(m_bytes - lastDataSize);
-      m_insertStream->read(reinterpret_cast<char *>(buffer.data()), lastDataSize);     
-    } else {
-      m_insertStream->seekg(m_bytes - lastDataSize - buffer.size() * count);
-      m_insertStream->read(reinterpret_cast<char *>(buffer.data()), buffer.size());
-    }
+    uint8_t *buffer = new uint8_t[m_blockSize];
+    m_insertStream->read(reinterpret_cast<char *>(buffer), m_blockSize);     
 
-    const auto nCharsRead = m_insertStream->gcount();
+    auto readSize = m_insertStream->gcount();
 
-    if(nCharsRead > 0) {
-      auto data = std::make_shared<ndn::Data>(Name(m_dataPrefix).appendSegment(chunkSize - count));
+    if(readSize > 0) {
+      auto data = std::make_shared<ndn::Data>(Name(m_dataPrefix).appendSegment(count));
       data->setFreshnessPeriod(m_freshnessPeriod);
-      Block content = ndn::encoding::makeBinaryBlock(tlv::Content, buffer.data(), nCharsRead);
+      Block content = ndn::encoding::makeBinaryBlock(tlv::Content, buffer, readSize);
       data->setContent(content);
       data->setFinalBlock(finalBlockId);
 
-      if(count == chunkSize) {
-        m_hcKeyChain.sign(*data, nextHash);
-      } else {
-        m_hcKeyChain.sign(*data, nextHash, ndn::signingWithSha256());
-      }
-
-      nextHash = ndn::encoding::makeBinaryBlock(ndn::lp::tlv::HashChain, data->getSignatureValue().value(), data->getSignatureValue().value_size());
-
-      m_data.insert(m_data.begin(), data);
-      m_currentSegmentNo++;
+      m_data.push_back(data);
     } else {
-      std::cerr << "Data read failed" << std::endl;
+      m_data.clear();
       return;
     }
   }
 
-  // Case 2: n^ hashChain
-  // int chunkSize = m_bytes / m_blockSize;
-  // auto finalBlockId = ndn::name::Component::fromSegment(chunkSize);
+  Block nextHash(ndn::lp::tlv::HashChain);
 
-  // for(int count = 0; count <= chunkSize; count++) {
-  //   uint8_t *buffer = new uint8_t[m_blockSize];
-  //   m_insertStream->read(reinterpret_cast<char *>(buffer), m_blockSize);     
+  for(auto iter = m_data.rbegin(); iter != m_data.rend(); iter++) {
+    if(iter == m_data.rend()) {
+      m_hcKeyChain.sign(**iter, nextHash);
+    } else { 
+      m_hcKeyChain.sign(**iter, nextHash, ndn::signingWithSha256());
+    }
 
-  //   auto readSize = m_insertStream->gcount();
-
-  //   if(readSize > 0) {
-  //     auto data = std::make_shared<ndn::Data>(Name(m_dataPrefix).appendSegment(count));
-  //     data->setFreshnessPeriod(m_freshnessPeriod);
-  //     Block content = ndn::encoding::makeBinaryBlock(tlv::Content, buffer, readSize);
-  //     data->setContent(content);
-  //     data->setFinalBlock(finalBlockId);
-
-  //     m_data.push_back(data);
-  //   } else {
-  //     m_data.clear();
-  //     return;
-  //   }
-  // }
-
-  // Block nextHash(ndn::lp::tlv::HashChain);
-
-  // for(auto iter = m_data.rbegin(); iter != m_data.rend(); iter++) {
-  //   if(iter == m_data.rend()) {
-  //     m_hcKeyChain.sign(**iter, nextHash);
-  //   } else { 
-  //     m_hcKeyChain.sign(**iter, nextHash, ndn::signingWithSha256());
-  //   }
-
-  //   nextHash = ndn::encoding::makeBinaryBlock(ndn::lp::tlv::HashChain, (*iter)->getSignatureValue().value(), (*iter)->getSignatureValue().value_size());
-  //   m_currentSegmentNo++;
-  // }
+    nextHash = ndn::encoding::makeBinaryBlock(ndn::lp::tlv::HashChain, (*iter)->getSignatureValue().value(), (*iter)->getSignatureValue().value_size());
+    m_currentSegmentNo++;
+  }
 }
 
 void
