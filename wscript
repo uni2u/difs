@@ -94,12 +94,19 @@ def build(bld):
                 use='repo-objects')
 
     ########################################## Build tools library ###########################################
+    bld.objects(target='command-objects',
+                use='NDN_CXX BOOST ndn-difs',
+                includes='src',
+                export_includes='src')
+
     libndn_difs = dict(
         target='ndn-difs',
-        source=(
-            bld.path.ant_glob('lib/*.cpp')
-        ),
-        use='ndn-difs-mm-objects version BOOST OPENSSL SQLITE3 ATOMIC RT PTHREAD NDN_CXX',
+        source=
+            bld.path.ant_glob('lib/*.cpp') +
+            bld.path.find_node('src').ant_glob('repo-command*.cpp') +
+            bld.path.find_node('src').ant_glob('manifest/*.cpp') +
+            bld.path.find_node('src').ant_glob('util.cpp'),
+        use='version BOOST OPENSSL SQLITE3 ATOMIC RT PTHREAD NDN_CXX',
         includes='src',
         export_includes='lib',
         install_path='${LIBDIR}')
