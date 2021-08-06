@@ -6,13 +6,6 @@ def configure(conf):
 def build(bld):
     if not bld.env['WITH_TOOLS']:
         return
-    bld.objects(target='command-objects',
-                source=bld.path.find_node('../src').ant_glob('repo-command*.cpp') +
-                        bld.path.find_node('../src').ant_glob('manifest/*.cpp') +
-                        bld.path.find_node('../src').ant_glob('util.cpp'),
-                use='NDN_CXX BOOST ndn-difs',
-                includes='src',
-                export_includes='src')
     for tool in bld.path.ant_glob('*.cpp'):
         name = tool.change_ext('').path_from(bld.path.get_bld())
         bld.program(name=name,
