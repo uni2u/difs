@@ -88,8 +88,8 @@ def build(bld):
                 includes='src',
                 export_includes='src')
 
-    bld.program(name='ndn-repo-ng',
-                target='bin/ndn-repo-ng',
+    bld.program(name='ndn-difs`',
+                target='bin/ndn-difs',
                 source='src/main.cpp',
                 use='repo-objects')
 

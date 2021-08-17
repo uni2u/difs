@@ -307,7 +307,6 @@ void DIFS::fetch(int start) {
 	auto repos = manifest.getRepos();
 
 	ndn::Interest interest(Name(manifest.getName()).appendSegment(0));
-	std::cout << interest.getName() << std::endl;
 	boost::chrono::milliseconds lifeTime(m_interestLifetime);
 	interest.setInterestLifetime(lifeTime);
 	interest.setMustBeFresh(true);

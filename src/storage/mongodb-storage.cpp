@@ -37,6 +37,7 @@ const char* MongoDBStorage::COLLNAME_DATA = "data";
 const char* MongoDBStorage::COLLNAME_MANIFEST = "manifest";
 const string MongoDBStorage::FIELDNAME_KEY = "key";
 const string MongoDBStorage::FIELDNAME_VALUE = "value";
+const string MongoDBStorage::FIELDNAME_INDEX = "index";
 
 int64_t
 MongoDBStorage::hash(string const& key)
@@ -61,6 +62,11 @@ MongoDBStorage::MongoDBStorage(const string& dbName)
   , mClient(mongocxx::client{mongocxx::uri{}})
 {
   mDB = mClient[dbName];
+  mongocxx::collection coll = mDB[COLLNAME_DATA];
+  auto index_specification = document{}
+    << FIELDNAME_KEY << 1
+    << FIELDNAME_INDEX << -1 << finalize;
+  coll.create_index(std::move(index_specification));
 }
 
 MongoDBStorage::~MongoDBStorage()
@@ -83,6 +89,7 @@ MongoDBStorage::insert(const Data& data)
   bsoncxx::document::view_or_value replacement = document{}
     << FIELDNAME_KEY << key
     << FIELDNAME_VALUE << dataBinary
+    << FIELDNAME_INDEX << (int)segmentNo
     << finalize;
 
   dataList.push_back(replacement);
@@ -157,11 +164,13 @@ MongoDBStorage::eraseManifest(const string& hash)
 std::shared_ptr<Data>
 MongoDBStorage::read(const Name& name)
 {
+  int segmentNo = (int)name.get(-1).toSegment();
   mongocxx::collection coll = mDB[COLLNAME_DATA];
   string key = sha1Hash(name.toUri());
 
   auto maybe_result = coll.find_one(document{}
     << FIELDNAME_KEY << key
+    << FIELDNAME_INDEX << segmentNo
     << finalize);
 
   if (!maybe_result) {

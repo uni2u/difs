@@ -119,6 +119,7 @@ private:
   static const char* COLLNAME_MANIFEST;
   static const string FIELDNAME_KEY;
   static const string FIELDNAME_VALUE;
+  static const string FIELDNAME_INDEX;
 };
 
 
