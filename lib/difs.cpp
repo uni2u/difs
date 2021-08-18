@@ -254,11 +254,11 @@ void DIFS::getKeySpaceInfo() {
 		commandInterest.setForwardingHint(m_forwardingHint);
 	}
 
-	m_face.expressInterest(commandInterest, std::bind(&DIFS::onGetInfoCommandResponse, this, _1, _2), std::bind(&DIFS::onGetInfoCommandNack, this, _1), // Nack
-	                       std::bind(&DIFS::onGetInfoCommandTimeout, this, _1));
+	m_face.expressInterest(commandInterest, std::bind(&DIFS::onGetKeySpaceInfoCommandResponse, this, _1, _2), std::bind(&DIFS::onGetKeySpaceInfoCommandNack, this, _1), // Nack
+	                       std::bind(&DIFS::onGetKeySpaceInfoCommandTimeout, this, _1));
 }
 
-void DIFS::onGetKeySpaceInfoCommandResponse(const ndn::Interest& interest, const ndn::Data& data) { std::cout << data.getContent().value() << std::endl; }
+void DIFS::onGetKeySpaceInfoCommandResponse(const ndn::Interest& interest, const ndn::Data& data) { std::cout << data.getContent().value(); }
 
 void DIFS::onGetKeySpaceInfoCommandTimeout(const Interest& interest) {
 	if(m_retryCount++ < MAX_RETRY) {
