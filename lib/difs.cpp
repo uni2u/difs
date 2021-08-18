@@ -167,12 +167,9 @@ void DIFS::onDeleteCommandNack(const Interest& interest) {
 }
 
 void DIFS::getInfo() {
-	RepoCommandParameter parameter;
-
 	Name cmd = m_repoPrefix;
-	cmd.append("info").append(parameter.wireEncode());
-
-	ndn::Interest commandInterest = m_cmdSigner.makeCommandInterest(cmd);
+	cmd.append("info").appendSegment(0);
+	ndn::Interest commandInterest(cmd);
 	commandInterest.setInterestLifetime(m_interestLifetime);
 	if(!m_forwardingHint.empty()) {
 		commandInterest.setForwardingHint(m_forwardingHint);
@@ -182,7 +179,16 @@ void DIFS::getInfo() {
 	                       std::bind(&DIFS::onGetInfoCommandTimeout, this, _1));
 }
 
-void DIFS::onGetInfoCommandResponse(const ndn::Interest& interest, const ndn::Data& data) { std::cout << data.getContent().value() << std::endl; }
+void DIFS::onGetInfoCommandResponse(const ndn::Interest& interest, const ndn::Data& data) {
+	auto content = data.getContent();
+	std::string msg = reinterpret_cast<const char*>(content.value());
+	msg = msg.substr(0, content.value_size());
+	std::cout << msg;
+
+	if(data.getFinalBlock().value().toSegment() > 0) {
+		infoFetch(1);
+	}
+}
 
 void DIFS::onGetInfoCommandTimeout(const Interest& interest) {
 	if(m_retryCount++ < MAX_RETRY) {
@@ -205,6 +211,35 @@ void DIFS::onGetInfoCommandNack(const Interest& interest) {
 		std::cerr << "NACK: last interest sent" << std::endl << "NACK: abort fetching after " << MAX_RETRY << " times of retry" << std::endl;
 	}
 }
+
+void DIFS::infoFetch(int start) {
+	ndn::Interest interest(m_repoPrefix.append("info").appendSegment(start));
+	boost::chrono::milliseconds lifeTime(m_interestLifetime);
+	interest.setInterestLifetime(lifeTime);
+	interest.setMustBeFresh(true);
+
+	ndn::security::Validator& m_validator(m_validatorConfig);
+
+	ndn::util::SegmentFetcher::Options options;
+	options.initCwnd = 12;
+	options.interestLifetime = lifeTime;
+	options.maxTimeout = lifeTime;
+
+	std::shared_ptr<ndn::util::SegmentFetcher> fetcher;
+	auto Fetcher = fetcher->start(m_face, interest, m_validator, options);
+	Fetcher->onError.connect([](uint32_t errorCode, const std::string& errorMsg) { std::cout << "Error: " << errorMsg << std::endl; });
+	Fetcher->afterSegmentValidated.connect([this, Fetcher](const Data& data) { onGetInfoDataCommandResponse(data); });
+	Fetcher->afterSegmentTimedOut.connect([this, Fetcher]() { onGetInfoDataCommandTimeout(*Fetcher); });
+}
+
+void DIFS::onGetInfoDataCommandResponse(const ndn::Data& data) {
+	auto content = data.getContent();
+	std::string msg = reinterpret_cast<const char*>(content.value());
+	msg = msg.substr(0, content.value_size());
+	std::cout << msg;
+}
+
+void DIFS::onGetInfoDataCommandTimeout(ndn::util::SegmentFetcher& fetcher) { std::cout << "timeout" << std::endl; }
 
 void DIFS::getKeySpaceInfo() {
 	RepoCommandParameter parameter;

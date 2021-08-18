@@ -117,6 +117,15 @@ private:
   onDataCommandTimeout(ndn::util::HCSegmentFetcher& fetcher);
 
   void
+  infoFetch(int start);
+
+  void
+  onGetInfoDataCommandResponse(const ndn::Data &data);
+
+  void
+  onGetInfoDataCommandTimeout(ndn::util::SegmentFetcher &fetcher);
+
+  void
   onDeleteCommandTimeout(const ndn::Interest& interest);
 
   void

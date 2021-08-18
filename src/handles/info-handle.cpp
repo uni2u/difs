@@ -52,7 +52,7 @@ InfoHandle::InfoHandle(Face& face, RepoStorage& storageHandle,
 void
 InfoHandle::handleInfoCommand(const Name& prefix, const Interest& interest)
 {
-  auto segmentNo = atoi(interest.getName().get(-1).toUri().c_str());
+  auto segmentNo = interest.getName().get(-1).toSegment();
   if(segmentNo == 0) {
     namespace pt = boost::property_tree;
     pt::ptree root, disk, memory, diskNode, memoryNode;
@@ -88,7 +88,7 @@ InfoHandle::handleInfoCommand(const Name& prefix, const Interest& interest)
     
     reply(interest, m_data[0], m_finalBlockId); 
   } else {
-    reply(interest, m_data[segmentNo]);
+    reply(interest, m_data[segmentNo], m_finalBlockId);
   }
 
 }
