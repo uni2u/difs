@@ -67,6 +67,8 @@ ReadHandle::onInterest(const Name& prefix, const Interest& interest)
 {
   NDN_LOG_DEBUG("Received Interest " << interest.getName());
   std::shared_ptr<ndn::Data> data = m_storageHandle.readData(interest);
+  data->setFreshnessPeriod(3_s);
+
   if (data != nullptr) {
     NDN_LOG_DEBUG("Put Data: " << *data);
     m_face.put(*data);

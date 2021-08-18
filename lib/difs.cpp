@@ -171,6 +171,7 @@ void DIFS::getInfo() {
 	cmd.append("info").appendSegment(0);
 	ndn::Interest commandInterest(cmd);
 	commandInterest.setInterestLifetime(m_interestLifetime);
+	commandInterest.setMustBeFresh(true);
 	if(!m_forwardingHint.empty()) {
 		commandInterest.setForwardingHint(m_forwardingHint);
 	}
