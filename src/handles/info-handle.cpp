@@ -97,6 +97,7 @@ void
 InfoHandle::infoPrepareNextData() {
   int chunkSize = m_info.length() / DEFAULT_CHUNK_SIZE;
   m_finalBlockId = ndn::name::Component::fromSegment(chunkSize);
+  m_data.clear();
 
   while(m_info.length() > DEFAULT_CHUNK_SIZE) {
     std::string data = m_info.substr(0, DEFAULT_CHUNK_SIZE);
