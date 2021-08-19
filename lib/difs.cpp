@@ -357,7 +357,7 @@ void DIFS::fetch(int start) {
 	ndn::util::SegmentFetcher::Options options;
 	options.useConstantCwnd = true; //set windowsize
 	options.initCwnd = 12;
-    options.useConstantInterestTimeout = true; //set interest lifetime
+	options.useConstantInterestTimeout = true; //set interest lifetime
 	options.interestLifetime = lifeTime;
 	options.maxTimeout = lifeTime;
 
