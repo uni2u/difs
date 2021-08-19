@@ -110,10 +110,10 @@ private:
   void 
   fetch(int start);
 
-	void 
+  void 
   onDataCommandResponse(const ndn::Data& data);
 
-	void 
+  void 
   onDataCommandTimeout(ndn::util::HCSegmentFetcher& fetcher);
 
   void
@@ -241,8 +241,8 @@ private:
 
   std::string m_identityForCommand, m_manifest;
 
-	std::map<int, const ndn::Block> map;
-	int m_retryCount, m_currentSegment, m_totalSize;
+  std::map<int, const ndn::Block> map;
+  int m_retryCount, m_currentSegment, m_totalSize;
 
   ndn::DelegationList m_forwardingHint, m_nodePrefix;
   ndn::HCKeyChain m_hcKeyChain;
