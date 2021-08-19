@@ -355,9 +355,9 @@ void DIFS::fetch(int start) {
 	ndn::security::Validator& m_validator(m_validatorConfig);
 
 	ndn::util::SegmentFetcher::Options options;
-	options.useConstantCwnd = true; //if true, set windowsize
+	options.useConstantCwnd = true; //set windowsize
 	options.initCwnd = 12;
-    options.useConstantInterestTimeout = true; //if true, set interest lifetime
+    options.useConstantInterestTimeout = true; //set interest lifetime
 	options.interestLifetime = lifeTime;
 	options.maxTimeout = lifeTime;
 
