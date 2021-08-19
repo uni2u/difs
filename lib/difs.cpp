@@ -354,8 +354,10 @@ void DIFS::fetch(int start) {
 	ndn::security::Validator& m_validator(m_validatorConfig);
 
 	ndn::util::SegmentFetcher::Options options;
+	options.useConstantCwnd = true;
 	options.initCwnd = 12;
 	options.interestLifetime = lifeTime;
+	options.useConstantInterestTimeout = true;
 	options.maxTimeout = lifeTime;
 
 	std::shared_ptr<ndn::util::HCSegmentFetcher> hc_fetcher;
