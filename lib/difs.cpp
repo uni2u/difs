@@ -1,5 +1,6 @@
 #include "repo-command-parameter.hpp"
-#include "repo-command-response.hpp" #include "util.hpp"
+#include "repo-command-response.hpp"
+#include "util.hpp"
 
 #include "manifest/manifest.hpp"
 
@@ -354,10 +355,10 @@ void DIFS::fetch(int start) {
 	ndn::security::Validator& m_validator(m_validatorConfig);
 
 	ndn::util::SegmentFetcher::Options options;
-	options.useConstantCwnd = true;
+	options.useConstantCwnd = true; //if true, set windowsize
 	options.initCwnd = 12;
+    options.useConstantInterestTimeout = true; //if true, set interest lifetime
 	options.interestLifetime = lifeTime;
-	options.useConstantInterestTimeout = true;
 	options.maxTimeout = lifeTime;
 
 	std::shared_ptr<ndn::util::HCSegmentFetcher> hc_fetcher;
