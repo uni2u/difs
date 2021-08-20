@@ -169,7 +169,7 @@ void DIFS::onDeleteCommandNack(const Interest& interest) {
 
 void DIFS::getInfo() {
 	Name cmd = m_repoPrefix;
-	cmd.append("info").appendSegment(0);
+	cmd.append("nodeinfo").appendSegment(0);
 	ndn::Interest commandInterest(cmd);
 	commandInterest.setInterestLifetime(m_interestLifetime);
 	commandInterest.setMustBeFresh(true);
@@ -215,7 +215,7 @@ void DIFS::onGetInfoCommandNack(const Interest& interest) {
 }
 
 void DIFS::infoFetch(int start) {
-	ndn::Interest interest(m_repoPrefix.append("info").appendSegment(start));
+	ndn::Interest interest(m_repoPrefix.append("nodeinfo").appendSegment(start));
 	boost::chrono::milliseconds lifeTime(m_interestLifetime);
 	interest.setInterestLifetime(lifeTime);
 	interest.setMustBeFresh(true);
@@ -247,7 +247,7 @@ void DIFS::getKeySpaceInfo() {
 	RepoCommandParameter parameter;
 
 	Name cmd = m_repoPrefix;
-	cmd.append("ringInfo").append(parameter.wireEncode());
+	cmd.append("ringinfo").append(parameter.wireEncode());
 
 	ndn::Interest commandInterest = m_cmdSigner.makeCommandInterest(cmd);
 	commandInterest.setInterestLifetime(m_interestLifetime);

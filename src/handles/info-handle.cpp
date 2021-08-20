@@ -43,7 +43,7 @@ InfoHandle::InfoHandle(Face& face, RepoStorage& storageHandle,
   : CommandBaseHandle(face, storageHandle, scheduler, validator)
   , m_repoPrefix(Name(clusterNodePrefix).append(clusterPrefix))
 {
-  ndn::InterestFilter filterInfo = Name(m_repoPrefix).append("info");
+  ndn::InterestFilter filterInfo = Name(m_repoPrefix).append("nodeinfo");
   face.setInterestFilter(filterInfo,
                            std::bind(&InfoHandle::handleInfoCommand, this, _1, _2),
                            std::bind(&InfoHandle::onRegisterFailed, this, _1, _2));
