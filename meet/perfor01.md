@@ -1,4 +1,4 @@
-### 68M ndnputfile
+### 64M ndnputfile
 
 1.502385
 
