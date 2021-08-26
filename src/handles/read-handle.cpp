@@ -24,6 +24,7 @@
 
 #include <ndn-cxx/util/logger.hpp>
 #include <ndn-cxx/util/random.hpp>
+#include <ndn-cxx/lp/pit-token.hpp>
 
 namespace repo {
 
@@ -66,8 +67,14 @@ void
 ReadHandle::onInterest(const Name& prefix, const Interest& interest)
 {
   NDN_LOG_DEBUG("Received Interest " << interest.getName());
+
   std::shared_ptr<ndn::Data> data = m_storageHandle.readData(interest);
   data->setFreshnessPeriod(3_s);
+
+  auto pitToken = interest.getTag<ndn::lp::PitToken>();
+  if(pitToken != nullptr) {
+    data->setTag(pitToken);
+  }
 
   if (data != nullptr) {
     NDN_LOG_DEBUG("Put Data: " << *data);
