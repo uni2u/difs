@@ -112,10 +112,10 @@ KeySpaceHandle::KeySpaceHandle(Face& face, RepoStorage& storageHandle, ndn::mgmt
                            std::bind(&KeySpaceHandle::handleCompleteCommand, this, _1, _2),
                            std::bind(&KeySpaceHandle::onRegisterFailed, this, _1, _2));
 
-  dispatcher.addControlCommand<RepoCommandParameter>(ndn::PartialName("/ringinfo"),
-    makeAuthorization(),
-    std::bind(&KeySpaceHandle::validateParameters<InfoCommand>, this, _1),
-    std::bind(&KeySpaceHandle::handleRingInfoCommand, this, _1, _2));
+  ndn::InterestFilter filterRingInfo = Name(clusterPrefix).append("ringinfo");
+  face.setInterestFilter(filterRingInfo,
+                           std::bind(&KeySpaceHandle::handleRingInfoCommand, this, _1, _2),
+                           std::bind(&KeySpaceHandle::onRegisterFailed, this, _1, _2));
 }
 
 void

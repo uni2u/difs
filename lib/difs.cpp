@@ -244,13 +244,13 @@ void DIFS::onGetInfoDataCommandResponse(const ndn::Data& data) {
 void DIFS::onGetInfoDataCommandTimeout(ndn::util::SegmentFetcher& fetcher) { std::cout << "timeout" << std::endl; }
 
 void DIFS::getKeySpaceInfo() {
-	RepoCommandParameter parameter;
-
 	Name cmd = m_repoPrefix;
-	cmd.append("ringinfo").append(parameter.wireEncode());
+	cmd.append("ringinfo");
 
-	ndn::Interest commandInterest = m_cmdSigner.makeCommandInterest(cmd);
+	ndn::Interest commandInterest(cmd);
 	commandInterest.setInterestLifetime(m_interestLifetime);
+	commandInterest.setMustBeFresh(true);
+	commandInterest.setCanBePrefix(true);
 	if(!m_forwardingHint.empty()) {
 		commandInterest.setForwardingHint(m_forwardingHint);
 	}
