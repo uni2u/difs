@@ -69,7 +69,6 @@ ReadHandle::onInterest(const Name& prefix, const Interest& interest)
   NDN_LOG_DEBUG("Received Interest " << interest.getName());
 
   std::shared_ptr<ndn::Data> data = m_storageHandle.readData(interest);
-  data->setFreshnessPeriod(3_s);
 
   auto pitToken = interest.getTag<ndn::lp::PitToken>();
   if(pitToken != nullptr) {
@@ -112,7 +111,8 @@ ReadHandle::onGetInterest(const Name& prefix, const Interest& interest)
 
   Interest findInterest = util::generateCommandInterest(
     repo, "find", parameters, m_interestLifetime);
-  findInterest.setMustBeFresh(true);
+  findInterest.setCanBePrefix(true);
+  findInterest.setMustBeFresh(false);
 
   m_face.expressInterest(
     findInterest,
@@ -199,6 +199,7 @@ ReadHandle::onDataInserted(const Name& name)
     [this] (const Name& prefix, const std::string& reason) {
       onRegisterFailed(prefix, reason);
     });
+
   RegisteredDataPrefix registeredPrefix{hdl, 1};
   // Newly registered prefix
   m_insertedDataPrefixes.emplace(std::make_pair(prefixToRegister, registeredPrefix));

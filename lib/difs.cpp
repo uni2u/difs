@@ -102,7 +102,7 @@ void DIFS::deleteNode(const std::string from, const std::string to) {
 	if(!m_forwardingHint.empty())
 		deleteNodeInterest.setForwardingHint(m_forwardingHint);
 	deleteNodeInterest.setInterestLifetime(m_interestLifetime);
-	deleteNodeInterest.setMustBeFresh(true);
+	deleteNodeInterest.setMustBeFresh(false);
 
 	m_face.expressInterest(deleteNodeInterest, std::bind(&DIFS::onDeleteNodeCommandResponse, this, _1, _2), std::bind(&DIFS::onDeleteNodeCommandNack, this, _1), // Nack
 	                       std::bind(&DIFS::onDeleteNodeCommandTimeout, this, _1));
@@ -125,7 +125,7 @@ void DIFS::deleteFile(const Name& name) {
 
 	ndn::Interest commandInterest = m_cmdSigner.makeCommandInterest(cmd);
 	commandInterest.setInterestLifetime(m_interestLifetime);
-	commandInterest.setMustBeFresh(true);
+	commandInterest.setMustBeFresh(false);
 	if(!m_forwardingHint.empty())
 		commandInterest.setForwardingHint(m_forwardingHint);
 
@@ -172,7 +172,7 @@ void DIFS::getInfo() {
 	cmd.append("nodeinfo").appendSegment(0);
 	ndn::Interest commandInterest(cmd);
 	commandInterest.setInterestLifetime(m_interestLifetime);
-	commandInterest.setMustBeFresh(true);
+	commandInterest.setMustBeFresh(false);
 	if(!m_forwardingHint.empty()) {
 		commandInterest.setForwardingHint(m_forwardingHint);
 	}
@@ -218,7 +218,7 @@ void DIFS::infoFetch(int start) {
 	ndn::Interest interest(m_repoPrefix.append("nodeinfo").appendSegment(start));
 	boost::chrono::milliseconds lifeTime(m_interestLifetime);
 	interest.setInterestLifetime(lifeTime);
-	interest.setMustBeFresh(true);
+	interest.setMustBeFresh(false);
 
 	ndn::security::Validator& m_validator(m_validatorConfig);
 
@@ -249,8 +249,7 @@ void DIFS::getKeySpaceInfo() {
 
 	ndn::Interest commandInterest(cmd);
 	commandInterest.setInterestLifetime(m_interestLifetime);
-	commandInterest.setMustBeFresh(true);
-	commandInterest.setCanBePrefix(true);
+	commandInterest.setMustBeFresh(false);
 	if(!m_forwardingHint.empty()) {
 		commandInterest.setForwardingHint(m_forwardingHint);
 	}
@@ -294,7 +293,7 @@ void DIFS::getFile(const Name& dataName, std::ostream& os) {
 
 	ndn::Interest commandInterest = m_cmdSigner.makeCommandInterest(cmd);
 	commandInterest.setCanBePrefix(true);
-	commandInterest.setMustBeFresh(true);
+	commandInterest.setMustBeFresh(false);
 	commandInterest.setInterestLifetime(m_interestLifetime);
 	if(!m_forwardingHint.empty()) {
 		commandInterest.setForwardingHint(m_forwardingHint);
@@ -346,7 +345,7 @@ void DIFS::fetch(int start) {
 	ndn::Interest interest(Name(manifest.getName()).appendSegment(0));
 	boost::chrono::milliseconds lifeTime(m_interestLifetime);
 	interest.setInterestLifetime(lifeTime);
-	interest.setMustBeFresh(true);
+	interest.setMustBeFresh(false);
 
 	ndn::Delegation d;
 	d.name = Name(repos.begin()->name);
@@ -561,8 +560,8 @@ void DIFS::putFilePrepareNextData() {
 
 		if(readSize > 0) {
 			auto data = std::make_shared<ndn::Data>(Name(m_dataPrefix).appendSegment(count));
-			data->setFreshnessPeriod(m_freshnessPeriod);
 			Block content = ndn::encoding::makeBinaryBlock(tlv::Content, buffer, readSize);
+			data->setFreshnessPeriod(m_freshnessPeriod);
 			data->setContent(content);
 			data->setFinalBlock(finalBlockId);
 
@@ -603,7 +602,6 @@ void DIFS::putFileSendManifest(const Name& prefix, const ndn::Interest& interest
 	Manifest manifest(interest.getName().toUri(), 0, blockCount - 1);
 	std::string json = manifest.toInfoJson();
 	data.setContent((uint8_t*)json.data(), (size_t)json.size());
-	data.setFreshnessPeriod(3_s);
 	m_hcKeyChain.ndn::KeyChain::sign(data);
 
 	m_face.put(data);

@@ -151,7 +151,7 @@ KeySpaceHandle::onVersionCommand()
 
     Interest verInterest(cmd);
     verInterest.setCanBePrefix(true);
-    verInterest.setMustBeFresh(true);
+    verInterest.setMustBeFresh(false);
     verInterest.setInterestLifetime(6_s);
 
     face.expressInterest(
@@ -198,7 +198,7 @@ KeySpaceHandle::onFetchCommand(std::string versionNum) {
 
   Interest fetchInterest(cmd);
   fetchInterest.setCanBePrefix(true);
-  fetchInterest.setMustBeFresh(true);
+  fetchInterest.setMustBeFresh(false);
   fetchInterest.setInterestLifetime(6_s);
 
   face.expressInterest(
@@ -399,7 +399,7 @@ KeySpaceHandle::onManifestListCommand()
 
   Interest manifestListInterest(cmd);
   manifestListInterest.setCanBePrefix(true);
-  manifestListInterest.setMustBeFresh(true);
+  manifestListInterest.setMustBeFresh(false);
   manifestListInterest.setInterestLifetime(6_s);
 
   face.expressInterest(
@@ -466,7 +466,8 @@ KeySpaceHandle::onManifestCommand(std::string manifestName)
 
   Interest manifestInterest = util::generateCommandInterest(
    m_from, "find", parameter, 4_s);
-  manifestInterest.setMustBeFresh(true);
+  manifestInterest.setCanBePrefix(true);
+  manifestInterest.setMustBeFresh(false);
 
   face.expressInterest(
     manifestInterest,
@@ -533,7 +534,8 @@ KeySpaceHandle::onCoordinationCommand()
 
   Interest coordinationInterest = cmdSigner.makeCommandInterest(cmd);
   coordinationInterest.setInterestLifetime(3_s);
-  coordinationInterest.setMustBeFresh(true);
+  coordinationInterest.setCanBePrefix(true);
+  coordinationInterest.setMustBeFresh(false);
 
   face.expressInterest(
     coordinationInterest,
@@ -570,7 +572,7 @@ KeySpaceHandle::onCompleteCommand()
 
   Interest completeInterest(cmd);
   completeInterest.setCanBePrefix(true);
-  completeInterest.setMustBeFresh(true);
+  completeInterest.setMustBeFresh(false);
   completeInterest.setInterestLifetime(6_s);
 
   face.expressInterest(
@@ -617,7 +619,8 @@ KeySpaceHandle::onDeleteManifestCommand(std::string manifestName)
 
   Interest delManifestInterest = util::generateCommandInterest(
    m_from, "only-delete-manifest", parameter, 4_s);
-  delManifestInterest.setMustBeFresh(true);
+  delManifestInterest.setCanBePrefix(true);
+  delManifestInterest.setMustBeFresh(false);
 
   face.expressInterest(
     delManifestInterest,

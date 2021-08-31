@@ -151,11 +151,8 @@ WriteHandle::onDataValidated(const Interest& interest, const Data& data, Process
 
   process.startBlockId = manifest.getStartBlockId();
   process.endBlockId = manifest.getEndBlockId();
-  std::string name = manifest.getName();
 
-  unsigned int i = name.rfind("/");
-  std::string difsKey = name.substr(i + 1);
-  process.name = difsKey;
+  process.name = manifest.getName();;
   process.repo = m_repoPrefix;
 	
   if (!process.manifestSent) {
@@ -199,7 +196,7 @@ WriteHandle::processSingleInsertCommand(const Interest& interest, const RepoComm
   Interest fetchInterest(parameter.getName());
   fetchInterest.setCanBePrefix(m_canBePrefix);
   fetchInterest.setInterestLifetime(m_interestLifetime);
-  fetchInterest.setMustBeFresh(true);
+  fetchInterest.setMustBeFresh(false);
   if (parameter.hasNodePrefix())
     fetchInterest.setForwardingHint(parameter.getNodePrefix());
   face.expressInterest(fetchInterest,
@@ -235,8 +232,8 @@ WriteHandle::segInit(ProcessId processId, const RepoCommandParameter& parameter)
   fetchName.appendSegment(segment);
 
   Interest interest(fetchName);
-  interest.setCanBePrefix(m_canBePrefix);
-  interest.setMustBeFresh(true);
+  interest.setCanBePrefix(true);
+  interest.setMustBeFresh(false);
 
   if (parameter.hasNodePrefix()) {
     interest.setForwardingHint(parameter.getNodePrefix());
