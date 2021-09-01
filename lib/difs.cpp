@@ -102,7 +102,7 @@ void DIFS::deleteNode(const std::string from, const std::string to) {
 	if(!m_forwardingHint.empty())
 		deleteNodeInterest.setForwardingHint(m_forwardingHint);
 	deleteNodeInterest.setInterestLifetime(m_interestLifetime);
-	deleteNodeInterest.setMustBeFresh(false);
+	deleteNodeInterest.setMustBeFresh(true);
 
 	m_face.expressInterest(deleteNodeInterest, std::bind(&DIFS::onDeleteNodeCommandResponse, this, _1, _2), std::bind(&DIFS::onDeleteNodeCommandNack, this, _1), // Nack
 	                       std::bind(&DIFS::onDeleteNodeCommandTimeout, this, _1));
@@ -125,7 +125,7 @@ void DIFS::deleteFile(const Name& name) {
 
 	ndn::Interest commandInterest = m_cmdSigner.makeCommandInterest(cmd);
 	commandInterest.setInterestLifetime(m_interestLifetime);
-	commandInterest.setMustBeFresh(false);
+	commandInterest.setMustBeFresh(true);
 	if(!m_forwardingHint.empty())
 		commandInterest.setForwardingHint(m_forwardingHint);
 
@@ -172,7 +172,7 @@ void DIFS::getInfo() {
 	cmd.append("nodeinfo").appendSegment(0);
 	ndn::Interest commandInterest(cmd);
 	commandInterest.setInterestLifetime(m_interestLifetime);
-	commandInterest.setMustBeFresh(false);
+	commandInterest.setMustBeFresh(true);
 	if(!m_forwardingHint.empty()) {
 		commandInterest.setForwardingHint(m_forwardingHint);
 	}
@@ -249,7 +249,7 @@ void DIFS::getKeySpaceInfo() {
 
 	ndn::Interest commandInterest(cmd);
 	commandInterest.setInterestLifetime(m_interestLifetime);
-	commandInterest.setMustBeFresh(false);
+	commandInterest.setMustBeFresh(true);
 	if(!m_forwardingHint.empty()) {
 		commandInterest.setForwardingHint(m_forwardingHint);
 	}
@@ -602,6 +602,7 @@ void DIFS::putFileSendManifest(const Name& prefix, const ndn::Interest& interest
 	Manifest manifest(interest.getName().toUri(), 0, blockCount - 1);
 	std::string json = manifest.toInfoJson();
 	data.setContent((uint8_t*)json.data(), (size_t)json.size());
+	data.setFreshnessPeriod(3_s);
 	m_hcKeyChain.ndn::KeyChain::sign(data);
 
 	m_face.put(data);

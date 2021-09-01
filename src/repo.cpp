@@ -179,7 +179,7 @@ Repo::addNode() {
   Interest addInterest = cmdSigner.makeCommandInterest(cmd);
   addInterest.setInterestLifetime(3_s);
   addInterest.setCanBePrefix(true);
-  addInterest.setMustBeFresh(false);
+  addInterest.setMustBeFresh(true);
 
   m_face.expressInterest(
     addInterest,

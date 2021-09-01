@@ -114,7 +114,7 @@ ManifestHandle::handleCreateCommand(const Name& prefix, const Interest& interest
   Interest fetchInterest(commandPath);
   fetchInterest.setInterestLifetime(m_interestLifetime);
   fetchInterest.setCanBePrefix(true);
-  fetchInterest.setMustBeFresh(false);
+  fetchInterest.setMustBeFresh(true);
 
   face.expressInterest(fetchInterest,
                        std::bind(&ManifestHandle::onData, this, _1, _2, processId),

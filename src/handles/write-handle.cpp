@@ -196,7 +196,7 @@ WriteHandle::processSingleInsertCommand(const Interest& interest, const RepoComm
   Interest fetchInterest(parameter.getName());
   fetchInterest.setCanBePrefix(m_canBePrefix);
   fetchInterest.setInterestLifetime(m_interestLifetime);
-  fetchInterest.setMustBeFresh(false);
+  fetchInterest.setMustBeFresh(true);
   if (parameter.hasNodePrefix())
     fetchInterest.setForwardingHint(parameter.getNodePrefix());
   face.expressInterest(fetchInterest,
