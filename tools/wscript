@@ -3,6 +3,7 @@ top = '..'
 def configure(conf):
     conf.define('DEFAULT_CONFIG_FILE', '%s/ndn/repo-ng.conf' % conf.env['SYSCONFDIR'])
     conf.write_config_header('src/config.hpp')
+
 def build(bld):
     if not bld.env['WITH_TOOLS']:
         return
@@ -12,4 +13,4 @@ def build(bld):
                     target='../bin/%s' % name,
                     source=[tool],
                     rpath=[bld.path.find_node('../build')],
-                    use='NDN_CXX BOOST command-objects')
+                    use='NDN_CXX BOOST ndn-difs')

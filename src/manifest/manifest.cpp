@@ -4,7 +4,13 @@
 #include <sstream>
 
 #include <boost/format.hpp>
+
+#if BOOST_VERSION == 107400
 #include <boost/uuid/detail/sha1.hpp>
+#else
+#include <boost/uuid/sha1.hpp>
+#endif
+
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 

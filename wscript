@@ -28,6 +28,11 @@ def options(opt):
     opt.add_option('--disable-shared', action='store_false', default=True,
                    dest='enable_shared', help='Do not build shared library (enabled by default)')
 
+    opt.add_option('--enable-storage', action='store_true', default=True,
+                   dest='enable_storage', help='Build storage application (enabled by default)')
+    opt.add_option('--disable-storage', action='store_false', default=True,
+                   dest='enable_storage', help='Do not build storage application (enabled by default)')
+
 def configure(conf):
     conf.start_msg('Building static library')
     if conf.options.enable_static:
@@ -43,6 +48,13 @@ def configure(conf):
         conf.end_msg('no', color='YELLOW')
     conf.env.enable_shared = conf.options.enable_shared
 
+    conf.start_msg('Building Storage')
+    if conf.options.enable_storage:
+        conf.end_msg('yes')
+    else:
+        conf.end_msg('no', color='YELLOW')
+    conf.env.enable_storage = conf.options.enable_storage
+
     if not conf.options.enable_shared and not conf.options.enable_static:
         conf.fatal('Either static library or shared library must be enabled')
 
@@ -56,8 +68,9 @@ def configure(conf):
     conf.check_cfg(package='libndn-cxx', args=['--cflags', '--libs'], uselib_store='NDN_CXX',
                    pkg_config_path=os.environ.get('PKG_CONFIG_PATH', '%s/pkgconfig' % conf.env.LIBDIR))
 
-    conf.check_sqlite3()
-    conf.check_mongodb()
+    if conf.options.enable_storage:
+        conf.check_sqlite3()
+        conf.check_mongodb()
 
     USED_BOOST_LIBS = ['system', 'program_options', 'iostreams', 'filesystem', 'thread', 'log']
     if conf.env['WITH_TESTS']:
@@ -81,24 +94,25 @@ def configure(conf):
 def build(bld):
     version(bld)
 
-    bld.objects(target='repo-objects',
+    if bld.env.enable_storage:
+        print('Build NDN DIFS Objects')
+        bld.objects(target='repo-objects',
                 source=bld.path.ant_glob('src/**/*.cpp',
                                          excl=['src/main.cpp']),
                 use='NDN_CXX BOOST SQLITE3 MONGODB',
                 includes='src',
                 export_includes='src')
 
-    bld.program(name='ndn-difs`',
+    if bld.env.enable_storage:
+        print('Build NDN DIFS')
+        bld.program(name='ndn-difs`',
                 target='bin/ndn-difs',
                 source='src/main.cpp',
                 use='repo-objects')
 
-    ########################################## Build tools library ###########################################
-    bld.objects(target='command-objects',
-                use='NDN_CXX BOOST ndn-difs',
-                includes='src',
-                export_includes='src')
 
+    ########################################## Build tools library ###########################################
+    print('Build NDN DIFS Library Object')
     libndn_difs = dict(
         target='ndn-difs',
         source=
@@ -112,12 +126,14 @@ def build(bld):
         install_path='${LIBDIR}')
 
     if bld.env.enable_shared:
+        print('Build Shared NDN DIFS Library')
         bld.shlib(name='ndn-difs',
                   vnum=VERSION_BASE,
                   cnum=VERSION_BASE,
                   **libndn_difs)
 
     if bld.env.enable_static:
+        print('Build Static NDN DIFS Library')
         bld.stlib(name='ndn-difs-static' if bld.env.enable_shared else 'ndn-difs',
                   **libndn_difs)
 
