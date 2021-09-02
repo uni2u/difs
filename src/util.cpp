@@ -4,7 +4,7 @@
 #include <ndn-cxx/security/hc-key-chain.hpp>
 #include <ndn-cxx/security/signing-helpers.hpp>
 
-#if BOOST_VERSION == 107400
+#if BOOST_VERSION >= 107000
 #include <boost/uuid/detail/sha1.hpp>
 #else
 #include <boost/uuid/sha1.hpp>
