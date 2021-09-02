@@ -44,6 +44,8 @@ using namespace repo;
 
 static const int MAX_RETRY = 3;
 
+int m_totalSize = 0;
+
 // Get SegmentFetcher validation
 void DIFS::parseConfig() {
 	std::string configPath = "node.conf";
@@ -369,7 +371,16 @@ void DIFS::fetch(int start) {
 
 void DIFS::onDataCommandResponse(const ndn::Data& data) {
 	const auto& content = data.getContent();
-	m_os->write(reinterpret_cast<const char*>(content.value()), content.value_size());
+//	m_os->write(reinterpret_cast<const char*>(content.value()), content.value_size());
+
+	int segment = data.getName().get(-1).toSegment();
+    int finalBlockId = data.getFinalBlock().value().toSegment();
+    m_totalSize += content.value_size();
+    std::cerr << "INFO: data name = " << data.getName() << ", next-hash = " << data.getMetaInfo().getAppMetaInfo().front() << std::endl;
+    if (segment == finalBlockId) {
+        std::cerr << "INFO: Total # bytes of content received: " << m_totalSize << std::endl;
+        m_totalSize = 0;
+    }
 }
 
 void DIFS::onDataCommandTimeout(ndn::util::HCSegmentFetcher& fetcher) { std::cout << "Timeout" << std::endl; }
