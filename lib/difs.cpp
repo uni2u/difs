@@ -9,6 +9,7 @@
 #include <ndn-cxx/security/hc-key-chain.hpp>
 #include <ndn-cxx/security/signing-helpers.hpp>
 #include <ndn-cxx/util/scheduler.hpp>
+#include <ndn-cxx/util/logger.hpp>
 
 #include "difs.hpp"
 
@@ -26,6 +27,8 @@
 #include <boost/iostreams/read.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/info_parser.hpp>
+
+NDN_LOG_INIT(difs.DIFS);
 
 static const size_t PRE_SIGN_DATA_COUNT = 11;
 
@@ -371,14 +374,16 @@ void DIFS::fetch(int start) {
 
 void DIFS::onDataCommandResponse(const ndn::Data& data) {
 	const auto& content = data.getContent();
-//	m_os->write(reinterpret_cast<const char*>(content.value()), content.value_size());
+	m_os->write(reinterpret_cast<const char*>(content.value()), content.value_size());
 
 	int segment = data.getName().get(-1).toSegment();
 	int finalBlockId = data.getFinalBlock().value().toSegment();
 	m_totalSize += content.value_size();
-	std::cerr << "INFO: data name = " << data.getName() << ", next-hash = " << data.getMetaInfo().getAppMetaInfo().front() << std::endl;
+
+	NDN_LOG_INFO("INFO: data name = " << data.getName() << ", next-hash = " << data.getMetaInfo().getAppMetaInfo().front());
+
 	if (segment == finalBlockId) {
-		std::cerr << "INFO: Total # bytes of content received: " << m_totalSize << std::endl;
+		NDN_LOG_INFO("INFO: Total # bytes of content received: " << m_totalSize);
 		m_totalSize = 0;
 	}
 }
@@ -417,7 +422,7 @@ void DIFS::onPutFileInterest(const Name& prefix, const ndn::Interest& interest) 
 	} catch(const tlv::Error& e) {
 		std::cout << "failed" << std::endl;
 		if(m_verbose) {
-			std::cerr << "Error processing incoming interest " << interest << ": " << e.what() << std::endl;
+			NDN_LOG_ERROR("Error processing incoming interest " << interest << ": " << e.what());
 		}
 		return;
 	}
