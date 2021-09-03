@@ -397,6 +397,9 @@ void DIFS::putFile(const std::string dataPrefix, std::istream& is) {
 
 	putFilePrepareNextData();
 
+	m_face.setInterestFilter(m_nodePrefix.at(0).name, bind(&DIFS::onPutFileInterest, this, _1, _2), bind(&DIFS::onPutFileRegisterSuccess, this, _1),
+	                         bind(&DIFS::onPutFileRegisterFailed, this, _1, _2));
+
 	m_face.setInterestFilter(m_dataPrefix, bind(&DIFS::onPutFileInterest, this, _1, _2), bind(&DIFS::onPutFileRegisterSuccess, this, _1),
 	                         bind(&DIFS::onPutFileRegisterFailed, this, _1, _2));
 
@@ -499,7 +502,7 @@ void DIFS::onPutFileInsertCommandNack(const ndn::Interest& interest) {
 }
 
 void DIFS::putFileStartCheckCommand() {
-	auto parameter = RepoCommandParameter();
+	RepoCommandParameter parameter;
 
 	Name cmd = m_repoPrefix;
 	cmd.append("insert check").append(parameter.setProcessId(m_processId).wireEncode());
