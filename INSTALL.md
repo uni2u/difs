@@ -1,4 +1,4 @@
-# Installing repo-ng
+# Installing difs
 
 ## Prerequisites
 
@@ -7,31 +7,31 @@
 
 ## Build
 
-To build in a terminal, change to the directory containing the repo-ng repository.
+To build in a terminal, change to the directory containing the difs repository.
 Then enter:
 
     ./waf configure
     ./waf
     sudo ./waf install
 
-This builds and installs `ndn-repo-ng` and related tools.
+This builds and installs `ndn-difs` and related tools.
 
 If configured with tests (`./waf configure --with-tests`), the above commands will
 also generate unit tests that can be run with `./build/unit-tests`.
 
 ## Configuration
 
-The default configuration file path is `/usr/local/etc/ndn/repo-ng.conf`.
-Users may copy the [repo-ng.conf.sample](repo-ng.conf.sample) config sample to that path.
+The default configuration file path is `/usr/local/etc/ndn/difs.conf`.
+Users may copy the [difs.conf.sample](difs.conf.sample) config sample to that path.
 
 ## Database
 
 The database path is set in the `storage.path` key of the configuration file.
-The default database path is `/var/lib/ndn/repo-ng`.
+The default database path is `/var/lib/ndn/difs`.
 
-repo-ng will automatically create a database if one does not exist.
+difs will automatically create a database if one does not exist.
 
-Users should make sure that the `ndn-repo-ng` process has write access to the
+Users should make sure that the `ndn-difs` process has write access to the
 database directory.
 
 ## Tools

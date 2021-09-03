@@ -11,7 +11,7 @@ def options(opt):
     opt.load(['default-compiler-flags', 'coverage', 'sanitizers', 'boost', 'sqlite3', 'mongodb'],
              tooldir=['.waf-tools'])
 
-    optgrp = opt.add_option_group('Repo-ng Options')
+    optgrp = opt.add_option_group('DIFS Options')
     optgrp.add_option('--with-examples', action='store_true', default=False,
                       help='Build examples')
     optgrp.add_option('--with-tests', action='store_true', default=False,
@@ -83,7 +83,7 @@ def configure(conf):
     conf.load('coverage')
     conf.load('sanitizers')
 
-    conf.define('DEFAULT_CONFIG_FILE', '%s/ndn/repo-ng.conf' % conf.env['SYSCONFDIR'])
+    conf.define('DEFAULT_CONFIG_FILE', '%s/ndn/difs.conf' % conf.env['SYSCONFDIR'])
     conf.define_cond('DISABLE_SQLITE3_FS_LOCKING', not conf.options.with_sqlite_locking)
     conf.define_cond('HAVE_TESTS', conf.env['WITH_TESTS'])
 
@@ -191,13 +191,13 @@ def build(bld):
     if bld.env.WITH_EXAMPLES:
         bld.recurse('examples')
 
-    bld.install_files('${SYSCONFDIR}/ndn', 'repo-ng.conf.sample')
+    bld.install_files('${SYSCONFDIR}/ndn', 'difs.conf.sample')
 
     if Utils.unversioned_sys_platform() == 'linux':
         bld(features='subst',
-            name='repo-ng.service',
-            source='systemd/repo-ng.service.in',
-            target='systemd/repo-ng.service')
+            name='difs.service',
+            source='systemd/difs.service.in',
+            target='systemd/difs.service')
 
 
 

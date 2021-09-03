@@ -18,13 +18,13 @@
 # Author: Davide Pesavento <davidepesa@gmail.com>
 
 [Unit]
-Description=NDN repo-ng
+Description=NDN difs
 BindsTo=nfd.service
 After=nfd.service
 
 [Service]
-Environment=HOME=%S/ndn/repo-ng
-ExecStart=@BINDIR@/ndn-repo-ng
+Environment=HOME=%S/ndn/difs
+ExecStart=@BINDIR@/ndn-difs
 Restart=on-failure
 RestartPreventExitStatus=2
 User=ndn
@@ -43,7 +43,7 @@ ProtectSystem=full
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 RestrictNamespaces=yes
 RestrictRealtime=yes
-StateDirectory=ndn/repo-ng
+StateDirectory=ndn/difs
 SystemCallArchitectures=native
 SystemCallErrorNumber=EPERM
 SystemCallFilter=~@clock @cpu-emulation @debug @module @mount @obsolete @privileged @raw-io @reboot @setuid @swap
