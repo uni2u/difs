@@ -2,6 +2,7 @@
 #define DIFS_HPP
 
 #include <iostream>
+#include <string>
 #include <ndn-cxx/security/hc-key-chain.hpp>
 #include <ndn-cxx/security/command-interest-signer.hpp>
 #include <ndn-cxx/face.hpp>
@@ -108,7 +109,7 @@ public:
   getFile(const ndn::Name& name, std::ostream& os);
 
   void
-  putFile(const ndn::Name& name, std::istream& is);
+  putFile(const ndn::Name& name, std::istream& is, const std::string identityForData, const std::string identityForCommand);
 
   void
   getInfo();

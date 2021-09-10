@@ -9,6 +9,7 @@
 #include <ndn-cxx/security/hc-key-chain.hpp>
 #include <ndn-cxx/security/signing-helpers.hpp>
 #include <ndn-cxx/util/scheduler.hpp>
+#include <ndn-cxx/security/signing-info.hpp>
 
 #include "difs.hpp"
 
@@ -26,6 +27,7 @@
 #include <boost/iostreams/read.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/info_parser.hpp>
+
 
 static const uint64_t DEFAULT_BLOCK_SIZE = 1000;
 static const uint64_t DEFAULT_INTEREST_LIFETIME = 4000;
@@ -519,8 +521,10 @@ DIFS::onDataCommandTimeout(ndn::util::HCSegmentFetcher& fetcher)
 // Put
 
 void
-DIFS::putFile(const ndn::Name& ndnName, std::istream& is)
+DIFS::putFile(const ndn::Name& ndnName, std::istream& is, const std::string identityForData,  const std::string IdentityForCommand)
 {
+  setIdentityForData(identityForData);
+  setIdentityForCommand(IdentityForCommand);
   m_dataPrefix = ndnName;
   m_ndnName = ndnName;
 
@@ -608,6 +612,7 @@ DIFS::putFileStartInsertCommand()
   if (m_identityForCommand.empty())
     commandInterest = m_cmdSigner.makeCommandInterest(cmd);
   else {
+    std::cout << "putFileStartInsertCommand" <<"\t"<<m_identityForCommand<<std::endl;
     commandInterest = m_cmdSigner.makeCommandInterest(cmd, ndn::signingByIdentity(m_identityForCommand));
   }
 
@@ -756,7 +761,13 @@ DIFS::putFilePrepareNextData()
   auto finalBlockId = ndn::name::Component::fromSegment(chunkSize);
 
   std::vector<uint8_t> buffer(m_blockSize);
-  Block nextHash(ndn::lp::tlv::HashChain);
+  uint8_t zeros[32] = {0,0,0,0,0,0,0,0,0,0,
+                       0,0,0,0,0,0,0,0,0,0,
+                       0,0,0,0,0,0,0,0,0,0,
+                       0,0};
+  uint8_t* zerop = zeros;
+
+  Block nextHash = ndn::encoding::makeBinaryBlock(tlv::NextHashValue, zerop, 36);
 
   // start = time(NULL);
   for(int count = 0; count <= chunkSize; count++) {
@@ -778,12 +789,15 @@ DIFS::putFilePrepareNextData()
       data->setFinalBlock(finalBlockId);
 
       if(count == chunkSize) {
-        m_hcKeyChain.sign(*data, nextHash);
+        m_hcKeyChain.sign(*data, nextHash,ndn::signingByIdentity(m_identityForData));
+        // m_hcKeyChain.sign(*data, nextHash,ndn::signingByIdentity(m_identityForData));
       } else {
-        m_hcKeyChain.sign(*data, nextHash, ndn::signingWithSha256());
+        m_hcKeyChain.sign(*data, nextHash, ndn::security::SigningInfo(ndn::security::SigningInfo::SIGNER_TYPE_HASHCHAIN_SHA256));
+        //m_hcKeyChain.sign(*data, nextHash, ndn::signingWithHashChainSha256());
+        //m_hcKeyChain.sign(*data, nextHash, ndn::signingWithSha256());
       }
 
-      nextHash = ndn::encoding::makeBinaryBlock(ndn::lp::tlv::HashChain, data->getSignatureValue().value(), data->getSignatureValue().value_size());
+      nextHash = ndn::encoding::makeBinaryBlock(tlv::NextHashValue, data->getSignatureValue().value(), 4 + data->getSignatureValue().value_size());
 
       m_data.insert(m_data.begin(), data);
       m_currentSegmentNo++;

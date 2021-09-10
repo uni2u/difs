@@ -177,7 +177,7 @@ main(int argc, char** argv)
     difs.setForwardingHint(ndn::DelegationList{d});
   }
 
-  difs.putFile(ndnName, *insertStream);
+  difs.putFile(ndnName, *insertStream, identityForData, identityForCommand);
 
   try
   {
