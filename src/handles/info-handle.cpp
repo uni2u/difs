@@ -59,16 +59,22 @@ InfoHandle::handleInfoCommand(const Name& prefix, const Interest& interest)
 
     struct statvfs sv;
     statvfs("/",&sv);
+    long total_disk, free_disk;
+    total_disk = ((long long)sv.f_blocks * sv.f_bsize / 1024);
+    free_disk = ((long long)sv.f_bavail * sv.f_bsize / 1024);
 
-    diskNode.put("size", ((long long)sv.f_blocks * sv.f_bsize / 1024));
-    diskNode.put("usage", ((long long)sv.f_bavail * sv.f_bsize / 1024));
+    diskNode.put("size", total_disk);
+    diskNode.put("usage", total_disk - free_disk);
     disk.add_child("disk", diskNode);
 
     struct sysinfo si;
     sysinfo(&si);
+    long total_mem, free_mem;
+    total_mem = ((long long)si.totalram / 1024);
+    free_mem = ((long long)si.freeram / 1024);
 
-    memoryNode.put("size", ((long long)si.totalram / 1024));
-    memoryNode.put("usage", ((long long)si.freeram / 1024)) ;
+    memoryNode.put("size", total_mem);
+    memoryNode.put("usage", total_mem - free_mem);
     memory.add_child("memory", memoryNode);
 
     auto datas = CommandBaseHandle::storageHandle.readDatas();
