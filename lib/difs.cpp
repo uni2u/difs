@@ -789,7 +789,8 @@ DIFS::putFilePrepareNextData()
       data->setFinalBlock(finalBlockId);
 
       if(count == chunkSize) {
-        m_hcKeyChain.sign(*data, nextHash,ndn::signingByIdentity(m_identityForData));
+        Name tmp = Name(m_identityForData);
+        m_hcKeyChain.sign(*data, nextHash,ndn::signingByHashChainIdentity(tmp));
         // m_hcKeyChain.sign(*data, nextHash,ndn::signingByIdentity(m_identityForData));
       } else {
         m_hcKeyChain.sign(*data, nextHash, ndn::security::SigningInfo(ndn::security::SigningInfo::SIGNER_TYPE_HASHCHAIN_SHA256));
