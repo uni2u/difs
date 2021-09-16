@@ -164,7 +164,13 @@ MongoDBStorage::eraseManifest(const string& hash)
 std::shared_ptr<Data>
 MongoDBStorage::read(const Name& name)
 {
-  int segmentNo = (int)name.get(-1).toSegment();
+  int segmentNo = 0;
+  try {
+    segmentNo = (int)name.get(-1).toSegment();
+  } catch(std::exception& e) {
+    return nullptr;
+  }
+
   mongocxx::collection coll = mDB[COLLNAME_DATA];
   string key = sha1Hash(name.toUri());
 
