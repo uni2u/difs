@@ -246,7 +246,10 @@ void DIFS::onGetInfoDataCommandResponse(const ndn::Data& data) {
 	std::cout << msg;
 }
 
-void DIFS::onGetInfoDataCommandTimeout(ndn::util::SegmentFetcher& fetcher) { std::cout << "timeout" << std::endl; }
+void DIFS::onGetInfoDataCommandTimeout(ndn::util::SegmentFetcher& fetcher) {
+    NDN_LOG_INFO("INFO: onGetInfoDataCommandTimeout = timeout");
+//    std::cout << "timeout" << std::endl;
+}
 
 void DIFS::getKeySpaceInfo() {
 	Name cmd = m_repoPrefix;
@@ -388,7 +391,10 @@ void DIFS::onDataCommandResponse(const ndn::Data& data) {
 	}
 }
 
-void DIFS::onDataCommandTimeout(ndn::util::HCSegmentFetcher& fetcher) { std::cout << "Timeout" << std::endl; }
+void DIFS::onDataCommandTimeout(ndn::util::HCSegmentFetcher& fetcher) {
+    NDN_LOG_INFO("INFO: onDataCommandTimeout = timeout");
+//    std::cout << "Timeout" << std::endl;
+}
 
 void DIFS::putFile(const std::string dataPrefix, std::istream& is) {
 	m_dataPrefix = Name(dataPrefix);
