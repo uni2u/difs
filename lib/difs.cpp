@@ -318,7 +318,9 @@ DIFS::infoFetch(int start)
   ndn::security::Validator& m_validator(m_validatorConfig);
 
   ndn::util::SegmentFetcher::Options options;
+  options.useConstantCwnd = true; //set windowsize
   options.initCwnd = 12;
+  options.useConstantInterestTimeout = true; //set interest lifetime
   options.interestLifetime = lifeTime;
   options.maxTimeout = lifeTime;
 
@@ -541,8 +543,8 @@ DIFS::putFile(const std::string dataPrefix, std::istream& is)
 
   if (!m_nodePrefix.empty())
     m_face.setInterestFilter(m_nodePrefix.at(0).name, bind(&DIFS::onPutFileInterest, this, _1, _2),
-	                          bind(&DIFS::onPutFileRegisterSuccess, this, _1),
-	                          bind(&DIFS::onPutFileRegisterFailed, this, _1, _2));
+                              bind(&DIFS::onPutFileRegisterSuccess, this, _1),
+                              bind(&DIFS::onPutFileRegisterFailed, this, _1, _2));
 
   m_face.setInterestFilter(m_dataPrefix, bind(&DIFS::onPutFileInterest, this, _1, _2),
                             bind(&DIFS::onPutFileRegisterSuccess, this, _1),
