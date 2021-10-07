@@ -785,7 +785,7 @@ DIFS::putFilePrepareNextData()
   Block nextHash(ndn::lp::tlv::HashChain);
 
   for (auto iter = m_data.rbegin(); iter != m_data.rend(); iter++) {
-    if (iter == m_data.rend()) {
+    if (iter == m_data.rend() - 1) {
       m_hcKeyChain.sign(**iter, nextHash);
     }
     else {
