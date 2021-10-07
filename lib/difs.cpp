@@ -174,7 +174,7 @@ DIFS::onDeleteNodeCommandTimeout(const Interest& interest)
 void
 DIFS::onDeleteNodeCommandNack(const Interest& interest)
 {
-  std::cout << "Delete Node" << std::endl;
+  std::cout << "NACK: Delete Node" << std::endl;
 }
 
 // Delete
@@ -463,11 +463,11 @@ DIFS::onGetCommandNack(const Interest& interest)
     getFile(interest.getName(), *m_os);
 
     if (m_verbose) {
-      std::cerr << "TIMEOUT: retransmit interest for " << interest.getName() << std::endl;
+      std::cerr << "NACK: retransmit interest for " << interest.getName() << std::endl;
     }
   }
   else {
-    std::cerr << "TIMEOUT: last interest sent" << std::endl << "TIMEOUT: abort fetching after " << MAX_RETRY << " times of retry" << std::endl;
+    std::cerr << "NACK: last interest sent" << std::endl << "NACK: abort fetching after " << MAX_RETRY << " times of retry" << std::endl;
   }
 }
 
@@ -671,7 +671,7 @@ DIFS::onPutFileInsertCommandNack(const ndn::Interest& interest)
     putFileStartInsertCommand();
 
     if (m_verbose) {
-      std::cerr << "TIMEOUT: retransmit interest for " << interest.getName() << std::endl;
+      std::cerr << "NACK: retransmit interest for " << interest.getName() << std::endl;
     }
   }
   else {
@@ -747,7 +747,7 @@ DIFS::onPutFileCheckCommandNack(const ndn::Interest& interest)
     putFileStartCheckCommand();
 
     if (m_verbose) {
-      std::cerr << "TIMEOUT: retransmit interest for " << interest.getName() << std::endl;
+      std::cerr << "NACK: retransmit interest for " << interest.getName() << std::endl;
     }
   }
   else {
@@ -851,3 +851,4 @@ void DIFS_getInfo(difs::DIFS* self) { self->getInfo(); }
 void DIFS_getKeySpaceInfo(difs::DIFS* self) { self->getKeySpaceInfo(); }
 void DIFS_run(difs::DIFS* self) { self->run(); }
 }
+
