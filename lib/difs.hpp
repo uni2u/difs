@@ -15,7 +15,7 @@ namespace difs {
 
 using std::shared_ptr;
 
-static const uint64_t DEFAULT_BLOCK_SIZE = 8600;
+static const uint64_t DEFAULT_BLOCK_SIZE = 8500;
 static const uint64_t DEFAULT_INTEREST_LIFETIME = 4000;
 static const uint64_t DEFAULT_FRESHNESS_PERIOD = 10000;
 static const uint64_t DEFAULT_CHECK_PERIOD = 1000;
