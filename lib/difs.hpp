@@ -88,6 +88,8 @@ public:
   setVerbose(bool verbose);
 
   void
+  setUseHashChain(bool useHashChain);
+  void
   setUseDigestSha256(bool useDigestSha256);
 
   void
@@ -116,6 +118,9 @@ public:
 
   void
   getKeySpaceInfo();
+
+  bool
+  getUseHashChain();
 
   void
   run();
@@ -240,6 +245,7 @@ private:
   ndn::Name m_common_name;
   ndn::Name m_repoPrefix;
   bool m_useDigestSha256;
+  bool m_useHashChain;
   ndn::time::milliseconds m_freshnessPeriod; 
   ndn::time::milliseconds m_interestLifetime;
   bool m_hasTimeout;

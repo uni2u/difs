@@ -43,6 +43,7 @@ usage(const char* programName)
             << "\n"
             << "Write a file into a repo.\n"
             << "\n"
+            << "  -c: use HashChain signing method\n"
             << "  -D: use DigestSha256 signing method instead of SignatureSha256WithRsa\n"
             << "  -f: set forwardingHint\n"
             << "  -n: set nodePrefix(backwardingHint)\n"
@@ -63,7 +64,7 @@ int
 main(int argc, char** argv)
 { 
   ndn::time::milliseconds interestLifetime, timeout, freshnessPeriod;
-  bool useDigestSha256, hasTimeout, verbose;
+  bool useDigestSha256, hasTimeout, verbose, useHashChain=false;
   std::string identityForData, identityForCommand;
   ndn::Name repoPrefix, ndnName;
   std::string difsKey, forwardingHint, nodePrefix;
@@ -71,11 +72,14 @@ main(int argc, char** argv)
   size_t blockSize;
   
   int opt;
-  while ((opt = getopt(argc, argv, "hDf:n:i:I:x:l:w:s:v")) != -1) {
+  while ((opt = getopt(argc, argv, "hcDf:n:i:I:x:l:w:s:v")) != -1) {
     switch (opt) {
     case 'h':
       usage(argv[0]);
       return 0;
+    case 'c':
+      useHashChain = true;
+      break;
     case 'D':
       useDigestSha256 = true;
       break;
@@ -164,6 +168,7 @@ main(int argc, char** argv)
   }
 
   difs::DIFS difs(repoPrefix);
+  difs.setUseHashChain(useHashChain);
 
   if(!nodePrefix.empty()) {
     ndn::Delegation d;

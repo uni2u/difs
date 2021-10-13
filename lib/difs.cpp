@@ -79,7 +79,11 @@ DIFS::run()
 {
   m_face.processEvents();
 }
-
+// Get
+bool
+DIFS::getUseHashChain() {
+  return m_useHashChain;
+}
 // Set
 
 void 
@@ -134,6 +138,12 @@ void
 DIFS::setUseDigestSha256(bool useDigestSha256) 
 {
   m_useDigestSha256 = useDigestSha256;
+}
+
+void
+DIFS::setUseHashChain(bool useHashChain) 
+{
+  m_useHashChain = useHashChain;
 }
 
 void
@@ -790,12 +800,18 @@ DIFS::putFilePrepareNextData()
 
       if(count == chunkSize) {
         Name tmp = Name(m_identityForData);
-        m_hcKeyChain.sign(*data, nextHash,ndn::signingByHashChainIdentity(tmp));
-        // m_hcKeyChain.sign(*data, nextHash,ndn::signingByIdentity(m_identityForData));
+        if(getUseHashChain()) {
+          m_hcKeyChain.sign(*data, nextHash,ndn::signingByHashChainIdentity(tmp));
+        } else {
+          m_hcKeyChain.sign(*data, ndn::signingByIdentity(m_identityForData));
+        }
       } else {
-        m_hcKeyChain.sign(*data, nextHash, ndn::security::SigningInfo(ndn::security::SigningInfo::SIGNER_TYPE_HASHCHAIN_SHA256));
+        if(getUseHashChain()) {
+          m_hcKeyChain.sign(*data, nextHash, ndn::security::SigningInfo(ndn::security::SigningInfo::SIGNER_TYPE_HASHCHAIN_SHA256));
+        } else {
         //m_hcKeyChain.sign(*data, nextHash, ndn::signingWithHashChainSha256());
-        //m_hcKeyChain.sign(*data, nextHash, ndn::signingWithSha256());
+          m_hcKeyChain.sign(*data, ndn::signingWithSha256());
+        }
       }
 
       nextHash = ndn::encoding::makeBinaryBlock(tlv::NextHashValue, data->getSignatureValue().value(), 4 + data->getSignatureValue().value_size());
