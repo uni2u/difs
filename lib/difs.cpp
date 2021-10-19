@@ -777,7 +777,7 @@ DIFS::putFilePrepareNextData()
                        0,0};
   uint8_t* zerop = zeros;
 
-  Block nextHash = ndn::encoding::makeBinaryBlock(tlv::NextHashValue, zerop, 36);
+  Block nextHash = ndn::encoding::makeBinaryBlock(tlv::NextHashValue, zerop, 32);
 
   // start = time(NULL);
   for(int count = 0; count <= chunkSize; count++) {
@@ -814,7 +814,7 @@ DIFS::putFilePrepareNextData()
         }
       }
 
-      nextHash = ndn::encoding::makeBinaryBlock(tlv::NextHashValue, data->getSignatureValue().value(), 4 + data->getSignatureValue().value_size());
+      nextHash = ndn::encoding::makeBinaryBlock(tlv::NextHashValue, data->getSignatureValue().value(), data->getSignatureValue().value_size());
 
       m_data.insert(m_data.begin(), data);
       m_currentSegmentNo++;
