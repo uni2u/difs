@@ -61,7 +61,7 @@ InfoHandle::handleInfoCommand(const Name& prefix, const Interest& interest)
     statvfs("/",&sv);
     long total_disk, free_disk;
     total_disk = ((long long)sv.f_blocks * sv.f_bsize / 1024);
-    free_disk = ((long long)sv.f_bavail * sv.f_bsize / 1024);
+    free_disk = ((long long)sv.f_bfree * sv.f_bsize / 1024);
 
     diskNode.put("size", total_disk);
     diskNode.put("usage", total_disk - free_disk);
