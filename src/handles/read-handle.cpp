@@ -173,7 +173,7 @@ ReadHandle::onDataDeleted(const Name& name)
   Name prefix = name.getPrefix(-m_prefixSubsetLength);
   auto check = m_insertedDataPrefixes.find(prefix);
   if (check != m_insertedDataPrefixes.end() && --(check->second.useCount) <= 0) {
-    check->second.hdl.unregister();
+    check->second.hdl.unregister();  // remove rib: unregister
     m_insertedDataPrefixes.erase(prefix);
   }
 }
@@ -198,3 +198,4 @@ ReadHandle::onDataInserted(const Name& name)
 }
 
 } // namespace repo
+
