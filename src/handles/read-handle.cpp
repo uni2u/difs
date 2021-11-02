@@ -170,29 +170,22 @@ ReadHandle::listen(const Name& prefix)
 void
 ReadHandle::onDataDeleted(const Name& name)
 {
-  // We add one here to account for the implicit digest at the end,
-  // which is what we get from the underlying storage when deleting.
-  Name prefix = name.getPrefix(-(m_prefixSubsetLength + 1));
+  Name prefix = name.getPrefix(-m_prefixSubsetLength);
   auto check = m_insertedDataPrefixes.find(prefix);
-  if (check != m_insertedDataPrefixes.end()) {
-    if (--(check->second.useCount) <= 0) {
-      check->second.hdl.unregister();
-      m_insertedDataPrefixes.erase(prefix);
-    }
+  if (check != m_insertedDataPrefixes.end() && --(check->second.useCount) <= 0) {
+    check->second.hdl.unregister();
+    m_insertedDataPrefixes.erase(prefix);  
   }
 }
 
 void
 ReadHandle::onDataInserted(const Name& name)
 {
-  // Note: We want to save the prefix that we register exactly, not the
-  // name that provoked the registration
   Name prefixToRegister = name.getPrefix(-m_prefixSubsetLength);
   ndn::InterestFilter filter(prefixToRegister);
 
   auto hdl = m_face.setInterestFilter(filter,
     [this] (const ndn::InterestFilter& filter, const Interest& interest) {
-      // Implicit conversion to Name of filter
       onInterest(filter, interest);
     },
     [] (const Name&) {},
@@ -201,8 +194,8 @@ ReadHandle::onDataInserted(const Name& name)
     });
 
   RegisteredDataPrefix registeredPrefix{hdl, 1};
-  // Newly registered prefix
   m_insertedDataPrefixes.emplace(std::make_pair(prefixToRegister, registeredPrefix));
 }
 
 } // namespace repo
+

@@ -57,6 +57,7 @@ RepoStorage::deleteData(const Name& name)
   NDN_LOG_DEBUG("Delete: " << name);
 
   if (m_storage.erase(name)) {
+    afterDataDeletion(name);
     return 1;
   }
   return -1;
@@ -122,3 +123,4 @@ RepoStorage::readManifests()
 
 
 } // namespace repo
+
