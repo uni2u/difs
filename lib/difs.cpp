@@ -130,6 +130,12 @@ DIFS::setBlockSize(size_t blockSize)
   m_blockSize = blockSize;
 }
 void
+DIFS::setIdentityForData(std::string identityForData) 
+{
+  m_identityForData = identityForData;
+}
+
+void
 DIFS::setIdentityForCommand(std::string identityForCommand)
 {
   m_identityForCommand = identityForCommand;
@@ -528,9 +534,12 @@ DIFS::onDataCommandTimeout(ndn::util::HCSegmentFetcher& fetcher)
 }
 
 void
-DIFS::putFile(const std::string dataPrefix, std::istream& is)
+DIFS::putFile(const ndn::Name& ndnName, std::istream& is, const std::string identityForData,  const std::string IdentityForCommand)
 {
-  m_dataPrefix = Name(dataPrefix);
+  setIdentityForData(identityForData);
+  setIdentityForCommand(IdentityForCommand);
+  m_dataPrefix = ndnName;
+  m_repoPrefix = ndnName;
 
   m_insertStream = &is;
   m_insertStream->seekg(0, std::ios::beg);
@@ -541,17 +550,13 @@ DIFS::putFile(const std::string dataPrefix, std::istream& is)
 
   putFilePrepareNextData();
 
-  if (!m_nodePrefix.empty())
-    m_face.setInterestFilter(m_nodePrefix.at(0).name, bind(&DIFS::onPutFileInterest, this, _1, _2),
-                              bind(&DIFS::onPutFileRegisterSuccess, this, _1),
-                              bind(&DIFS::onPutFileRegisterFailed, this, _1, _2));
-
-  m_face.setInterestFilter(m_dataPrefix, bind(&DIFS::onPutFileInterest, this, _1, _2),
-                            bind(&DIFS::onPutFileRegisterSuccess, this, _1),
-                            bind(&DIFS::onPutFileRegisterFailed, this, _1, _2));
+  m_face.setInterestFilter(m_dataPrefix,
+                           bind(&DIFS::onPutFileInterest, this, _1, _2),
+                           bind(&DIFS::onPutFileRegisterSuccess, this, _1),
+                           bind(&DIFS::onPutFileRegisterFailed, this, _1, _2));
 
   if (m_hasTimeout)
-    m_scheduler.schedule(m_checkPeriod, [this] { putFileStopProcess(); });
+    m_scheduler.schedule(m_timeout, [this] { putFileStopProcess(); });
 }
 
 void
@@ -781,18 +786,26 @@ DIFS::putFilePrepareNextData()
       return;
     }
   }
+  uint8_t zeros[32] = {0,0,0,0,0,0,0,0,0,0,
+                       0,0,0,0,0,0,0,0,0,0,
+                       0,0,0,0,0,0,0,0,0,0,
+                       0,0};
+  uint8_t* zerop = zeros;
 
-  Block nextHash(ndn::lp::tlv::HashChain);
+  Block nextHash = ndn::encoding::makeBinaryBlock(tlv::NextHashValue, zerop, 32);
+  //Block nextHash(ndn::lp::tlv::HashChain);
 
   for (auto iter = m_data.rbegin(); iter != m_data.rend(); iter++) {
+    Name tmp = Name(m_identityForData);
     if (iter == m_data.rend() - 1) {
-      m_hcKeyChain.sign(**iter, nextHash);
+      m_hcKeyChain.sign(**iter, nextHash, ndn::signingByHashChainIdentity(tmp));
     }
     else {
       m_hcKeyChain.sign(**iter, nextHash, ndn::signingWithSha256());
     }
 
-    nextHash = ndn::encoding::makeBinaryBlock(ndn::lp::tlv::HashChain, (*iter)->getSignatureValue().value(), (*iter)->getSignatureValue().value_size());
+    nextHash = ndn::encoding::makeBinaryBlock(tlv::NextHashValue, (*iter)->getSignatureValue().value(), (*iter)->getSignatureValue().value_size());
+    //nextHash = ndn::encoding::makeBinaryBlock(ndn::lp::tlv::HashChain, (*iter)->getSignatureValue().value(), (*iter)->getSignatureValue().value_size());
     m_currentSegmentNo++;
   }
 }
@@ -846,7 +859,7 @@ void DIFS_setIdentityForCommand(difs::DIFS* self, std::string identityForCommand
 void DIFS_deleteFile(difs::DIFS* self, const ndn::Name& name) { self->deleteFile(name); }
 void DIFS_deleteNode(difs::DIFS* self, const std::string from, const std::string to) { self->deleteNode(from, to); }
 void DIFS_getFile(difs::DIFS* self, const ndn::Name& dataName, std::ostream& os) { self->getFile(dataName, os); }
-void DIFS_putFile(difs::DIFS* self, const std::string dataPrefix, std::istream& is) { self->putFile(dataPrefix, is); }
+void DIFS_putFile(difs::DIFS* self, const std::string dataPrefix, std::istream& is, std::string identityForData, std::string IdentityForCommand) { self->putFile(dataPrefix, is, identityForData,  IdentityForCommand); }
 void DIFS_getInfo(difs::DIFS* self) { self->getInfo(); }
 void DIFS_getKeySpaceInfo(difs::DIFS* self) { self->getKeySpaceInfo(); }
 void DIFS_run(difs::DIFS* self) { self->run(); }

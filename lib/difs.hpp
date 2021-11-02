@@ -83,6 +83,9 @@ public:
   setBlockSize(size_t blockSize);
 
   void
+  setIdentityForData(std::string identityForData);
+  
+  void
   setIdentityForCommand(std::string identityForCommand);
 
   void
@@ -95,7 +98,8 @@ public:
   getFile(const ndn::Name& dataName, std::ostream& os);
 
   void
-  putFile(const std::string dataPrefix, std::istream& is);
+  putFile(const ndn::Name& name, std::istream& is, const std::string identityForData, const std::string identityForCommand);
+
 
   void
   getInfo();
@@ -239,6 +243,7 @@ private:
   size_t m_blockSize, m_bytes;
   boost::property_tree::ptree m_validatorNode;
 
+  std::string m_identityForData;
   std::string m_identityForCommand, m_manifest;
 
   std::map<int, const ndn::Block> map;
