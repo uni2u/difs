@@ -77,6 +77,9 @@ public:
   setVerbose(bool verbose);
 
   void
+  setUseHashChain(bool useHashChain);
+
+  void
   setUseDigestSha256(bool useDigestSha256);
 
   void
@@ -84,7 +87,7 @@ public:
 
   void
   setIdentityForData(std::string identityForData);
-  
+
   void
   setIdentityForCommand(std::string identityForCommand);
 
@@ -100,6 +103,8 @@ public:
   void
   putFile(const ndn::Name& name, std::istream& is, const std::string identityForData, const std::string identityForCommand);
 
+  bool
+  getUseHashChain();
 
   void
   getInfo();
@@ -234,7 +239,7 @@ private:
 private:
   ndn::Name m_repoPrefix, m_dataPrefix;
   ndn::time::milliseconds m_freshnessPeriod, m_interestLifetime, m_timeout, m_checkPeriod;  
-  bool m_useDigestSha256, m_hasTimeout, m_verbose;
+  bool m_useDigestSha256, m_useHashChain, m_hasTimeout, m_verbose;
   std::istream* m_insertStream;
   uint64_t m_processId;
   size_t m_currentSegmentNo;

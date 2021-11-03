@@ -125,6 +125,12 @@ DIFS::setUseDigestSha256(bool useDigestSha256)
   m_useDigestSha256 = useDigestSha256;
 }
 void
+DIFS::setUseHashChain(bool useHashChain) 
+{
+  m_useHashChain = useHashChain;
+}
+
+void
 DIFS::setBlockSize(size_t blockSize)
 {
   m_blockSize = blockSize;
@@ -353,6 +359,11 @@ DIFS::onGetInfoDataCommandTimeout(ndn::util::SegmentFetcher& fetcher)
 //  std::cout << "timeout" << std::endl;
 }
 
+bool
+DIFS::getUseHashChain() {
+  return m_useHashChain;
+}
+
 void
 DIFS::getKeySpaceInfo()
 {
@@ -539,7 +550,7 @@ DIFS::putFile(const ndn::Name& ndnName, std::istream& is, const std::string iden
   setIdentityForData(identityForData);
   setIdentityForCommand(IdentityForCommand);
   m_dataPrefix = ndnName;
-  m_repoPrefix = ndnName;
+  //m_repoPrefix = ndnName;
 
   m_insertStream = &is;
   m_insertStream->seekg(0, std::ios::beg);
@@ -550,10 +561,12 @@ DIFS::putFile(const ndn::Name& ndnName, std::istream& is, const std::string iden
 
   putFilePrepareNextData();
 
+  std::cout<<"m_dataPrefix"<<m_dataPrefix<<std::endl;
   m_face.setInterestFilter(m_dataPrefix,
                            bind(&DIFS::onPutFileInterest, this, _1, _2),
                            bind(&DIFS::onPutFileRegisterSuccess, this, _1),
                            bind(&DIFS::onPutFileRegisterFailed, this, _1, _2));
+  std::cout<<"m_face.setInterestFilter"<<std::endl;
 
   if (m_hasTimeout)
     m_scheduler.schedule(m_timeout, [this] { putFileStopProcess(); });
@@ -569,10 +582,14 @@ DIFS::onPutFileInterest(const Name& prefix, const ndn::Interest& interest)
 
   uint64_t segmentNo;
   try {
+    std::cout << "segmentNo" <<segmentNo<< std::endl;
     Name::Component segmentComponent = interest.getName().get(prefix.size());
+    std::cout << "segmentComponent" <<segmentComponent.toUri()<< std::endl;
     segmentNo = segmentComponent.toSegment();
+    std::cout << "--segmentNo" <<segmentNo<< std::endl;
   }
   catch (const tlv::Error& e) {
+    std::cout << "labry" << std::endl;
     std::cout << "failed" << std::endl;
 
     if (m_verbose) {
@@ -798,13 +815,27 @@ DIFS::putFilePrepareNextData()
   for (auto iter = m_data.rbegin(); iter != m_data.rend(); iter++) {
     Name tmp = Name(m_identityForData);
     if (iter == m_data.rend() - 1) {
+      if(getUseHashChain()) {
+        NDN_LOG_INFO("hc on signingByHashChainIdentity\n");
       m_hcKeyChain.sign(**iter, nextHash, ndn::signingByHashChainIdentity(tmp));
+      } else {
+        NDN_LOG_INFO("hc off\n");
+        m_hcKeyChain.sign(**iter, ndn::signingByIdentity(m_identityForData));
+      }
     }
     else {
-      m_hcKeyChain.sign(**iter, nextHash, ndn::signingWithSha256());
+      if(getUseHashChain()) {
+        NDN_LOG_INFO("hc on signerTypeHashChainSha256\n");
+        m_hcKeyChain.sign(**iter, nextHash, ndn::security::SigningInfo(ndn::security::SigningInfo::SIGNER_TYPE_HASHCHAIN_SHA256));
+      } else {
+        NDN_LOG_INFO("hc off\n");
+        m_hcKeyChain.sign(**iter, ndn::signingWithSha256());
+      }
     }
 
-    nextHash = ndn::encoding::makeBinaryBlock(tlv::NextHashValue, (*iter)->getSignatureValue().value(), (*iter)->getSignatureValue().value_size());
+    if(getUseHashChain()) {
+      nextHash = ndn::encoding::makeBinaryBlock(tlv::NextHashValue, (*iter)->getSignatureValue().value(), (*iter)->getSignatureValue().value_size());
+    }
     //nextHash = ndn::encoding::makeBinaryBlock(ndn::lp::tlv::HashChain, (*iter)->getSignatureValue().value(), (*iter)->getSignatureValue().value_size());
     m_currentSegmentNo++;
   }
@@ -854,6 +885,7 @@ void DIFS_setFreshnessPeriod(difs::DIFS* self, ndn::time::milliseconds freshness
 void DIFS_setHasTimeout(difs::DIFS* self, bool hasTimeout) { self->setHasTimeout(hasTimeout); }
 void DIFS_setVerbose(difs::DIFS* self, bool verbose) { self->setVerbose(verbose); }
 void DIFS_setUseDigestSha256(difs::DIFS* self, bool useDigestSha256) { self->setUseDigestSha256(useDigestSha256); }
+void DIFS_setUseHashChain(difs::DIFS* self, bool useHashChain) { self->setUseHashChain(useHashChain); }
 void DIFS_setBlockSize(difs::DIFS* self, size_t blockSize) { self->setBlockSize(blockSize); }
 void DIFS_setIdentityForCommand(difs::DIFS* self, std::string identityForCommand) { self->setIdentityForCommand(identityForCommand); }
 void DIFS_deleteFile(difs::DIFS* self, const ndn::Name& name) { self->deleteFile(name); }
