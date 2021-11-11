@@ -215,7 +215,11 @@ Repo::onKeyInterest(const ndn::InterestFilter& interestFilter, const Interest& i
     try{
       const auto cert = m_keyChain.getPib().getDefaultIdentity().getDefaultKey().getDefaultCertificate();
       auto tmpName = m_keyChain.getPib().getDefaultIdentity();
+      auto tmpKey = m_keyChain.getPib().getDefaultIdentity().getName();
+      auto tmpCert = m_keyChain.getPib().getDefaultIdentity().getDefaultKey().getDefaultCertificate();
       std::cout<<"tmpName"<<tmpName.getName()<<std::endl;
+      std::cout<<"tmpKey"<<tmpKey.toUri()<<std::endl;
+      std::cout<<"tmpCert"<<tmpCert.getName()<<std::endl;
       // const auto cert = m_keyChain.getPib().getIdentity(keyName).getKey(keyName).getCertificate(keyName);
       // const auto cert = m_keyChain.getPib().getIdentity(identity).getKey(identity).getCertificate(identity);
       m_face.put(cert);
