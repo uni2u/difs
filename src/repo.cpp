@@ -212,8 +212,8 @@ Repo::onKeyInterest(const ndn::InterestFilter& interestFilter, const Interest& i
   Name identity = ndn::security::v2::extractIdentityFromKeyName(interest.getName());
   std::cout << "Got interest for certificate. Interest: " << identity << std::endl;
     try{
-      const auto cert = m_keyChain.getPib().getIdentity(identity).getKey(identity).getCertificate(identity);
-      // const auto cert = m_keyChain.getPib().getDefaultIdentity().getDefaultKey().getCertificate(identity);
+      // const auto cert = m_keyChain.getPib().getIdentity(identity).getKey(identity).getCertificate(identity);
+      const auto cert = m_keyChain.getPib().getIdentity(identity).getKey(identity).getCertificate("/app/repo1/KEY/%CC%22%93%855%EA%E5%9A");
       // const auto cert = m_keyChain.getPib().getIdentity(identity).getKey(identity).getCertificate(identity);
       m_face.put(cert);
       } catch(std::exception& e) {
