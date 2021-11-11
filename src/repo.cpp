@@ -167,7 +167,7 @@ Repo::Repo(boost::asio::io_service& ioService, std::shared_ptr<Storage> storage,
   for(auto identity: ids) {
     auto keyPrefix = identity.getName();
     keyPrefix.append(ndn::name::Component("KEY"));
-    std::cout<<"Register Key identity:"<<identity.getName()<<std::endl;
+    std::cout<<"Register Key prefix identity:"<<keyPrefix<<std::endl;
     m_face.setInterestFilter(
         ndn::InterestFilter(keyPrefix),
         bind(&Repo::onKeyInterest, this, _1, _2),
