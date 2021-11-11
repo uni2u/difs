@@ -162,7 +162,7 @@ Repo::Repo(boost::asio::io_service& ioService, std::shared_ptr<Storage> storage,
 {
   this->enableValidation();
 
-  auto& ids = m_keyChain.getPib().getIdentities();
+  auto& ids = m_hcKeyChain.getPib().getIdentities();
 
   for(auto identity: ids) {
     auto keyPrefix = identity.getName();
@@ -191,7 +191,7 @@ Repo::addNode() {
     .append(parameter.wireEncode());
 
   ndn::HCKeyChain hcKeyChain;
-  ndn::KeyChain keyChain;
+  // ndn::KeyChain keyChain;
   ndn::security::CommandInterestSigner cmdSigner(hcKeyChain);
 
   Interest addInterest = cmdSigner.makeCommandInterest(cmd);
@@ -216,13 +216,13 @@ Repo::onKeyInterest(const ndn::InterestFilter& interestFilter, const Interest& i
   // std::cout << "Got interest for certificate. keyName: " << keyName << std::endl;
     try{
       // const auto cert = m_keyChain.getPib().getDefaultIdentity().getDefaultKey().getDefaultCertificate();
-      auto tmpName = m_keyChain.getPib().getDefaultIdentity();
-      auto tmpKey = m_keyChain.getPib().getDefaultIdentity().getName();
-      auto tmpCert = m_keyChain.getPib().getDefaultIdentity().getDefaultKey().getDefaultCertificate();
-      std::cout<<"tmpName"<<tmpName.getName()<<std::endl;
-      std::cout<<"tmpKey"<<tmpKey.toUri()<<std::endl;
-      std::cout<<"tmpCert"<<tmpCert.getName()<<std::endl;
-      const auto cert = m_keyChain.getPib().getIdentity(identity).getDefaultKey().getDefaultCertificate();
+      // auto tmpName = m_keyChain.getPib().getDefaultIdentity();
+      // auto tmpKey = m_keyChain.getPib().getDefaultIdentity().getName();
+      // auto tmpCert = m_keyChain.getPib().getDefaultIdentity().getDefaultKey().getDefaultCertificate();
+      // std::cout<<"tmpName"<<tmpName.getName()<<std::endl;
+      // std::cout<<"tmpKey"<<tmpKey.toUri()<<std::endl;
+      // std::cout<<"tmpCert"<<tmpCert.getName()<<std::endl;
+      const auto cert = m_hcKeyChain.getPib().getIdentity(identity).getDefaultKey().getDefaultCertificate();
       // const auto cert = m_keyChain.getPib().getIdentity(identity).getKey(identity).getCertificate(identity);
       m_face.put(cert);
       } catch(std::exception& e) {

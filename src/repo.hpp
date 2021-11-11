@@ -134,7 +134,7 @@ private:
   std::shared_ptr<Storage> m_store;
   RepoStorage m_storageHandle;
   HCKeyChain m_hcKeyChain;
-  ndn::KeyChain m_keyChain;
+  // ndn::KeyChain m_keyChain;
   ValidatorConfig m_validator;
 
   KeySpaceHandle m_keySpaceHandle;
