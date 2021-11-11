@@ -209,9 +209,11 @@ Repo::addNode() {
 void
 Repo::onKeyInterest(const ndn::InterestFilter& interestFilter, const Interest& interest)
 {
-  Name keyName = interest.getName();
+  // Name keyName = interest.getName();
   Name identity = ndn::security::v2::extractIdentityFromKeyName(interest.getName());
-  std::cout << "Got interest for certificate. Interest: " << identity << std::endl;
+  // Name keyName = ndn::security::v2::extractKeyNameFromCertName(interest.getName());
+  std::cout << "Got interest for certificate. identity: " << identity << std::endl;
+  // std::cout << "Got interest for certificate. keyName: " << keyName << std::endl;
     try{
       // const auto cert = m_keyChain.getPib().getDefaultIdentity().getDefaultKey().getDefaultCertificate();
       auto tmpName = m_keyChain.getPib().getDefaultIdentity();
@@ -220,7 +222,7 @@ Repo::onKeyInterest(const ndn::InterestFilter& interestFilter, const Interest& i
       std::cout<<"tmpName"<<tmpName.getName()<<std::endl;
       std::cout<<"tmpKey"<<tmpKey.toUri()<<std::endl;
       std::cout<<"tmpCert"<<tmpCert.getName()<<std::endl;
-      const auto cert = m_keyChain.getPib().getIdentity(identity).getKey(identity.append("KEY")); //.getCertificate(tmpCert.getName());
+      const auto cert = m_keyChain.getPib().getIdentity(identity).getKey(identity.append(ndn::name::Component("KEY"))); //.getCertificate(tmpCert.getName());
       // const auto cert = m_keyChain.getPib().getIdentity(identity).getKey(identity).getCertificate(identity);
       //m_face.put(cert);
       } catch(std::exception& e) {
