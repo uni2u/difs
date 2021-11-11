@@ -162,7 +162,7 @@ Repo::Repo(boost::asio::io_service& ioService, std::shared_ptr<Storage> storage,
 {
   this->enableValidation();
 
-  auto& ids = m_hcKeyChain.getPib().getIdentities();
+  auto& ids = m_keyChain.getPib().getIdentities();
 
   for(auto identity: ids) {
     auto keyPrefix = identity.getName();
@@ -191,6 +191,7 @@ Repo::addNode() {
     .append(parameter.wireEncode());
 
   ndn::HCKeyChain hcKeyChain;
+  ndn::KeyChain keyChain;
   ndn::security::CommandInterestSigner cmdSigner(hcKeyChain);
 
   Interest addInterest = cmdSigner.makeCommandInterest(cmd);
@@ -211,9 +212,9 @@ Repo::onKeyInterest(const ndn::InterestFilter& interestFilter, const Interest& i
   Name identity = ndn::security::v2::extractIdentityFromKeyName(interest.getName());
   std::cout << "Got interest for certificate. Interest: " << identity << std::endl;
     try{
-      const auto cert = m_hcKeyChain.getPib().getIdentity(identity).getKey(identity).getCertificate(identity);
-      // const auto cert = m_hcKeyChain.getPib().getDefaultIdentity().getDefaultKey().getCertificate(identity);
-      // const auto cert = m_hcKeyChain.getPib().getIdentity(identity).getKey(identity).getCertificate(identity);
+      const auto cert = m_keyChain.getPib().getIdentity(identity).getKey(identity).getCertificate(identity);
+      // const auto cert = m_keyChain.getPib().getDefaultIdentity().getDefaultKey().getCertificate(identity);
+      // const auto cert = m_keyChain.getPib().getIdentity(identity).getKey(identity).getCertificate(identity);
       m_face.put(cert);
       } catch(std::exception& e) {
         std::cout << "Certificate is not found for: " << interest << std::endl;

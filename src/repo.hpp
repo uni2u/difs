@@ -39,6 +39,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <ndn-cxx/mgmt/dispatcher.hpp>
 #include <ndn-cxx/security/validator-config.hpp>
+#include <ndn-cxx/security/key-chain.hpp>
 
 namespace repo {
 
@@ -133,6 +134,7 @@ private:
   std::shared_ptr<Storage> m_store;
   RepoStorage m_storageHandle;
   HCKeyChain m_hcKeyChain;
+  ndn::KeyChain m_keyChain;
   ValidatorConfig m_validator;
 
   KeySpaceHandle m_keySpaceHandle;
