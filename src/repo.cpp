@@ -24,6 +24,11 @@
 
 #include <ndn-cxx/util/logger.hpp>
 #include <ndn-cxx/security/command-interest-signer.hpp>
+#include <ndn-cxx/security/pib/identity-container.hpp>
+#include "ndn-cxx/security/certificate.hpp"
+
+#include "ndn-cxx/security/security-common.hpp"
+#include "ndn-cxx/security/pib/certificate-container.hpp"
 
 namespace repo {
 
@@ -156,6 +161,18 @@ Repo::Repo(boost::asio::io_service& ioService, std::shared_ptr<Storage> storage,
   , m_tcpBulkInsertHandle(ioService, m_storageHandle)
 {
   this->enableValidation();
+
+  auto& ids = m_hcKeyChain.getPib().getIdentities();
+
+  for(auto identity: ids) {
+    auto keyPrefix = identity.getName();
+    keyPrefix.append(ndn::name::Component("KEY"));
+    std::cout<<"Register Key identity:"<<identity.getName()<<std::endl;
+    m_face.setInterestFilter(
+        ndn::InterestFilter(keyPrefix),
+        bind(&Repo::onKeyInterest, this, _1, _2),
+        bind(&Repo::onKeyRegisterFailed, this, _1, _2)); 
+  }
 }
 
 void
@@ -185,7 +202,34 @@ Repo::addNode() {
     addInterest,
     std::bind(&Repo::onAddCommandResponse, this, _1, _2),
     std::bind(&Repo::onAddCommandTimeout, this, _1),
-    std::bind(&Repo::onAddCommandTimeout, this, _1));
+    std::bind(&Repo::onAddCommandTimeout, this, _1));  
+}
+
+void
+Repo::onKeyInterest(const ndn::InterestFilter&, const Interest&interest)
+{
+  std::cout << "Got interest for certificate. Interest: " << std::endl;
+    try{
+      //Name identity = extractIdentityFromKeyName(interest.getName());
+      const auto cert = m_hcKeyChain.getPib().getDefaultIdentity().getDefaultKey().getDefaultCertificate();
+      m_face.put(cert);
+      } catch(std::exception& e) {
+        std::cout << "Certificate is not found for: " << interest << std::endl;
+        }
+}
+
+void 
+Repo::onKeyRegisterSuccess(const ndn::Name& name)
+{
+  std::cout<<"Register Key successful!" <<name.toUri()<<std::endl;
+  m_face.shutdown();
+}
+
+void 
+Repo::onKeyRegisterFailed(const ndn::Name& prefix, const std::string& reason)
+{
+  std::cout<<"Register failed for prefix " <<reason.c_str()<<std::endl;
+  m_face.shutdown();
 }
 
 void

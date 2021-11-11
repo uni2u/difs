@@ -116,6 +116,15 @@ public:
   void
   addNode();
 
+  void
+  onKeyInterest(const ndn::InterestFilter&, const Interest&interest);
+
+  void 
+  onKeyRegisterSuccess(const ndn::Name& name);
+
+  void 
+  onKeyRegisterFailed(const ndn::Name& prefix, const std::string& reason);
+
 private:
   RepoConfig m_config;
   Scheduler m_scheduler;
