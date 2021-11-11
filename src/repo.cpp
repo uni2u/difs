@@ -209,13 +209,13 @@ Repo::addNode() {
 void
 Repo::onKeyInterest(const ndn::InterestFilter& interestFilter, const Interest& interest)
 {
-  Name keyName = interest.getName();
-  // Name identity = ndn::security::v2::extractIdentityFromKeyName(interest.getName());
-  std::cout << "Got interest for certificate. Interest: " << keyName << std::endl;
+  // Name keyName = interest.getName();
+  Name identity = ndn::security::v2::extractIdentityFromKeyName(interest.getName());
+  std::cout << "Got interest for certificate. Interest: " << identity << std::endl;
     try{
-      const auto cert = m_keyChain.getPib().getDefaultIdentity().getDefaultKey().getDefaultCertificate();
+      // const auto cert = m_keyChain.getPib().getDefaultIdentity().getDefaultKey().getDefaultCertificate();
       // const auto cert = m_keyChain.getPib().getIdentity(keyName).getKey(keyName).getCertificate(keyName);
-      // const auto cert = m_keyChain.getPib().getIdentity(identity).getKey(identity).getCertificate(identity);
+      const auto cert = m_keyChain.getPib().getIdentity(identity).getKey(identity).getCertificate(identity);
       m_face.put(cert);
       } catch(std::exception& e) {
         std::cout << "Certificate is not found for: " << interest << std::endl;
