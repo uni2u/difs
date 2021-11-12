@@ -364,6 +364,11 @@ DIFS::getUseHashChain() {
   return m_useHashChain;
 }
 
+bool
+DIFS::getUseDigestSha256() {
+  return m_useDigestSha256;
+}
+
 void
 DIFS::getKeySpaceInfo()
 {
@@ -827,9 +832,12 @@ DIFS::putFilePrepareNextData()
       if(getUseHashChain()) {
         NDN_LOG_INFO("hc on signerTypeHashChainSha256\n");
         m_hcKeyChain.sign(**iter, nextHash, ndn::security::SigningInfo(ndn::security::SigningInfo::SIGNER_TYPE_HASHCHAIN_SHA256));
-      } else {
-        NDN_LOG_INFO("hc off\n");
+      } else if(getUseDigestSha256()){
+        NDN_LOG_INFO("hc off and sha256\n");
         m_hcKeyChain.sign(**iter, ndn::signingWithSha256());
+      } else {
+        NDN_LOG_INFO("hc off and identity\n");
+        m_hcKeyChain.sign(**iter, ndn::signingByIdentity(m_identityForData));
       }
     }
 

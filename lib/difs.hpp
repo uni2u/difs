@@ -106,6 +106,9 @@ public:
   bool
   getUseHashChain();
 
+    bool
+  getUseDigestSha256();
+
   void
   getInfo();
 
