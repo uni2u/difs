@@ -566,12 +566,12 @@ DIFS::putFile(const ndn::Name& ndnName, std::istream& is, const std::string iden
 
   putFilePrepareNextData();
 
-  std::cout<<"m_dataPrefix"<<m_dataPrefix<<std::endl;
+  NDN_LOG_DEBUG("m_dataPrefix"<<m_dataPrefix<<std::endl);
   m_face.setInterestFilter(m_dataPrefix,
                            bind(&DIFS::onPutFileInterest, this, _1, _2),
                            bind(&DIFS::onPutFileRegisterSuccess, this, _1),
                            bind(&DIFS::onPutFileRegisterFailed, this, _1, _2));
-  std::cout<<"m_face.setInterestFilter"<<std::endl;
+  NDN_LOG_DEBUG("m_face.setInterestFilter"<<std::endl);
 
   if (m_hasTimeout)
     m_scheduler.schedule(m_timeout, [this] { putFileStopProcess(); });
