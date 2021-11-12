@@ -587,15 +587,14 @@ DIFS::onPutFileInterest(const Name& prefix, const ndn::Interest& interest)
 
   uint64_t segmentNo;
   try {
-    std::cout << "segmentNo" <<segmentNo<< std::endl;
+    NDN_LOG_DEBUG("segmentNo" <<segmentNo<< std::endl);
     Name::Component segmentComponent = interest.getName().get(prefix.size());
-    std::cout << "segmentComponent" <<segmentComponent.toUri()<< std::endl;
+    NDN_LOG_DEBUG("segmentComponent" <<segmentComponent.toUri()<< std::endl);
     segmentNo = segmentComponent.toSegment();
-    std::cout << "--segmentNo" <<segmentNo<< std::endl;
+    NDN_LOG_DEBUG("--segmentNo" <<segmentNo<< std::endl);
   }
   catch (const tlv::Error& e) {
-    std::cout << "labry" << std::endl;
-    std::cout << "failed" << std::endl;
+    NDN_LOG_DEBUG("tlv::Error failed" << std::endl);
 
     if (m_verbose) {
       NDN_LOG_ERROR("Error processing incoming interest " << interest << ": " << e.what());
