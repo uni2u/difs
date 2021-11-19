@@ -529,12 +529,10 @@ DIFS::onDataCommandResponse(const ndn::Data& data)
 {
   const auto& content = data.getContent();
   m_os->write(reinterpret_cast<const char*>(content.value()), content.value_size());
-
   int segment = data.getName().get(-1).toSegment();
   int finalBlockId = data.getFinalBlock().value().toSegment();
   m_totalSize += content.value_size();
-
-  NDN_LOG_INFO("INFO: data name = " << data.getName() << ", next-hash = " << data.getMetaInfo().getAppMetaInfo().front());
+  NDN_LOG_INFO("INFO: data name = " << data.getName() << ", next-hash = " << data.getSignatureInfo().getNextHash().value());
 
   if (segment == finalBlockId) {
     NDN_LOG_INFO("INFO: Total # bytes of content received: " << m_totalSize);
@@ -556,7 +554,7 @@ DIFS::putFile(const ndn::Name& ndnName, std::istream& is, const std::string iden
   setIdentityForData(identityForData);
   setIdentityForCommand(IdentityForCommand);
 
-    const auto default_id = m_hcKeyChain.getPib().getDefaultIdentity();
+  const auto default_id = m_hcKeyChain.getPib().getDefaultIdentity();
   if(identityForData == "") {
     std::ostringstream out;  
     out<<default_id.getName();
