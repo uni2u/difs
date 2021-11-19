@@ -552,8 +552,22 @@ DIFS::onDataCommandTimeout(ndn::util::HCSegmentFetcher& fetcher)
 void
 DIFS::putFile(const ndn::Name& ndnName, std::istream& is, const std::string identityForData,  const std::string IdentityForCommand)
 {
+
   setIdentityForData(identityForData);
   setIdentityForCommand(IdentityForCommand);
+
+    const auto default_id = m_hcKeyChain.getPib().getDefaultIdentity();
+  if(identityForData == "") {
+    std::ostringstream out;  
+    out<<default_id.getName();
+    setIdentityForData(out.str());
+  }
+    if(IdentityForCommand == "") {
+    std::ostringstream out;  
+    out<<default_id.getName();
+    setIdentityForCommand(out.str());
+  }
+
   m_dataPrefix = ndnName;
   //m_repoPrefix = ndnName;
 
