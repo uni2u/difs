@@ -33,7 +33,7 @@ public:
   : m_repoPrefix(repoPrefix)
     , m_freshnessPeriod(DEFAULT_FRESHNESS_PERIOD)
     , m_interestLifetime(DEFAULT_INTEREST_LIFETIME)
-    , m_timeout(0)
+    , m_timeout(20000)
     , m_checkPeriod(DEFAULT_CHECK_PERIOD)
     , m_useDigestSha256(false)
     , m_hasTimeout(false)
@@ -265,6 +265,7 @@ private:
   ndn::Scheduler m_scheduler;
   std::vector<shared_ptr<ndn::Data>> m_data;
   ndn::security::CommandInterestSigner m_cmdSigner;
+
 };
 
 }// namespace difs

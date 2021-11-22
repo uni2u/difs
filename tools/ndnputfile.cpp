@@ -70,6 +70,7 @@ main(int argc, char** argv)
   std::string difsKey, forwardingHint, nodePrefix;
   std::istream* insertStream;
   size_t blockSize;
+
   
   int opt;
   while ((opt = getopt(argc, argv, "hcDf:n:i:I:x:l:w:s:v")) != -1) {

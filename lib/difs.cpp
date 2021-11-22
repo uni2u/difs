@@ -30,7 +30,8 @@
 
 NDN_LOG_INIT(difs.DIFS);
 
-static const size_t PRE_SIGN_DATA_COUNT = 11;
+static const size_t PRE_SIGN_DATA_COUNT = 21;
+static const int INIT_CWND = 22;
 
 namespace difs {
 
@@ -49,6 +50,12 @@ static const int MAX_RETRY = 3;
 int m_totalSize = 0;
 
 // Get SegmentFetcher validation
+static uint8_t zeros[32] = {0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,
+                    0,0};
+uint8_t* zerop = zeros;
+
 void
 DIFS::parseConfig() {
   std::string configPath = "node.conf";
@@ -331,7 +338,7 @@ DIFS::infoFetch(int start)
 
   ndn::util::SegmentFetcher::Options options;
   options.useConstantCwnd = true; //set windowsize
-  options.initCwnd = 12;
+  options.initCwnd = INIT_CWND;
   options.useConstantInterestTimeout = true; //set interest lifetime
   options.interestLifetime = lifeTime;
   options.maxTimeout = lifeTime;
@@ -512,7 +519,7 @@ DIFS::fetch(int start)
 
   ndn::util::SegmentFetcher::Options options;
   options.useConstantCwnd = true; //set windowsize
-  options.initCwnd = 12;
+  options.initCwnd = INIT_CWND;
   options.useConstantInterestTimeout = true; //set interest lifetime
   options.interestLifetime = lifeTime;
   options.maxTimeout = lifeTime;
@@ -798,7 +805,9 @@ DIFS::putFilePrepareNextData()
 {
   int chunkSize = m_bytes / m_blockSize;
   auto finalBlockId = ndn::name::Component::fromSegment(chunkSize);
-
+  Block nextHash = ndn::encoding::makeBinaryBlock(tlv::NextHashValue, zerop, 32);
+  m_data.reserve(chunkSize);
+  
   for (int count = 0; count <= chunkSize; count++) {
     uint8_t* buffer = new uint8_t[m_blockSize];
     m_insertStream->read(reinterpret_cast<char*>(buffer), m_blockSize);
@@ -819,14 +828,6 @@ DIFS::putFilePrepareNextData()
       return;
     }
   }
-  uint8_t zeros[32] = {0,0,0,0,0,0,0,0,0,0,
-                       0,0,0,0,0,0,0,0,0,0,
-                       0,0,0,0,0,0,0,0,0,0,
-                       0,0};
-  uint8_t* zerop = zeros;
-
-  Block nextHash = ndn::encoding::makeBinaryBlock(tlv::NextHashValue, zerop, 32);
-  //Block nextHash(ndn::lp::tlv::HashChain);
 
   for (auto iter = m_data.rbegin(); iter != m_data.rend(); iter++) {
     Name tmp = Name(m_identityForData);

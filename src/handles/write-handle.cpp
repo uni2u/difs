@@ -31,10 +31,10 @@ namespace repo {
 
 NDN_LOG_INIT(repo.WriteHandle);
 
-static const int DEFAULT_CREDIT = 12;
+static const int DEFAULT_CREDIT = 42;
 static const bool DEFAULT_CANBE_PREFIX = false;
-static const milliseconds MAX_TIMEOUT(60_s);
-static const milliseconds NOEND_TIMEOUT(10000_ms);
+static const milliseconds MAX_TIMEOUT(120_s);
+static const milliseconds NOEND_TIMEOUT(40000_ms);
 static const milliseconds PROCESS_DELETE_TIME(10000_ms);
 static const milliseconds DEFAULT_INTEREST_LIFETIME(4000_ms);
 
