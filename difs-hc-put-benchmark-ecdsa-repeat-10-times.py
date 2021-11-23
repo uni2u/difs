@@ -19,13 +19,13 @@ put_id = 1
 REPO_DIR = '/tmp/repo/'
 
 
-def reset_repo():
-    print('Resetting repo')
-    try:
-        call(['killall', 'ndn-difs'])
-        shutil.rmtree(REPO_DIR)
-    except:
-        pass
+# def reset_repo():
+#     print('Resetting repo')
+#     try:
+#         call(['killall', 'ndn-difs'])
+#         shutil.rmtree(REPO_DIR)
+#     except:
+#         pass
 
 def run_get(id_):
     start = datetime.now()
@@ -39,8 +39,8 @@ def run_get(id_):
 
 def run_del(id_):
     start = datetime.now()
-    ndn_cmd = "/hashchain/%d" % (put_id)
-    print("ndndelfile /difs /%s ",ndn_cmd)
+    ndn_cmd = "/hashchain/%d" % (put_id-1)
+    print(f"ndndelfile /difs {ndn_cmd}")
     p = Popen(
         ['ndndelfile', '/difs', ndn_cmd],
         stdout=DEVNULL, stderr=DEVNULL)
@@ -74,35 +74,35 @@ def run_put(id_, tfile):
 
 def run_test(size):
     id = 0
-    reset_repo()
-    p_nfd, p_repo = None, None
+    # reset_repo()
+    # p_nfd, p_repo = None, None
 
-    def restart_repo(p_nfd, p_repo):
-        print('Restarting repo')
-        if p_repo:
-            p_repo.send_signal(signal.SIGINT)
-            try:
-                p_repo.wait(1)
-            except TimeoutExpired:
-                p_repo.kill()
+    # def restart_repo(p_nfd, p_repo):
+    #     print('Restarting repo')
+    #     if p_repo:
+    #         p_repo.send_signal(signal.SIGINT)
+    #         try:
+    #             p_repo.wait(1)
+    #         except TimeoutExpired:
+    #             p_repo.kill()
 
-        if p_nfd:
-            p_nfd.send_signal(signal.SIGINT)
-            try:
-                p_nfd.wait(1)
-            except TimeoutExpired:
-                p_nfd.kill()
+    #     if p_nfd:
+    #         p_nfd.send_signal(signal.SIGINT)
+    #         try:
+    #             p_nfd.wait(1)
+    #         except TimeoutExpired:
+    #             p_nfd.kill()
 
-        p_repo = Popen(['ndn-difs', '-c', 'manager-sign.conf'], stdout=DEVNULL)
-        sleep(5)
+    #     p_repo = Popen(['ndn-difs', '-c', 'manager-sign.conf'], stdout=DEVNULL)
+    #     sleep(5)
 
-        return p_nfd, p_repo
+    #     return p_nfd, p_repo
 
     with tempfile.NamedTemporaryFile() as tfile:
         print(f'Testing with {size}')
 
 
-        p_nfd, p_repo = restart_repo(p_nfd, p_repo)
+        # p_nfd, p_repo = restart_repo(p_nfd, p_repo)
 
         call([
             'fallocate', '-l', str(size), tfile.name
