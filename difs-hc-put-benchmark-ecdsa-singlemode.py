@@ -138,7 +138,10 @@ def run_test(size):
 sizes = [2 ** i for i in range(27, 31)]
 #sizes = [2 ** 27]
 
-with open('2021-11-25-hashchain-singlemode-ecdsa-results.tsv', 'w') as tsvfile:
+import time
+timestr = time.strftime("%Y%m%d")
+print(timestr)
+with open(f'{timestr}-hashchain-singlemode-ecdsa-results.tsv', 'w') as tsvfile:
     writer = csv.writer(tsvfile, delimiter='\t')
     for size in sizes:
         for row in run_test(size):
